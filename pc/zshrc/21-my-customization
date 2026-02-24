@@ -1,0 +1,2 @@
+
+bindkey '^o' fzf-history-widget

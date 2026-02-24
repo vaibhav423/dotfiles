@@ -1,0 +1,361 @@
+# -----------------------------------------------------
+# ALIASES
+# -----------------------------------------------------
+# -----------------------------------------------------
+# General
+# -----------------------------------------------------
+
+# create python virtualenv and activate with given name 
+# do not create if already exists
+pveng(){
+    source ~/Water/crap/python/bin/activate
+}
+pven() {
+    if [ -z "$1" ]; then
+        echo "Usage: mkvenv <env-name>"
+        return 1
+    fi
+    if [ ! -d "$1" ]; then
+        python -m venv "$1"
+        echo "Virtual environment '$1' created."
+    else
+        echo "Virtual environment '$1' already exists."
+    fi
+    source "$1/bin/activate"
+}
+
+bainstalled() {
+    # Create a searchable list of "package: description" for locally installed packages
+    # and filter it to show only those belonging to the BlackArch repository.
+    pacman -Qs . | paste - - | sed -e 's|^local/||' -e 's/ [0-9].*?\t/: /' | \
+    grep -Fwf <(comm -12 <(pacman -Q | cut -d' ' -f1 | sort) <(pacman -Sl blackarch | cut -d' ' -f2 | sort)) | \
+    fzf --prompt="Search Installed BlackArch Tools > " --layout=reverse \
+        --with-nth=.. --delimiter=':' \
+        --preview 'echo {} | cut -d: -f1 | xargs pacman -Qi' \
+        --preview-window 'right,60%,border-left' | \
+    cut -d: -f1 | xargs
+}
+
+#==============================================================================
+# ENVIRONMENT VARIABLES
+#==============================================================================
+
+
+
+export FIP=$(ip route show default | awk '/default/ {print $3}')
+
+source ~/Water/crap/python/bin/activate
+
+alias cd='z'
+
+#==============================================================================
+# BASIC ALIASES
+#==============================================================================
+
+
+bafind() {
+    # Step 1: User selects a category
+    local category=$(pacman -Sg | grep blackarch | fzf --prompt="Select a BlackArch Category > " --layout=reverse)
+
+    # Exit if no category was selected (e.g., user pressed Esc)
+    [ -z "$category" ] && return
+
+    # Step 2: User selects a tool from within the chosen category, with a live preview
+    # The awk command standardizes the output for consistent parsing
+    pacman -Sg "${category%% *}" | awk '{print $2}' | \
+    fzf --prompt="Select a Tool > " --layout=reverse \
+        --preview 'pacman -Si {1}' \
+        --preview-window 'right,60%,border-left'
+}
+
+alias bk='sudo pacman -S $(bafind)'
+_fzf_fill_cli() {
+  # 1. Get the list of items (customize 'my-list-command' to your needs)
+  # Example: Find all markdown files and pipe them to fzf
+  local selected_item
+  selected_item=$(find . -maxdepth 2 -type f -name "*.md" | fzf --reverse --print-query)
+
+  # Check if fzf was cancelled or returned an empty line
+  if [[ -z "$selected_item" ]]; then
+    return 0
+  fi
+
+  # 2. Extract the actual selection (fzf returns the query on the first line if --print-query is used)
+  # For simplicity, we assume the selection is what we need.
+
+  # 3. Insert the selection into the current command line buffer
+  # If the selected item is multiline, use only the first line.
+  local item_to_insert
+  item_to_insert=$(echo "$selected_item" | head -n 1)
+
+  # This is the magic part: it sets the Readline variables
+  READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}${item_to_insert}${READLINE_LINE:$READLINE_POINT}"
+  READLINE_POINT=$((READLINE_POINT + ${#item_to_insert}))
+}
+sc() {
+ nvim ~/Water/scripts/$1 && chmod +x ~/Water/scripts/$1
+}
+# function to execute script from ~/Water/scripts by looking it up with fzf 
+x() {
+    local script=$(\ls ~/Water/scripts | fzf --prompt="Select a Script to Execute > " --layout=reverse)
+    [ -z "$script" ] && return
+     ~/Water/scripts/"$script"
+}
+alias n='nvim'
+alias gitf='~/.config/ml4w/scripts/git'
+alias cdf='cd ~/Water/Fire'
+alias cds='cd ~/Water/scripts/'
+# File and directory operations
+alias ls='ls -t'
+alias inx='cd ~/Water/crap'
+
+# Text editor shortcuts
+alias vhis='nvim .zsh_history'
+alias sshcon='sudo nvim /etc/ssh/ssh_config'
+
+# Edit and reload bashrc
+vbash() {
+    nvim ~/.config/zshrc/26-my-aliases && source ~/.config/zshrc/26-my-aliases
+}
+
+kbash() {
+    nvim ~/.config/zshrc/30-autostart && source ~/.config/zshrc/30-autostart
+}
+# Development server
+alias vbser='python -m http.server 8080'
+def vsh() {ssh $(ip route show default | awk '/default/ {print $3}') -p 8022 }
+#==============================================================================
+# ANDROID/DEVICE ALIASES
+#==============================================================================
+
+# Screen rotation controls
+alias hori='adb shell settings put system user_rotation 0'
+alias verti='adb shell settings put system user_rotation 1'
+
+#==============================================================================
+# IPTABLES/NETWORKING ALIASES
+#==============================================================================
+
+# Show iptables rules
+alias showipt='sudo iptables -L INPUT --line-numbers && echo && \
+sudo iptables -L OUTPUT --line-numbers && echo && \
+sudo iptables -L FORWARD --line-numbers && echo && \
+echo "Table nat" && sudo iptables -t nat -L PREROUTING --line-numbers'
+
+# Port redirection management
+alias diport='sudo iptables -t nat -D PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080'
+alias aport='sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080'
+
+#==============================================================================
+# GIT/GITHUB MANAGEMENT
+#==============================================================================
+
+# GitHub authentication
+alias vglog='gh auth login'
+
+# Quick git operations
+alias gitmod='git add . && git commit -m "new" && git push -u origin main'
+
+# List GitHub repositories
+alias ghlist='GH_PAGER= gh repo list vaibhav423 --limit 100 --json name --jq ".[].name"'
+
+# Create GitHub repo from current directory
+ghinsert() {
+    # Use current directory name as the repo name
+    local project="${PWD##*/}"
+
+    echo "Creating GitHub repo: $project (using current folder's content)"
+
+    # Create GitHub repository without adding gitignore or license
+    gh repo create vaibhav423/"$project" --public || return 1
+
+    # Initialize git repo if it doesn't exist
+    if [ ! -d .git ]; then
+        git init
+    fi
+    git remote add origin git@github.com:vaibhav423/$project.git
+    git fetch origin
+    git checkout -B main
+
+   # git add .
+    #git commit -m "Initial commit"
+    #git push -u origin main --force
+}
+
+# wrapper to clone git@github.com:vaibhav423/{name}.git  kind of repo
+gitcl(){
+    if [ -z "$1" ]; then
+        echo "Usage: gitcl <repo-name>"
+        return 1
+    fi
+    local repo="$1"
+    local url="git@github.com:vaibhav423"
+    git clone "$url"/"$repo".git
+    cd "$repo" || return 1
+}
+# Create new GitHub repository with templates
+ghcr() {
+    if [ -z "$1" ]; then
+        echo "Usage: gitcr <project-name> [private|public] [gitignore] [license]"
+        return 1
+    fi
+
+    local project="$1"
+    local privacy_flag="--public"
+    local gitignore="Node"
+    local license="MIT"
+
+    # Correctly parse privacy if it's the second argument
+    if [ "$2" = "private" ]; then
+        privacy_flag="--private"
+        [ -n "$3" ] && gitignore="$3"
+        [ -n "$4" ] && license="$4"
+    elif [ "$2" = "public" ]; then
+        privacy_flag="--public"
+        [ -n "$3" ] && gitignore="$3"
+        [ -n "$4" ] && license="$4"
+    else
+        # If second arg is not privacy, treat others as gitignore/license
+        [ -n "$2" ] && gitignore="$2"
+        [ -n "$3" ] && license="$3"
+    fi
+
+    local user
+    user=$(gh api user --jq .login 2>/dev/null) || user="vaibhav423"
+
+    echo "Creating repository $project (Privacy: $privacy_flag, Ignore: $gitignore, License: $license)..."
+
+    # Create the repo and clone it
+    if gh repo create "$project" $privacy_flag --clone --add-readme --gitignore="$gitignore" --license="$license"; then
+        cd "$project" || return 1
+        
+        # Ensure README has the title
+        if ! grep -q "^# $project" README.md; then
+            echo "# $project" > README.md
+            git add README.md
+            git commit -m "Initial commit: Update README title"
+            git push
+        fi
+    else
+        echo "Failed to create repository."
+        return 1
+    fi
+}
+
+
+# Fork, clone, and initialize repository
+ghfr() {
+    repo="$1"
+    name=$(basename "$repo" .git)
+
+    if [ -z "$repo" ]; then
+        echo "Usage: forkclonepush <repo-url>"
+        return 1
+    fi
+
+    echo "Forking $repo..."
+    gh repo fork "$repo" --clone
+
+    echo "Making initial commit in $name..."
+    cd "$name" || return 1
+    echo "# $name" > README.md
+    git add README.md
+    git commit -m "Initial commit with README"
+    git push -u origin HEAD
+
+    echo "Done! Forked, cloned, and pushed README.md to your fork."
+}
+
+# Delete GitHub repository
+ghdel() {
+    if [ -z "$1" ]; then
+        echo "Usage: ghdel <repo-name>"
+        return 1
+    fi
+
+    local REPO="$1"
+    gh repo delete "vaibhav423/$REPO" --yes
+}
+
+#==============================================================================
+# FILE OPERATIONS FUNCTIONS
+#==============================================================================
+
+# Delete most recent files
+delrc() {
+    count=${1:-1}  # Default to 1 if no argument given
+    files=$(ls -tp | grep -v '/$' | head -n "$count")
+
+    if [ -z "$files" ]; then
+        echo "No files to delete."
+        return 1
+    fi
+
+    echo "Deleting the following file(s):"
+    echo "$files"
+    echo "$files" | xargs -d '\n' rm -f
+}
+
+# Make most recent file executable
+mkexc() {
+    latest=$(ls -tp | grep -v '/$' | head -n 1)
+    if [ -n "$latest" ]; then
+        chmod +x "$latest"
+        echo "Made '$latest' executable."
+    else
+        echo "No file found."
+    fi
+}
+
+# Universal archive extraction
+extract() {
+    if [ -f $1 ] ; then
+        case $1 in
+            *.tar.bz2)   tar xvjf $1    ;;
+            *.tar.gz)    tar xvzf $1    ;;
+            *.bz2)       bunzip2 $1     ;;
+            *.rar)       unrar x $1     ;;
+            *.gz)        gunzip $1      ;;
+            *.tar)       tar xvf $1     ;;
+            *.tbz2)      tar xvjf $1    ;;
+            *.tgz)       tar xvzf $1    ;;
+            *.zip)       unzip $1       ;;
+            *.Z)         uncompress $1  ;;
+            *.7z)        7z x $1        ;;
+            *)           echo "don't know how to extract '$1'..." ;;
+        esac
+    else
+        echo "'$1' is not a valid file!"
+    fi
+}
+
+#==============================================================================
+# SECURITY/PENTESTING FUNCTIONS
+#==============================================================================
+
+# Gobuster directory fuzzing
+fk() {
+    local url="$1"
+    local wordlist="crap/SecLists/Discovery/Web-Content/common.txt"
+    #local wordlist="/data/data/com.termux/files/home/crap/SecLists/Discovery/Web-Content/LEGACY-SERVICES/CGIs/CGIs.txt"
+    local extensions="php,html"
+    local blacklist="400,403,404,500,502,405"
+    local threads=50
+
+    if [[ -z "$url" ]]; then
+        echo "Usage: gobust_dir <url>"
+        return 1
+    fi
+
+    gobuster dir \
+        -w "$wordlist" \
+        -u "$url" \
+        -x "$extensions" \
+        -r \
+        -b "$blacklist" \
+        -t "$threads" \
+        --exclude-length 432198
+}
+#==============================================================================
+# END OF CONFIGURATION
+#==============================================================================

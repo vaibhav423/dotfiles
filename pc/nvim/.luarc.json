@@ -1,0 +1,4 @@
+{
+  "format.enable": false,
+    "workspace.maxPreload": 10000
+}
