@@ -1,0 +1,54 @@
+# -----------------------------------------------------
+# CUSTOMIZATION
+# -----------------------------------------------------
+POSH=agnoster
+
+# -----------------------------------------------------
+# oh-myzsh themes: https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
+# -----------------------------------------------------
+# ZSH_THEME=robbyrussell
+
+# -----------------------------------------------------
+# oh-myzsh plugins
+# -----------------------------------------------------
+plugins=(
+    git
+    sudo
+    web-search
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+    # fast-syntax-highlighting removed (duplicate)
+    # non-essential plugins temporarily removed: copyfile copybuffer dirhistory
+)
+
+# Don't run compfix security fixer (we already use a cached compdump above)
+# This avoids an extra compaudit run inside oh-my-zsh and speeds startup.
+export ZSH_DISABLE_COMPFIX=true
+
+# Speed up completions: use cached compinit before loading oh-my-zsh
+autoload -Uz compinit
+# Use cached dump to avoid expensive compaudit checks at startup
+compinit -C
+
+# Set-up oh-my-zsh
+source $ZSH/oh-my-zsh.sh
+
+# -----------------------------------------------------
+# Set-up FZF key bindings (CTRL R for fuzzy history finder)
+# -----------------------------------------------------
+source <(fzf --zsh)
+
+# zsh history
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt appendhistory
+
+# -----------------------------------------------------
+# Prompt
+# -----------------------------------------------------
+eval "$(oh-my-posh init zsh --config $HOME/.config/ohmyposh/zen.toml)"
+# eval "$(oh-my-posh init zsh --config $HOME/.config/ohmyposh/EDM115-newline.omp.json)"
+
+# Shipped Theme
+# eval "$(oh-my-posh init zsh --config /usr/share/oh-my-posh/themes/agnoster.omp.json)"

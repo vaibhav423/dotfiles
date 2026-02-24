@@ -1,0 +1,12 @@
+# Place this at the very bottom of your config
+export PATH="$HOME/.local/share/bob/nvim-bin:$PATH"
+export XDG_RUNTIME_DIR=$PREFIX/tmp
+export TMPDIR=$PREFIX/tmp
+[ -f ~/archive/venv/bin/activate ] && source ~/archive/venv/bin/activate
+
+eval  "$(zoxide init zsh)"
+cd ~
+# if [ -z "$TMUX" ]; then
+#    tmux attach-session -t default || tmux new-session -s default
+#fi
+
