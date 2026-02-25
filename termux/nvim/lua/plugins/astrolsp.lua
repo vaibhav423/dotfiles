@@ -1,3 +1,4 @@
+
 -- AstroLSP allows you to customize the features in AstroNvim's LSP configuration engine
 -- Configuration documentation can be found with `:h astrolsp`
 -- NOTE: We highly recommend setting up the Lua Language Server (`:LspInstall lua_ls`)
@@ -37,31 +38,21 @@ return {
     },
     -- enable servers that you already have installed without mason
     servers = {
+      "markdown-oxide"
       -- "pyright"
-      "markdown-oxide",
-      --    "texlab",
     },
     -- customize language server configuration options passed to `lspconfig`
     ---@diagnostic disable: missing-fields
     config = {
-      -- clangd = { capabilities = { offsetEncoding = "utf-8" } },
       ["markdown-oxide"] = {
-        cmd = { "/data/data/com.termux/files/home/.cargo/bin/markdown-oxide" },
-        -- filetypes = { "tex", "bib", "markdown" },
-        root_dir = require("lspconfig.util").root_pattern(".git", ".obsidian", ".moxide.toml"),
+        cmd = {"/data/data/com.termux/files/home/.cargo/bin//markdown-oxide"},
+        filetypes = {"markdown"},
+        root_dir = function(fname, _)
+       return require('lspconfig').util.root_pattern('.git', '.obsidian', '.moxide.toml')(fname)
+        end,
+
       },
-      --   texlab = {
-      --     cmd = { "texlab" }, -- Force Neovim to use the Termux-installed binary
-      --     filetypes = { "tex", "bib", "markdown" },
-      --     on_attach = function(client, bufnr)
-      --       -- Ensure texlab does not provide folding (avoid race conditions)
-      --       client.server_capabilities.foldingRangeProvider = false
-      --       client.server_capabilities["foldingRangeProvider"] = false
-      --       if client.server_capabilities.textDocument then
-      --         client.server_capabilities.textDocument.foldingRange = nil
-      --       end
-      --     end,
-      --   },
+      -- clangd = { capabilities = { offsetEncoding = "utf-8" } },
     },
     -- customize how language servers are attached
     handlers = {
@@ -93,48 +84,7 @@ return {
           end,
         },
       },
-
-      -- Ensure treesitter folding remains active per-buffer for tex/markdown
-      force_treesitter_folds = {
-        cond = true,
-        {
-          event = { "BufEnter", "BufReadPost" },
-          desc = "Force treesitter folding for tex/markdown buffers",
-          callback = function(args)
-            local ok, ft = pcall(vim.api.nvim_buf_get_option, args.buf, "filetype")
-            if ok and (ft == "markdown" or ft == "tex") then
-              pcall(vim.api.nvim_buf_set_option, args.buf, "foldmethod", "expr")
-              pcall(vim.api.nvim_buf_set_option, args.buf, "foldexpr", "nvim_treesitter#foldexpr()")
-            end
-          end,
-        },
-      },
-
-      -- Disable folding capabilities from LSPs that override treesitter folds
-      disable_lsp_folding = {
-        cond = true,
-        {
-          event = { "LspAttach" },
-          desc = "Disable folding from LSPs that override treesitter foldexpr",
-          callback = function(args)
-            local client = vim.lsp.get_client_by_id(args.data.client_id)
-            if not client then return end
-            local lsp_names = { texlab = true, ["markdown-oxide"] = true }
-            if lsp_names[client.name] then
-              client.server_capabilities.foldingRangeProvider = false
-              client.server_capabilities["foldingRangeProvider"] = false
-              if client.server_capabilities.textDocument then
-                client.server_capabilities.textDocument.foldingRange = nil
-              end
-              -- Reset folds_restored so fold_persist can re-run after treesitter settles
-              vim.b[args.buf].folds_restored = nil
-              require("fold_persist").restore(args.buf)
-            end
-          end,
-        },
-      },
     },
-
     -- mappings to be set up on attaching of a language server
     mappings = {
       n = {
