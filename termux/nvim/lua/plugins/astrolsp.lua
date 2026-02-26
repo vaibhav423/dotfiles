@@ -5,6 +5,15 @@
 --       as this provides autocomplete and documentation while editing
 
 ---@type LazySpec
+local cmp_ok, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+if cmp_ok and cmp_nvim_lsp and cmp_nvim_lsp.default_capabilities then
+  capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
+end
+capabilities = vim.tbl_deep_extend("force", capabilities, {
+  workspace = { didChangeWatchedFiles = { dynamicRegistration = true } },
+})
+
 return {
   "AstroNvim/astrolsp",
   ---@type AstroLSPOpts
@@ -44,14 +53,13 @@ return {
     -- customize language server configuration options passed to `lspconfig`
     ---@diagnostic disable: missing-fields
     config = {
-      ["markdown-oxide"] = {
-        cmd = {"/data/data/com.termux/files/home/.cargo/bin//markdown-oxide"},
-        filetypes = {"markdown"},
+      ["markdown-oxide"] = vim.tbl_deep_extend("force", {
+        cmd = {"/data/data/com.termux/files/home/.cargo/bin/markdown-oxide"},
+        filetypes = {"markdown", "md", "mdx"},
         root_dir = function(fname, _)
-       return require('lspconfig').util.root_pattern('.git', '.obsidian', '.moxide.toml')(fname)
+          return require('lspconfig').util.root_pattern('.git', '.obsidian', '.moxide.toml')(fname)
         end,
-
-      },
+      }, { capabilities = capabilities, settings = { markdown_oxide = { keyword_pattern = [[\(\k\| \|\/\|#\)\+]] } } }),
       -- clangd = { capabilities = { offsetEncoding = "utf-8" } },
     },
     -- customize how language servers are attached
@@ -108,6 +116,45 @@ return {
     on_attach = function(client, bufnr)
       -- this would disable semanticTokensProvider for all clients
       -- client.server_capabilities.semanticTokensProvider = nil
+
+      -- Setup markdown-oxide helpers when the server attaches
+      if client.name == "markdown_oxide" or client.name == "markdown-oxide" then
+        -- create a buffer-local user command `:Daily` that forwards its args to this client
+        pcall(vim.api.nvim_buf_create_user_command, bufnr, "Daily", function(opts)
+          local input = opts.args
+          local params = { command = "jump" }
+          if input and input ~= "" then
+            params.arguments = { input }
+          end
+
+          -- ensure the specific client supports executeCommand/jump
+          local exec = client.server_capabilities and client.server_capabilities.executeCommandProvider
+          if exec and type(exec.commands) == "table" then
+            local has_jump = false
+            for _, cmd in ipairs(exec.commands) do
+              if cmd == "jump" then has_jump = true; break end
+            end
+            if not has_jump then
+              vim.notify("markdown-oxide server does not expose 'jump' command", vim.log.levels.WARN)
+              return
+            end
+          end
+
+          -- send request directly to the attached client
+          pcall(function()
+            client.request("workspace/executeCommand", params, function(err, res)
+              if err then
+                vim.notify(string.format("markdown-oxide executeCommand error (%s): %s", client.name, vim.inspect(err)), vim.log.levels.ERROR)
+              end
+            end, bufnr)
+          end)
+        end, { desc = "Open markdown-oxide daily note", nargs = "*" })
+
+        -- buffer-local mapping to open today's daily note quickly (invokes the buffer-local :Daily)
+        pcall(vim.keymap.set, "n", "<Leader>od", function()
+          vim.cmd("Daily")
+        end, { desc = "Open markdown-oxide daily note", buffer = bufnr })
+      end
     end,
   },
 }
