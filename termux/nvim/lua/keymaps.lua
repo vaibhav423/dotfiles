@@ -1,5 +1,5 @@
 vim.keymap.set("n", "<leader>rt", ":w<CR>:RunCode<CR>", { noremap = true, silent = false })
-vim.keymap.set("n", "<leader>rr", ":w<CR>:RunFile better_term<CR>", { noremap = true, silent = false })
+vim.keymap.set("n", "<leader>rb", ":w<CR>:RunFile better_term<CR>", { noremap = true, silent = false })
 local betterTerm = require "betterTerm"
 -- toggle copilot auto-trigger for current buffer
 vim.keymap.set("n", "<leader>tc", function()
@@ -30,6 +30,9 @@ vim.keymap.set("n", "<leader>rf", ":RunFile<CR>", { noremap = true, silent = fal
 vim.keymap.set("n", "<leader>rft", ":RunFile tab<CR>", { noremap = true, silent = false })
 vim.keymap.set("n", "<leader>rp", ":RunProject<CR>", { noremap = true, silent = false })
 vim.keymap.set('n', '<leader>jr', ':Jeerem<CR>', { noremap = true, silent = true, desc = 'Insert system reminder' })
---vim.keymap.set('n', '<leader>fw', function()
---  require("snacks").picker.files { dirs = { "/storage/emulated/0/Documents/Fire" }, desc = "Fire Workspace Files" }
---end, { desc = "Find Fire workspace files" })
+vim.keymap.set('n', '<leader>fd', function()
+ require("snacks").picker.files { dirs = { "/storage/emulated/0/Documents" }, desc = "Fire Workspace Files" }
+end, { desc = "Find documents files" })
+
+-- add lsprestart comman
+vim.keymap.set("n", "<leader>rl", ":LspRestart<CR>", { noremap = true, silent = false, desc = "Restart LSP" })

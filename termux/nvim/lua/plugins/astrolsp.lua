@@ -1,22 +1,23 @@
-
+local capabilities = require("blink.cmp").get_lsp_capabilities()
 -- AstroLSP allows you to customize the features in AstroNvim's LSP configuration engine
 -- Configuration documentation can be found with `:h astrolsp`
 -- NOTE: We highly recommend setting up the Lua Language Server (`:LspInstall lua_ls`)
 --       as this provides autocomplete and documentation while editing
 
 ---@type LazySpec
-local cmp_ok, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
-local capabilities = vim.lsp.protocol.make_client_capabilities()
-if cmp_ok and cmp_nvim_lsp and cmp_nvim_lsp.default_capabilities then
-  capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
-end
-capabilities = vim.tbl_deep_extend("force", capabilities, {
-  workspace = { didChangeWatchedFiles = { dynamicRegistration = true } },
-})
+--local cmp_ok, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
+--local capabilities = vim.lsp.protocol.make_client_capabilities()
+--if cmp_ok and cmp_nvim_lsp and cmp_nvim_lsp.default_capabilities then
+--  capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
+--end
+--capabilities = vim.tbl_deep_extend("force", capabilities, {
+--  workspace = { didChangeWatchedFiles = { dynamicRegistration = true } },
+--})
 
 return {
   "AstroNvim/astrolsp",
   ---@type AstroLSPOpts
+
   opts = {
     -- Configuration table of features provided by AstroLSP
     features = {
@@ -47,21 +48,36 @@ return {
     },
     -- enable servers that you already have installed without mason
     servers = {
-      "markdown-oxide"
+     "markdown_oxide",
+      "lua_ls",
       -- "pyright"
     },
     -- customize language server configuration options passed to `lspconfig`
     ---@diagnostic disable: missing-fields
+    
     config = {
-      ["markdown-oxide"] = vim.tbl_deep_extend("force", {
-        cmd = {"/data/data/com.termux/files/home/.cargo/bin/markdown-oxide"},
-        filetypes = {"markdown", "md", "mdx"},
+      ["markdown_oxide"] = {
+        cmd = { "/data/data/com.termux/files/home/.cargo/bin/markdown-oxide" },
+        filetypes = { "markdown", "md", "mdx" },
         root_dir = function(fname, _)
-          return require('lspconfig').util.root_pattern('.git', '.obsidian', '.moxide.toml')(fname)
+          return require("lspconfig").util.root_pattern(".git", ".obsidian", ".moxide.toml")(fname)
         end,
-      }, { capabilities = capabilities, settings = { markdown_oxide = { keyword_pattern = [[\(\k\| \|\/\|#\)\+]] } } }),
+    --    capabilities = {
+    --      workspace = {
+    --        didChangeWatchedFiles = {
+    --          dynamicRegistration = true,
+    --        },
+    --      },
+    --    },
+    --    settings = {
+    --      markdown_oxide = {
+    --        keyword_pattern = [[\(\k\| \|\/\|#\)\+]],
+    --      },
+    --    },
+      },
       -- clangd = { capabilities = { offsetEncoding = "utf-8" } },
     },
+
     -- customize how language servers are attached
     handlers = {
       -- a function without a key is simply the default handler, functions take two parameters, the server name and the configured options table for that server

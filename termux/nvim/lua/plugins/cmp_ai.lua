@@ -11,20 +11,20 @@ return {
       end,
       "fallback",
     }
-    opts.keymap["<S-Tab>"] = { "snippet_backward", "fallback" }
-    opts.keymap["<C-w>"] = {
+    opts.keymap["<C-Left>"] = { "snippet_backward", "fallback" }
+    opts.keymap["<C-Right>"] = {
       function()
         if copilot.is_visible() then copilot.accept_word() end
       end,
       "fallback",
     }
-    opts.keymap["<C-i>"] = {
+    opts.keymap["<C-Down>"] = {
       function()
         if copilot.is_visible() then copilot.accept_line() end
       end,
       "fallback",
     }
-    opts.keymap["<Esc>"] = {
+    opts.keymap["<C-q>"] = {
       function()
         if copilot.is_visible() then copilot.dismiss() end
       end,
