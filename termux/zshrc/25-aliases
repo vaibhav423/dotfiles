@@ -63,7 +63,7 @@ alias aport='sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --
 alias vglog='gh auth login'
 
 # Quick git operations
-alias gitmod='git add . && git commit -m "new" && git push'
+alias gitmod='git pull && git add . && git commit -m "new" && git push'
 
 # List GitHub repositories
 alias ghlist='GH_PAGER= gh repo list vaibhav423 --limit 100 --json name --jq ".[].name"'
@@ -272,16 +272,17 @@ vncvk() {
 ubuntu() {
     ubset > /dev/null
     if [ "$#" -eq 0 ]; then
-        su -c "unset PREFIX LD_PRELOAD; chroot $chrootpath /usr/bin/su  fire"
+        su -c " chroot $chrootpath /usr/bin/su  fire"
     else
-        su -c "unset PREFIX LD_PRELOAD; chroot $chrootpath /usr/bin/su  fire -c \"$*\""
+        su -c " chroot $chrootpath /usr/bin/su  fire -c \"$*\""
     fi
 }
 
 ubset() {
     if ! su -c "grep -q \"$chrootpath\" /proc/mounts"; then
         su -c "mount -o remount,dev,suid /data"
-        su -c "mount --rbind /dev $chrootpath/dev"
+        su -c "mount --bind /dev $chrootpath/dev"
+       # su -c "mount --rbind /dev $chrootpath/dev"
         
         # Fix TTY mapping
        # su -c "rm -f $chrootpath/dev/ptmx"
@@ -295,17 +296,18 @@ ubset() {
 
         su -c "mount --bind /sys $chrootpath/sys"
         su -c "mount --bind /proc $chrootpath/proc"
-        su -c "mount -t devpts devpts $chrootpath/dev/pts -o gid=5,mode=620"
+#        su -c "mount -t devpts devpts $chrootpath/dev/pts -o gid=5,mode=620"
+        su -c "mount -t devpts devpts $chrootpath/dev/pts "
         # --- extra mount to use  sandroid su  binaries.
-        su -c "mount --bind /system $chrootpath/system"
-        su -c "mount --rbind /apex $chrootpath/apex"
-        su -c "mount --bind /linkerconfig $chrootpath/linkerconfig"
+    #    su -c "mount --bind /system $chrootpath/system"
+    #    su -c "mount --rbind /apex $chrootpath/apex"
+    #    su -c "mount --bind /linkerconfig $chrootpath/linkerconfig"
         ## --
         su -c "mkdir -p $chrootpath/tmp $chrootpath/termux $chrootpath/sdcard $chrootpath/dev/shm"
         su -c "mount -t tmpfs -o size=256M tmpfs $chrootpath/dev/shm"
         sudo bindfs -u 1001 -g 984 /data/data/com.termux/files "${chrootpath}/termux"
         sudo bindfs -u 1001 -g 984 /sdcard $chrootpath/sdcard 
-        su -c "mount --bind /data/data/com.termux/files/usr/tmp $chrootpath/tmp"
+      #  su -c "mount --bind /data/data/com.termux/files/usr/tmp $chrootpath/tmp"
         #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/usr/bin/nvim "${chrootpath}/usr/bin/nvim"
         #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/home/.config/nvim "${chrootpath}/data/data/com.termux/files/home/.config/nvim"
         echo "mount done"
