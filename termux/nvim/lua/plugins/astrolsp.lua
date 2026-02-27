@@ -4,6 +4,13 @@
 --       as this provides autocomplete and documentation while editing
 
 ---@type LazySpec
+
+-- Build LSP client capabilities (compatible with nvim-cmp)
+-- Use pcall so config still works if `cmp_nvim_lsp` isn't installed
+local _cmp_ok, _cmp = pcall(require, 'cmp_nvim_lsp')
+local _base_cap = vim.lsp.protocol.make_client_capabilities()
+local capabilities = (_cmp_ok and _cmp.default_capabilities(_base_cap)) or _base_cap
+
 return {
   "AstroNvim/astrolsp",
   ---@type AstroLSPOpts
@@ -43,12 +50,40 @@ return {
     },
     -- customize language server configuration options passed to `lspconfig`
     ---@diagnostic disable: missing-fields
+    -- Build LSP client capabilities (compatible with nvim-cmp)
+    -- Use pcall so config still works if `cmp_nvim_lsp` isn't installed
+    ---@diagnostic disable-next-line: undefined-global
+    local cmp_ok, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
+    local base_capabilities = vim.lsp.protocol.make_client_capabilities()
+    local capabilities = (cmp_ok and cmp_nvim_lsp.default_capabilities(base_capabilities)) or base_capabilities
+
     config = {
       -- clangd = { capabilities = { offsetEncoding = "utf-8" } },
       ["markdown-oxide"] = {
         cmd = { "/data/data/com.termux/files/home/.cargo/bin/markdown-oxide" },
         -- filetypes = { "tex", "bib", "markdown" },
         root_dir = require("lspconfig.util").root_pattern(".git", ".obsidian", ".moxide.toml"),
+        -- Merge in cmp capabilities and enable dynamic registration for watched files
+        capabilities = vim.tbl_deep_extend(
+          'force',
+          capabilities,
+          {
+            workspace = {
+              didChangeWatchedFiles = {
+                dynamicRegistration = true,
+              },
+            },
+          }
+        ),
+        -- Pass initialization options to the server (keyword pattern configured here)
+        init_options = {
+          name = 'nvim_lsp',
+          option = {
+            markdown_oxide = {
+              keyword_pattern = [[\(\k\| \|\/\|#\)\+]],
+            },
+          },
+        },
       },
       --   texlab = {
       --     cmd = { "texlab" }, -- Force Neovim to use the Termux-installed binary

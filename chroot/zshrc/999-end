@@ -1,7 +1,7 @@
 # Place this at the very bottom of your config
 export PATH="$HOME/.local/share/bob/nvim-bin:$PATH"
-export XDG_RUNTIME_DIR=$PREFIX/tmp
-export TMPDIR=$PREFIX/tmp
+export XDG_RUNTIME_DIR=/tmp
+export TMPDIR=/tmp
 [ -f ~/archive/venv/bin/activate ] && source ~/archive/venv/bin/activate
 
 eval  "$(zoxide init zsh)"

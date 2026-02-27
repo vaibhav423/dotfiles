@@ -46,5 +46,9 @@ vim.api.nvim_create_user_command('Jeerem', function() jeerem_insert() end, { des
 -- Provide a command-line abbreviation so typing :jeerem will expand to :Jeerem
 vim.cmd("cnoreabbrev jeerem Jeerem")
 
+-- Snippets have been moved to `lua/snippets/` and are loaded via
+-- the LuaSnip `from_lua` loader in `lua/plugins/latex.lua`.
+-- This keeps snippet definitions separate from runtime polish tasks.
+
 -- Return nil to keep module benign if required
 return nil
