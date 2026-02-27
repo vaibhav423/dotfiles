@@ -46,28 +46,10 @@ vim.api.nvim_create_user_command('Jeerem', function() jeerem_insert() end, { des
 -- Provide a command-line abbreviation so typing :jeerem will expand to :Jeerem
 vim.cmd("cnoreabbrev jeerem Jeerem")
 
--- Add LuaSnip snippet for LaTeX combinatorics notation (e.g. {}^nC_r)
--- Trigger: nCr
-do
-  local ok, ls = pcall(require, "luasnip")
-  if ok and ls then
-    local s = ls.s
-    local t = ls.t
-    local i = ls.i
+-- Snippets have been moved to `lua/snippets/` and are loaded via
+-- the LuaSnip `from_lua` loader in `lua/plugins/latex.lua`.
+-- This keeps snippet definitions separate from runtime polish tasks.
 
-    -- snippet for tex/latex/markdown filetypes
-    local snippet = s("nCr", {
-      t("{}^{"), i(1, "n"), t("}C_{"), i(2, "r"), t("}"),
-    })
-
-    ls.add_snippets("tex", { snippet }, { key = "user_nCr" })
-    ls.add_snippets("latex", { snippet }, { key = "user_nCr" })
-    ls.add_snippets("markdown", { snippet }, { key = "user_nCr" })
-  else
-    -- if luasnip not available, silently continue
-    -- (feel free to enable a notification here if you prefer)
-  end
-end
 
 -- Return nil to keep module benign if required
 return nil

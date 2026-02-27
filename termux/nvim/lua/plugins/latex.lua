@@ -31,6 +31,14 @@ return {
       require("astronvim.plugins.configs.luasnip")(plugin, opts)
       local luasnip = require("luasnip")
       luasnip.filetype_extend("markdown", { "tex", "latex" })
+      -- Load user snippets from lua/snippets (this repo path resolves via stdpath)
+      local ok_loader, loader = pcall(require, "luasnip.loaders.from_lua")
+      if ok_loader and loader then
+        -- Let the loader search the runtimepath for `lua/snippets` folders.
+        -- Calling lazy_load() with no args is the recommended approach and
+        -- avoids hardcoding paths that may differ between machines.
+        loader.lazy_load()
+      end
     end,
   },
 
