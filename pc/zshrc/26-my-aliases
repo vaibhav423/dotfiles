@@ -154,7 +154,12 @@ alias aport='sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --
 alias vglog='gh auth login'
 
 # Quick git operations
-alias gitmod='git pull && git add . && git commit -m "new" && git push -u origin main'
+gitmod(){ 
+git pull 
+git add .
+git commit -m "new"
+git push 
+}
 
 # List GitHub repositories
 alias ghlist='GH_PAGER= gh repo list vaibhav423 --limit 100 --json name --jq ".[].name"'

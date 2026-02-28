@@ -38,6 +38,11 @@ return {
         -- Calling lazy_load() with no args is the recommended approach and
         -- avoids hardcoding paths that may differ between machines.
         loader.lazy_load()
+        -- Also explicitly load snippets from the user's config `lua/snippets`
+        -- directory to make loading deterministic (covers timing/path edge cases).
+        pcall(function()
+          loader.load({ paths = vim.fn.stdpath("config") .. "/lua/snippets" })
+        end)
       end
     end,
   },

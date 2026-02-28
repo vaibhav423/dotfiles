@@ -1,0 +1,10 @@
+-- Snippets for the `tex` filetype.
+-- from_lua loader: filename = filetype, return value must be a flat list.
+local ls = require("luasnip")
+local s = ls.s
+local t = ls.t
+local i = ls.i
+
+local ncr = s("ncr", { t("{}^{"), i(1, "n"), t("}C_{"), i(2, "r"), t("}") })
+
+return { ncr }
