@@ -383,6 +383,19 @@ These were deprecated in Neovim 0.10 and will be removed:
 ```
 Should always be `"markdown"`, never `"md"`.
 
+**Clear the bytecode cache after moving or renaming files:**
+
+Neovim caches compiled `.luac` files keyed by their original path. When you move,
+rename, or delete a file, the old cache entry is not automatically invalidated — Neovim
+may keep loading the stale bytecode and you'll get confusing `module not found` errors
+that don't match what's on disk.
+
+Always wipe the cache after any structural change (file moves, renames, deletions):
+```sh
+rm -rf ~/.cache/nvim/luac/
+```
+Neovim will recompile from source on the next startup. This is safe and fast.
+
 **Run the Lua linter (selene) locally:**
 ```sh
 selene lua/

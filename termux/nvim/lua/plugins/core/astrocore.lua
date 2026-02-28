@@ -27,25 +27,25 @@ end
 return {
   "AstroNvim/astrocore",
   ---@type AstroCoreOpts
-  opts = {
+  opts = function(_, opts)
     -- Core feature toggles
-    features = {
+    opts.features = vim.tbl_deep_extend("force", opts.features or {}, {
       large_buf = { size = 1024 * 500, lines = 10000 },
       autopairs = true,
       cmp = true,
       diagnostics = { virtual_text = true, virtual_lines = false },
       highlighturl = true,
       notifications = true,
-    },
+    })
 
     -- vim.diagnostic.config() values when diagnostics are enabled
-    diagnostics = {
+    opts.diagnostics = vim.tbl_deep_extend("force", opts.diagnostics or {}, {
       virtual_text = true,
       underline = true,
-    },
+    })
 
     -- Vim options
-    options = {
+    opts.options = vim.tbl_deep_extend("force", opts.options or {}, {
       opt = {
         relativenumber = true,
         number = true,
@@ -55,10 +55,10 @@ return {
         clipboard = "unnamedplus",
       },
       g = {},
-    },
+    })
 
     -- Autocommands
-    autocmds = {
+    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, {
       -- Fold persistence (save/restore fold state per buffer)
       fold_persistence = {
         {
@@ -89,10 +89,10 @@ return {
           callback = function(args) require("lib.fold_toggle").clear_cache(args.buf) end,
         },
       },
-    },
+    })
 
     -- Mappings
-    mappings = {
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, {
       -- Insert mode
       i = {
         -- Exit insert mode; save if the buffer was modified
@@ -185,6 +185,8 @@ return {
         ["<Leader>z3"] = { function() require("lib.fold_toggle").toggle_all(3) end, desc = "Toggle fold level 3 (all windows)" },
         ["<Leader>z4"] = { function() require("lib.fold_toggle").toggle_all(4) end, desc = "Toggle fold level 4 (all windows)" },
       },
-    },
-  },
+    })
+
+    return opts
+  end,
 }
