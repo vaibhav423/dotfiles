@@ -33,7 +33,7 @@ return {
           return
         end
         local ft = vim.bo.filetype
-        local should_enable = (ft == "markdown" or ft == "md" or ft == "zsh")
+        local should_enable = (ft == "markdown" or ft == "zsh")
         -- buffer-local state set by copilot is stored in vim.b.copilot_suggestion_auto_trigger
         local current_state = vim.b.copilot_suggestion_auto_trigger
         if should_enable then

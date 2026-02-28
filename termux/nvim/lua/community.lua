@@ -8,7 +8,7 @@ return {
   "AstroNvim/astrocommunity",
   -- { import = "astrocommunity.pack.lua" }, -- Disabled: lua-language-server and stylua not supported on this platform
   -- import/override with your plugins folder
-  {import = "astrocommunity.recipes.ai"},
+  { import = "astrocommunity.recipes.ai" },
   { import = "astrocommunity.markdown-and-latex.render-markdown-nvim" },
   { import = "astrocommunity.editing-support.copilotchat-nvim" },
   { import = "astrocommunity.completion.cmp-latex-symbols" },

@@ -4,20 +4,19 @@
 --       as this provides autocomplete and documentation while editing
 
 ---@type LazySpec
-
 return {
   "AstroNvim/astrolsp",
   ---@type AstroLSPOpts
-
-  opts = {
+  opts = function(_, opts)
     -- Configuration table of features provided by AstroLSP
-    features = {
+    opts.features = vim.tbl_deep_extend("force", opts.features or {}, {
       codelens = true, -- enable/disable codelens refresh on start
       inlay_hints = false, -- enable/disable inlay hints on start
       semantic_tokens = true, -- enable/disable semantic token highlighting
-    },
+    })
+
     -- customize lsp formatting options
-    formatting = {
+    opts.formatting = vim.tbl_deep_extend("force", opts.formatting or {}, {
       -- control auto formatting on save
       format_on_save = {
         enabled = true, -- enable or disable format on save globally
@@ -33,13 +32,15 @@ return {
         -- "lua_ls",
       },
       timeout_ms = 1000, -- default format timeout
-    },
+    })
+
     -- enable servers that you already have installed without mason
-    servers = {
+    opts.servers = vim.list_extend(opts.servers or {}, {
       "markdown-oxide",
-    },
+    })
+
     -- customize language server configuration options passed to `lspconfig`
-    config = {
+    opts.config = vim.tbl_deep_extend("force", opts.config or {}, {
       ["markdown-oxide"] = {
         cmd = { "/data/data/com.termux/files/home/.cargo/bin/markdown-oxide" },
         filetypes = { "markdown", "md", "mdx" },
@@ -56,12 +57,10 @@ return {
         },
       },
       -- clangd = { capabilities = { offsetEncoding = "utf-8" } },
-    },
+    })
 
-    -- customize how language servers are attached
-    handlers = {},
     -- Configure buffer local auto commands to add when attaching a language server
-    autocmds = {
+    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, {
       lsp_codelens_refresh = {
         cond = "textDocument/codeLens",
         {
@@ -74,9 +73,10 @@ return {
           end,
         },
       },
-    },
+    })
+
     -- mappings to be set up on attaching of a language server
-    mappings = {
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, {
       n = {
         gD = {
           function()
@@ -95,16 +95,17 @@ return {
           end,
         },
       },
-    },
+    })
+
     -- A custom `on_attach` function to be run after the default `on_attach` function
-    on_attach = function(client, bufnr)
+    opts.on_attach = function(client, bufnr)
       -- Setup markdown-oxide helpers when the server attaches
       if client.name == "markdown-oxide" or client.name == "markdown_oxide" then
         -- create a buffer-local user command `:Daily`
-        vim.api.nvim_buf_create_user_command(bufnr, "Daily", function(opts)
+        vim.api.nvim_buf_create_user_command(bufnr, "Daily", function(cmd_opts)
           local params = { command = "jump" }
-          if opts.args and opts.args ~= "" then
-            params.arguments = { opts.args }
+          if cmd_opts.args and cmd_opts.args ~= "" then
+            params.arguments = { cmd_opts.args }
           end
 
           client.request("workspace/executeCommand", params, function(err, _)
@@ -117,6 +118,8 @@ return {
         -- buffer-local mapping to open today's daily note quickly
         vim.keymap.set("n", "<Leader>od", "<cmd>Daily<cr>", { desc = "Open daily note", buffer = bufnr })
       end
-    end,
-  },
+    end
+
+    return opts
+  end,
 }
