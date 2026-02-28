@@ -1,0 +1,78 @@
+
+
+Error detected while processing BufReadPost Autocommands for "*":
+Error executing lua callback: ...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:25: BufReadPost Autocommands for "*"..FileType Autocommands for "?*": Vim(append):Error executing lua callback: ...termux/files/home/.config/nvim/lua/plugins/astrocore.lua:73: module 'fold_persist' not found:
+	no field package.preload['fold_persist']
+	cache_loader: module 'fold_persist' not found
+	cache_loader_lib: module 'fold_persist' not found
+	no file './fold_persist.lua'
+	no file '/data/data/com.termux/files/usr/share/luajit-2.1/fold_persist.lua'
+	no file '/usr/local/share/lua/5.1/fold_persist.lua'
+	no file '/usr/local/share/lua/5.1/fold_persist/init.lua'
+	no file '/data/data/com.termux/files/usr/share/lua/5.1/fold_persist.lua'
+	no file '/data/data/com.termux/files/usr/share/lua/5.1/fold_persist/init.lua'
+	no file './fold_persist.so'
+	no file '/usr/local/lib/lua/5.1/fold_persist.so'
+	no file '/data/data/com.termux/files/usr/lib/lua/5.1/fold_persist.so'
+	no file '/usr/local/lib/lua/5.1/loadall.so'
+stack traceback:
+	[C]: in function 'require'
+	...termux/files/home/.config/nvim/lua/plugins/astrocore.lua:73: in function <...termux/files/home/.config/nvim/lua/plugins/astrocore.lua:73>
+	[C]: in function 'nvim_cmd'
+	...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:25: in function <...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:24>
+	[C]: in function 'pcall'
+	vim/shared.lua:1378: in function <vim/shared.lua:1358>
+	[C]: in function '_with'
+	...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:24: in function <...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:10>
+stack traceback:
+	[C]: in function '_with'
+	...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:24: in function <...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:10>
+Error detected while processing BufWinEnter Autocommands for "?*":
+Error executing lua callback: ...termux/files/home/.config/nvim/lua/plugins/astrocore.lua:73: module 'fold_persist' not found:
+	no field package.preload['fold_persist']
+	cache_loader: module 'fold_persist' not found
+	cache_loader_lib: module 'fold_persist' not found
+	no file './fold_persist.lua'
+	no file '/data/data/com.termux/files/usr/share/luajit-2.1/fold_persist.lua'
+	no file '/usr/local/share/lua/5.1/fold_persist.lua'
+	no file '/usr/local/share/lua/5.1/fold_persist/init.lua'
+	no file '/data/data/com.termux/files/usr/share/lua/5.1/fold_persist.lua'
+	no file '/data/data/com.termux/files/usr/share/lua/5.1/fold_persist/init.lua'
+	no file './fold_persist.so'
+	no file '/usr/local/lib/lua/5.1/fold_persist.so'
+	no file '/data/data/com.termux/files/usr/lib/lua/5.1/fold_persist.so'
+	no file '/usr/local/lib/lua/5.1/loadall.so'
+stack traceback:
+	[C]: in function 'require'
+	...termux/files/home/.config/nvim/lua/plugins/astrocore.lua:73: in function <...termux/files/home/.config/nvim/lua/plugins/astrocore.lua:73>
+Error detected while processing BufReadPost Autocommands for "*":
+Error executing lua callback: ...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:25: BufReadPost Autocommands for "*"..FileType Autocommands for "?*": Vim(append):Error executing lua callback: ...termux/files/home/.config/nvim/lua/plugins/astrocore.lua:73: module 'fold_persist' not found:
+	no field package.preload['fold_persist']
+	cache_loader: module 'fold_persist' not found
+	cache_loader_lib: module 'fold_persist' not found
+	no file './fold_persist.lua'
+	no file '/data/data/com.termux/files/usr/share/luajit-2.1/fold_persist.lua'
+	no file '/usr/local/share/lua/5.1/fold_persist.lua'
+	no file '/usr/local/share/lua/5.1/fold_persist/init.lua'
+	no file '/data/data/com.termux/files/usr/share/lua/5.1/fold_persist.lua'
+	no file '/data/data/com.termux/files/usr/share/lua/5.1/fold_persist/init.lua'
+	no file './fold_persist.so'
+	no file '/usr/local/lib/lua/5.1/fold_persist.so'
+	no file '/data/data/com.termux/files/usr/lib/lua/5.1/fold_persist.so'
+	no file '/usr/local/lib/lua/5.1/loadall.so'
+stack traceback:
+	[C]: in function 'require'
+	...termux/files/home/.config/nvim/lua/plugins/astrocore.lua:73: in function <...termux/files/home/.config/nvim/lua/plugins/astrocore.lua:73>
+	[C]: in function 'nvim_cmd'
+	...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:25: in function <...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:24>
+	[C]: in function 'pcall'
+	vim/shared.lua:1378: in function <vim/shared.lua:1358>
+	[C]: in function '_with'
+	...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:24: in function <...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:10>
+	[C]: in function 'nvim_exec_autocmds'
+	.../AstroNvim/lua/astronvim/plugins/_astrocore_autocmds.lua:165: in function <.../AstroNvim/lua/astronvim/plugins/_astrocore_autocmds.lua:161>
+stack traceback:
+	[C]: in function '_with'
+	...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:24: in function <...ata/com.termux/files/usr/share/nvim/runtime/filetype.lua:10>
+	[C]: in function 'nvim_exec_autocmds'
+	.../AstroNvim/lua/astronvim/plugins/_astrocore_autocmds.lua:165: in function <.../AstroNvim/lua/astronvim/plugins/_astrocore_autocmds.lua:161>
