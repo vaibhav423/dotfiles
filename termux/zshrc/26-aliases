@@ -28,7 +28,7 @@ alias vhis='nano .zsh_history'
 alias sshcon='nvim /data/data/com.termux/files/usr/etc/ssh/ssh_config'
 # Edit and reload bashrc
 vbash() {
-    nvim ~/.config/zshrc/26-aliases && source ~/.config/zshrc/25-aliases
+    nvim ~/.config/zshrc/26-aliases && source ~/.config/zshrc/26-aliases
 }
 # Development server
 alias vbser='python -m http.server 8080'
