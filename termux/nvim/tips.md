@@ -19,47 +19,51 @@ nvim/
     │   ├── fold_persist.lua     Save/restore fold state per buffer
     │   ├── fold_toggle.lua      Smart fold-level toggling (z1–z4)
     │   ├── jeerem.lua           Date-countdown reminder command
+    │   ├── mappings.lua         All global keymaps (required by astrocore.lua)
     │   └── mdrender.lua         render-markdown.nvim toggle helper
     ├── plugins/                 Lazy.nvim plugin specs only.
     │   ├── core/                AstroNvim config extensions
-    │   │   ├── astrocore.lua    Options, mappings, autocmds
+    │   │   ├── init.lua         Re-exports all specs in this subdir (required by Lazy)
+    │   │   ├── astrocore.lua    Options, autocmds — mappings live in lib/mappings.lua
     │   │   ├── astrolsp.lua     LSP features, servers, on_attach
     │   │   ├── astroui.lua      Colorscheme, icons, highlights
     │   │   └── mason.lua        mason-tool-installer ensure_installed
     │   ├── ai/                  AI / completion
+    │   │   ├── init.lua         Re-exports all specs in this subdir (required by Lazy)
     │   │   ├── copilot.lua      copilot.lua setup + per-ft auto_trigger
     │   │   ├── copilotchat.lua  CopilotChat model override
     │   │   └── cmp_ai.lua       blink.cmp keymap wiring for Copilot
     │   ├── writing/             Markdown, LaTeX, text editing
+    │   │   ├── init.lua         Re-exports all specs in this subdir (required by Lazy)
     │   │   ├── latex.lua        vimtex + luasnip-latex-snippets + autopairs
     │   │   ├── mdrender.lua     render-markdown.nvim spec
     │   │   └── surround.lua     nvim-surround
     │   ├── tools/               Terminal and code execution
+    │   │   ├── init.lua         Re-exports all specs in this subdir (required by Lazy)
     │   │   ├── terminal.lua     betterTerm + code_runner
     │   │   └── treesitter.lua   nvim-treesitter parsers
     │   ├── none-ls.lua          DISABLED stub — keep but do not enable
     │   └── user.lua             DISABLED stub — keep but do not enable
     └── snippets/
-        └── latex.lua            LuaSnip snippets for tex/latex/markdown
+        └── tex.lua              LuaSnip snippets for tex/latex/markdown
 ```
 
 ---
 
 ## The three rules that prevent most mistakes
 
-### 1. Mappings go in `astrocore.lua` — never `vim.keymap.set` at module level
+### 1. Mappings go in `lib/mappings.lua` — never `vim.keymap.set` at module level
 
-All global keymaps belong in `plugins/core/astrocore.lua` under `opts.mappings`:
+All global keymaps belong in `lua/lib/mappings.lua`. The file returns a plain table
+that `astrocore.lua` merges into `opts.mappings` at startup:
 
 ```lua
--- plugins/core/astrocore.lua
-opts = {
-  mappings = {
-    n = { ["<Leader>xx"] = { function() ... end, desc = "..." } },
-    i = { ... },
-    t = { ... },
-    v = { ... },
-  },
+-- lua/lib/mappings.lua  ← edit this file to add keymaps
+return {
+  n = { ["<Leader>xx"] = { function() ... end, desc = "..." } },
+  i = { ... },
+  t = { ... },
+  v = { ... },
 }
 ```
 
@@ -110,7 +114,7 @@ opts = {
 
 ### New global keymap
 
-Add to `plugins/core/astrocore.lua` → `opts.mappings.n` (or `i`, `v`, `t`):
+Add to `lua/lib/mappings.lua` in the appropriate mode block (`n`, `i`, `v`, `t`):
 
 ```lua
 ["<Leader>xy"] = { function() require("lib.mymodule").do_thing() end, desc = "Do thing" },
@@ -136,7 +140,18 @@ Add to `plugins/core/astrocore.lua` → `opts.options.opt` or `opts.options.g`.
 
 1. Create a file in the appropriate `plugins/` subdirectory.
 2. Return a valid lazy spec table (or a list of specs).
-3. No subdirectory changes are needed in `lazy_setup.lua` — `{ import = "plugins" }` recurses automatically.
+3. Add the new file to that subdirectory's `init.lua` — **this is required**.
+   Lazy only auto-loads a subdirectory if it has an `init.lua`; files in subdirs
+   without one are silently ignored.
+
+```lua
+-- plugins/tools/init.lua  ← add a line here when you add a new file
+return {
+  { import = "plugins.tools.terminal" },
+  { import = "plugins.tools.treesitter" },
+  { import = "plugins.tools.mynewplugin" },  -- ← add this
+}
+```
 
 Pick the right subdirectory:
 - `core/` — overrides/extensions of AstroNvim's own plugins (astrocore, astrolsp, astroui, mason, treesitter)
@@ -330,7 +345,7 @@ These were deprecated in Neovim 0.10 and will be removed:
 - [ ] Public API: `M.my_function()` for reusable logic
 - [ ] If registering autocmds/commands: put them in `M.setup()`, call from `polish.lua`
 - [ ] Do **not** call `M.setup()` at the bottom of the module file
-- [ ] If the module needs a keymap: add it to `astrocore.lua` mappings, `require` the module inside the lambda
+- [ ] If the module needs a keymap: add it to `lua/lib/mappings.lua`, `require` the module inside the lambda
 
 ## Adding a new plugin — checklist
 
@@ -343,7 +358,7 @@ These were deprecated in Neovim 0.10 and will be removed:
 
 ## Modifying an existing mapping — checklist
 
-- [ ] Find it in `plugins/core/astrocore.lua` `opts.mappings`
+- [ ] Find it in `lua/lib/mappings.lua` (global mappings)
 - [ ] If it's an LSP mapping (only active when an LSP attaches): it's in `astrolsp.lua` `opts.mappings`
 - [ ] If it's a plugin-specific key (triggers load): it's in that plugin's `keys` table
 - [ ] Do not add a second mapping for the same key in a different file — last-writer wins and it's confusing
