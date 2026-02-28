@@ -64,7 +64,7 @@ return {
   n = {
     -- Buffers
     ["<Tab>"]      = { function() require("astrocore.buffer").nav(vim.v.count1) end,  desc = "Next buffer" },
-    ["<S-Tab>"]    = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
+    ["te"]    = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
     ["<Leader>bd"] = {
       function()
         require("astroui.status.heirline").buffer_picker(
@@ -107,6 +107,10 @@ return {
       end,
       desc = "Find documents files",
     },
+
+    -- find buffer
+    ["fb"] = {false},
+    ["tt"] = { function() require("snacks").picker.buffers() end, desc = "Find buffers" },
 
     -- Fold level toggles (current window)
     ["z1"] = { function() require("lib.fold_toggle").toggle(1) end, desc = "Toggle fold level 1" },
