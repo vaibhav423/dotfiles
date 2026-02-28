@@ -153,6 +153,19 @@ alias aport='sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --
 # GitHub authentication
 alias vglog='gh auth login'
 
+usage_copilot() {
+    local token
+    token=$(jq -r '.[].oauth_token' ~/.config/github-copilot/apps.json 2>/dev/null)
+    
+    if [ -z "$token" ]; then
+        echo "Error: Copilot token not found."
+        return 1
+    fi
+
+    curl -s -H "Authorization: Bearer $token" \
+    https://api.github.com/copilot_internal/user | \
+    jq -r '.quota_snapshots.premium_interactions.percent_remaining | floor | "\(.)%"'
+}
 # Quick git operations
 gitmod(){ 
 git pull 

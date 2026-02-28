@@ -13,14 +13,6 @@
 #==============================================================================
 # Add Go binaries to PATH
 export PATH=$PATH:$HOME/go/bin
-# Add to ~/.bashrc
-android() {
-         ANDROID_DATA=/data \
-         ANDROID_ROOT=/system \
-         PATH=/system/bin:/system/xbin:$PATH \
-         LD_LIBRARY_PATH=/system/lib64:/system/lib \
-         /system/bin/sh -c "$*"
-}
 
 #==============================================================================
 # BASIC ALIASES
@@ -36,7 +28,7 @@ alias vhis='nano .zsh_history'
 alias sshcon='nvim /data/data/com.termux/files/usr/etc/ssh/ssh_config'
 # Edit and reload bashrc
 vbash() {
-    nvim ~/.config/zshrc/25-aliases && source ~/.config/zshrc/25-aliases
+    nvim ~/.config/zshrc/26-aliases && source ~/.config/zshrc/25-aliases
 }
 # Development server
 alias vbser='python -m http.server 8080'
@@ -66,6 +58,10 @@ alias aport='sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --
 #==============================================================================
 # GIT/GITHUB MANAGEMENT
 #==============================================================================
+
+# GitHub authentication
+alias vglog='gh auth login'
+
 usage_copilot() {
     local token
     token=$(jq -r '.[].oauth_token' ~/.config/github-copilot/apps.json 2>/dev/null)
@@ -79,12 +75,6 @@ usage_copilot() {
     https://api.github.com/copilot_internal/user | \
     jq -r '.quota_snapshots.premium_interactions.percent_remaining | floor | "\(.)%"'
 }
-
-
-
-# GitHub authentication
-alias vglog='gh auth login'
-
 # Quick git operations
 gitmod(){ 
 git pull 
@@ -271,7 +261,84 @@ fk() {
         --exclude-length 432198
 }
 
+#==============================================================================
+# UBUNTU CHROOT MANAGEMENT
+#==============================================================================
+chrootpath="/data/local/tmp/archl"
 
+startx11(){
+tmux new-session -d -s tmp
+tmux send-keys -t tmp "XDG_RUNTIME_DIR=${TMPDIR} termux-x11 :0 -ac" C-m
+sleep 2
+su -c "chroot $chrootpath /bin/su - fire -c \"export DISPLAY=:0 && dbus-launch --exit-with-session startxfce4\""
+}
+
+killx11(){
+pkill termux-x11
+pkill tmux
+sudo pkill dbus-launch
+}
+vncvb() {
+    tmux new-session -d -s tmp
+    tmux send-keys -t tmp "su -c 'chroot $chrootpath /bin/su - fire -c \"vncserver :0\"'" C-m
+}
+vncvk() {
+    pkill tmux
+    su -c "chroot $chrootpath /bin/su - fire -c 'pkill vncserver'"
+}
+
+ubuntu() {
+    ubset > /dev/null
+    if [ "$#" -eq 0 ]; then
+        su -c " chroot $chrootpath /usr/bin/su  fire"
+    else
+        su -c " chroot $chrootpath /usr/bin/su  fire -c \"$*\""
+    fi
+}
+
+ubset() {
+    if ! su -c "grep -q \"$chrootpath\" /proc/mounts"; then
+        su -c "mount -o remount,dev,suid /data"
+        su -c "mount --bind /dev $chrootpath/dev"
+       # su -c "mount --rbind /dev $chrootpath/dev"
+        
+        # Fix TTY mapping
+       # su -c "rm -f $chrootpath/dev/ptmx"
+       # su -c "ln -s /dev/pts/ptmx $chrootpath/dev/ptmx"
+
+       # # Fix Standard Streams
+       # su -c "ln -sf /proc/self/fd $chrootpath/dev/fd"
+       # su -c "ln -sf /proc/self/fd/0 $chrootpath/dev/stdin"
+       # su -c "ln -sf /proc/self/fd/1 $chrootpath/dev/stdout"
+       # su -c "ln -sf /proc/self/fd/2 $chrootpath/dev/stderr"
+
+        su -c "mount --bind /sys $chrootpath/sys"
+        su -c "mount --bind /proc $chrootpath/proc"
+#        su -c "mount -t devpts devpts $chrootpath/dev/pts -o gid=5,mode=620"
+        su -c "mount -t devpts devpts $chrootpath/dev/pts "
+        # --- extra mount to use  sandroid su  binaries.
+    #    su -c "mount --bind /system $chrootpath/system"
+    #    su -c "mount --rbind /apex $chrootpath/apex"
+    #    su -c "mount --bind /linkerconfig $chrootpath/linkerconfig"
+        ## --
+        su -c "mkdir -p $chrootpath/tmp $chrootpath/termux $chrootpath/sdcard $chrootpath/dev/shm"
+        su -c "mount -t tmpfs -o size=256M tmpfs $chrootpath/dev/shm"
+        sudo bindfs -u 1001 -g 984 /data/data/com.termux/files "${chrootpath}/termux"
+        sudo bindfs -u 1001 -g 984 /sdcard $chrootpath/sdcard 
+      #  su -c "mount --bind /data/data/com.termux/files/usr/tmp $chrootpath/tmp"
+        #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/usr/bin/nvim "${chrootpath}/usr/bin/nvim"
+        #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/home/.config/nvim "${chrootpath}/data/data/com.termux/files/home/.config/nvim"
+        echo "mount done"
+    else
+        echo "mount already done"
+    fi
+}
+
+ubunset() {
+    for mnt in tmp sdcard linkerconfig apex system termux dev/shm dev/pts proc sys dev home/fire/.config/zshrc; do
+        su -c "umount -l $chrootpath/$mnt" 2>/dev/null
+    done
+}
 #==============================================================================
 # DNS/NETWORK MANAGEMENT
 #==============================================================================
