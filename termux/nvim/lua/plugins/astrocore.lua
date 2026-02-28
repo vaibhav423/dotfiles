@@ -83,7 +83,8 @@ return {
 
         -- navigate buffer tabs
         ["<Tab>"] = { function() require("astrocore.buffer").nav(vim.v.count1) end, desc = "Next buffer" },
-        ["<S-Tab>"] = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
+        ["te"] = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
+        ["tt"] = { function() require("snacks").picker.buffers() end, desc = "Find buffers" },
 
         -- mappings seen under group name "Buffer"
         ["<Leader>bd"] = {
