@@ -26,10 +26,3 @@ end
 
 require "lazy_setup"
 require "polish"
-require "keymaps"
-vim.api.nvim_create_autocmd("VimEnter", {
-  callback = function()
-    -- This command runs after everything else has loaded
-    vim.opt.clipboard = ""
-  end,
-})

@@ -1,6 +1,5 @@
--- Transparent encryption/decryption plugin for sensitive notes
--- Uses OpenSSL AES-256-CBC encryption with PBKDF2 key derivation
--- Decrypted content stays ONLY in buffer, never written to disk
+-- Transparent encryption/decryption for sensitive notes (.enc files)
+-- Uses OpenSSL AES-256-CBC with PBKDF2. Decrypted content stays only in buffer.
 
 local M = {}
 
@@ -201,9 +200,4 @@ function M.setup()
   end, { desc = "Clear cached encryption password" })
 end
 
--- Auto-setup when module loads
-M.setup()
-
--- Return empty table for lazy.nvim compatibility
--- (AstroNvim expects plugin files to return a table)
-return {}
+return M

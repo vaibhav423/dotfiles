@@ -11,14 +11,8 @@ require("lazy").setup({
       update_notifications = true, -- Enable/disable notification about running `:Lazy update` twice to update pinned plugins
     },
   },
-   { import = "community" },
+  { import = "community" },
   { import = "plugins" },
-  {
-    "CRAG666/betterTerm.nvim",
-    opts = {
-      -- your options
-    },
-  },
 } --[[@as LazySpec]], {
   -- Configure any other `lazy.nvim` configuration options here
   install = { colorscheme = { "astrotheme", "habamax" } },
