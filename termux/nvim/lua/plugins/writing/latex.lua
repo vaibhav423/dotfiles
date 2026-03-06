@@ -47,23 +47,23 @@ return {
     end,
   },
 
-  -- Auto-close $...$ in markdown and tex
-  {
-    "windwp/nvim-autopairs",
-    optional = true,
-    config = function(plugin, opts)
-      require("astronvim.plugins.configs.nvim-autopairs")(plugin, opts)
-      local npairs = require("nvim-autopairs")
-      local Rule = require("nvim-autopairs.rule")
-      local cond = require("nvim-autopairs.conds")
-      npairs.add_rules({
-        Rule("$", "$", { "tex", "latex", "markdown" })
-          :with_pair(cond.not_after_regex("%%"))
-          :with_move(cond.none())
-          :with_del(cond.not_after_regex("xx"))
-          :with_cr(cond.none()),
-      })
-    end,
-  },
-
-}
+-- Auto-close $...$ in markdown and tex
+--   {
+--     "windwp/nvim-autopairs",
+--     optional = true,
+--     config = function(plugin, opts)
+--       require("astronvim.plugins.configs.nvim-autopairs")(plugin, opts)
+--       local npairs = require("nvim-autopairs")
+--       local Rule = require("nvim-autopairs.rule")
+--       local cond = require("nvim-autopairs.conds")
+--       npairs.add_rules({
+--         Rule("$", "$", { "tex", "latex", "markdown" })
+--           :with_pair(cond.not_after_regex("%%"))
+--           :with_move(cond.none())
+--           :with_del(cond.not_after_regex("xx"))
+--           :with_cr(cond.none()),
+--       })
+--     end,
+--   },
+--
+ }

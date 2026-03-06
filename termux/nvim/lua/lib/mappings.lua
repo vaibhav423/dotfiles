@@ -30,6 +30,7 @@ end
 -- ---------------------------------------------------------------------------
 
 return {
+
   -- Insert mode ---------------------------------------------------------------
   i = {
     -- Exit insert mode and save if modified
@@ -64,7 +65,8 @@ return {
   n = {
     -- Buffers
     ["<Tab>"]      = { function() require("astrocore.buffer").nav(vim.v.count1) end,  desc = "Next buffer" },
-    ["te"]    = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
+    -- t is nvim inbuilt key for till  , this new map blocks tt which should make cursour movie behind next t 
+    ["tt"]    = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
     ["<Leader>bd"] = {
       function()
         require("astroui.status.heirline").buffer_picker(
@@ -73,6 +75,11 @@ return {
       end,
       desc = "Close buffer from tabline",
     },
+    -- exchange mappings between grep_wprd and commands
+    ["<Leader>fC"] =  { function() require("snacks").picker.grep_word() end, desc = "Find word under cursor" },
+
+    ["<Leader>fc"] = { function() require("snacks").picker.commands() end, desc = "Find commands" },
+
 
     -- LSP
     ["<Leader>rl"] = { "<cmd>LspRestart<CR>", desc = "Restart LSP" },
@@ -108,9 +115,62 @@ return {
       desc = "Find documents files",
     },
 
+    ["<Leader>fn"] = {false},
+    -- File finder (nvim-docs)
+    ["<Leader>fn"] = {
+      function()
+        require("snacks").picker.files({ dirs = { "~/.local/share/nvim/" } })
+      end,
+      desc = "Find nvim docs",
+    },
+    -- change default notifications mapping from fn to fN
+    ["<Leader>fN"] = { function() require("snacks").picker.notifications() end, desc = "Find notifications" },
+
+
+
     -- find buffer
-    ["fb"] = {false},
-    ["tt"] = { function() require("snacks").picker.buffers() end, desc = "Find buffers" },
+    ["<Leader>fb"] = {false},
+    ["te"] = { function() require("snacks").picker.buffers() end, desc = "Find buffers" },
+
+    -- Open gallery path in MixPlorer via Android intent
+    ["<Leader>gg"] = {
+      function()
+        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+
+        local in_gallery = false
+        local rel_path = nil
+
+        for _, line in ipairs(lines) do
+          if line:match("^#%s+gallery%s*$") then
+            in_gallery = true
+          elseif in_gallery then
+            if line:match("^#%s+") then break end  -- next heading, stop
+            local p = line:match("^%s*path:%s*(.+)%s*$")
+            if p then
+              rel_path = p
+              break
+            end
+          end
+        end
+
+        if not rel_path then
+          vim.notify("No path: found under # gallery heading", vim.log.levels.WARN)
+          return
+        end
+
+        local full_path = vim.fn.getcwd() .. "/" .. rel_path
+
+        local cmd = string.format(
+          'am start -a android.intent.action.VIEW -d "file://%s" -t "resource/folder" com.mixplorer.silver',
+          full_path
+        )
+        local result = vim.fn.system(cmd)
+        if vim.v.shell_error ~= 0 then
+          vim.notify("MixPlorer open failed:\n" .. result, vim.log.levels.ERROR)
+        end
+      end,
+      desc = "Open gallery path in MixPlorer",
+    },
 
     -- Fold level toggles (current window)
     ["z1"] = { function() require("lib.fold_toggle").toggle(1) end, desc = "Toggle fold level 1" },
@@ -124,4 +184,10 @@ return {
     ["<Leader>z3"] = { function() require("lib.fold_toggle").toggle_all(3) end, desc = "Toggle fold level 3 (all windows)" },
     ["<Leader>z4"] = { function() require("lib.fold_toggle").toggle_all(4) end, desc = "Toggle fold level 4 (all windows)" },
   },
+    -- Visual mode ---------------------------------------------------------------
+  v = {
+    -- Substitute only within the visual selection
+    ["<C-r>"] = { [[:s/\%V\%V//g<Left><Left><Left><Left><Left><Left>]], desc = "Substitute inside selection" },
+  },
+
 }

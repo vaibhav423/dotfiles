@@ -33,7 +33,9 @@ return {
         wrap = false,
         clipboard = "unnamedplus",
       },
-      g = {},
+      g = {
+        copilot_chat_prefix = "<Leader>a",
+      },
     })
 
     -- Autocommands

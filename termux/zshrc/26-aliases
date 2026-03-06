@@ -21,7 +21,7 @@ alias cd='z'
 alias cdf='/sdcard/Documents/Fire'
 # File and directory operations
 alias ls='ls -t'
-alias inx='cd ~/archive'
+alias inx='cd ~/crap'
 alias n='nvim'
 # Text editor shortcuts
 alias vhis='nano .zsh_history'
