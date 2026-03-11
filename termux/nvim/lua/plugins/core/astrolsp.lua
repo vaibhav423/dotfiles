@@ -36,15 +36,14 @@ return {
 
     -- enable servers that you already have installed without mason
     opts.servers = vim.list_extend(opts.servers or {}, {
-      "markdown-oxide",
+      "markdown_oxide",
     })
 
-    -- customize language server configuration options passed to `lspconfig`
     opts.config = vim.tbl_deep_extend("force", opts.config or {}, {
-      ["markdown-oxide"] = {
+      ["markdown_oxide"] = {
         cmd = { "/data/data/com.termux/files/home/.cargo/bin/markdown-oxide" },
-        filetypes = { "markdown", "md", "mdx" },
-        root_dir = require("lspconfig.util").root_pattern(".git", ".obsidian", ".moxide.toml"),
+        -- filetypes = { "markdown", "md", "mdx" },
+        -- root_dir = require("lspconfig.util").root_pattern(".git", ".obsidian", ".moxide.toml"),
         capabilities = {
           workspace = {
             didChangeWatchedFiles = {
@@ -52,9 +51,9 @@ return {
             },
           },
         },
-        init_options = {
-          keyword_pattern = [[\(\k\| \|\/\|#\)\+]],
-        },
+        -- init_options = {
+        --   keyword_pattern = [[\(\k\| \|\/\|#\)\+]],
+        -- },
       },
       -- clangd = { capabilities = { offsetEncoding = "utf-8" } },
     })

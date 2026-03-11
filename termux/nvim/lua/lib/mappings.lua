@@ -63,6 +63,12 @@ return {
 
   -- Normal mode ---------------------------------------------------------------
   n = {
+    -- Wikilink navigation
+    ["<M-s>"]     = { function() require("lib.wikilink").collect() end,  desc = "Save all [[wikilinks]] in buffer" },
+    ["<M-Right>"] = { function() require("lib.wikilink").next() end,     desc = "Next saved wikilink" },
+    ["<M-Left>"]  = { function() require("lib.wikilink").prev() end,     desc = "Previous saved wikilink" },
+    ["<M-f>"]     = { function() require("lib.wikilink").pick() end,     desc = "Fuzzy find saved wikilinks" },
+
     -- Buffers
     ["<Tab>"]      = { function() require("astrocore.buffer").nav(vim.v.count1) end,  desc = "Next buffer" },
     -- t is nvim inbuilt key for till  , this new map blocks tt which should make cursour movie behind next t 
@@ -107,6 +113,15 @@ return {
     -- Jeerem reminder
     ["<Leader>jr"] = { "<cmd>Jeerem<CR>", desc = "Insert reminder on first line" },
 
+    ["<Leader>lr"] = { "<Cmd>Lspsaga finder<CR>", desc = "Search references",
+                        cond = function(client)
+                          return client.supports_method "textDocument/references"
+                            or client.supports_method "textDocument/implementation"
+                        end,
+                        },
+
+    ["<Leader>lR"] = { "<Cmd>Lspsaga rename<CR>", desc = "Rename current symbol", cond = "textDocument/rename" }
+
     -- File finder (documents)
     ["<Leader>fd"] = {
       function()
@@ -115,7 +130,6 @@ return {
       desc = "Find documents files",
     },
 
-    ["<Leader>fn"] = {false},
     -- File finder (nvim-docs)
     ["<Leader>fn"] = {
       function()
@@ -161,7 +175,7 @@ return {
         local full_path = vim.fn.getcwd() .. "/" .. rel_path
 
         local cmd = string.format(
-          'am start -a android.intent.action.VIEW -d "file://%s" -t "resource/folder" com.mixplorer.silver',
+          'am start -a android.intent.action.VIEW -d "file://%s" -t "resource/folder" com.mixplorer',
           full_path
         )
         local result = vim.fn.system(cmd)
@@ -172,7 +186,42 @@ return {
       desc = "Open gallery path in MixPlorer",
     },
 
-    -- Fold level toggles (current window)
+    -- Delete image file under cursor and the current line
+    ["<Leader>dd"] = {
+      function()
+        local cwd = vim.fn.getcwd()
+        local urls = require("vim.ui")._get_urls()
+        local rel_or_abs = urls and urls[1]
+        if not rel_or_abs or rel_or_abs == "" then
+          vim.notify("DeletePhoto: no path found under cursor", vim.log.levels.WARN)
+          return
+        end
+
+        local abs_path
+        if rel_or_abs:sub(1, 1) == "/" then
+          abs_path = rel_or_abs
+        else
+          abs_path = cwd .. "/" .. rel_or_abs
+        end
+
+        if vim.fn.filereadable(abs_path) == 0 then
+          vim.notify("DeletePhoto: file not found:\n" .. abs_path, vim.log.levels.WARN)
+        else
+          vim.fn.delete(abs_path)
+        end
+
+        -- Delete the current line
+        local row = vim.api.nvim_win_get_cursor(0)[1]
+        vim.api.nvim_buf_set_lines(0, row - 1, row, false, {})
+
+        vim.schedule(function()
+          vim.notify("Deleted: " .. rel_or_abs, vim.log.levels.INFO)
+        end)
+      end,
+      desc = "Delete image file under cursor and current line",
+    },
+
+    -- toggle key maps  
     ["z1"] = { function() require("lib.fold_toggle").toggle(1) end, desc = "Toggle fold level 1" },
     ["z2"] = { function() require("lib.fold_toggle").toggle(2) end, desc = "Toggle fold level 2" },
     ["z3"] = { function() require("lib.fold_toggle").toggle(3) end, desc = "Toggle fold level 3" },
@@ -188,6 +237,12 @@ return {
   v = {
     -- Substitute only within the visual selection
     ["<C-r>"] = { [[:s/\%V\%V//g<Left><Left><Left><Left><Left><Left>]], desc = "Substitute inside selection" },
+
+    -- Copy images from visually selected lines to a temp dir and open in MixPlorer
+    ["<Leader>gg"] = {
+      ":<C-u>'<,'>OpenImages<CR>",
+      desc = "Copy selected images to tmp dir and open in MixPlorer",
+    },
   },
 
 }
