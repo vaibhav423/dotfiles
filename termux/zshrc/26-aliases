@@ -84,7 +84,7 @@ git push
 }
 
 # List GitHub repositories
-alias ghlist='GH_PAGER= gh repo list vaibhav423 --limit 100 --json name --jq ".[].name"'
+alias gitlist='GH_PAGER= gh repo list vaibhav423 --limit 100 --json name --jq ".[].name"'
 
 gitcl(){
     if [ -z "$1" ]; then
@@ -120,31 +120,53 @@ gitadd() {
 }
 
 # Create new GitHub repository with templates
+
 gitcr() {
     if [ -z "$1" ]; then
-        echo "Usage: gitcr <project-name> [gitignore] [license]"
+        echo "Usage: gitcr <project-name> [private|public] [gitignore] [license]"
         return 1
     fi
 
     local project="$1"
-    # Default .gitignore template is "Node" unless provided
-    local gitignore="${2:-Node}"
-    # Default license is "MIT" unless provided
-    local license="${3:-MIT}"
+    local privacy_flag="--public"
+    local gitignore="Node"
+    local license="MIT"
 
-    echo "Creating repository $project with gitignore $gitignore and license $license..."
+    # Correctly parse privacy if it's the second argument
+    if [ "$2" = "private" ]; then
+        privacy_flag="--private"
+        [ -n "$3" ] && gitignore="$3"
+        [ -n "$4" ] && license="$4"
+    elif [ "$2" = "public" ]; then
+        privacy_flag="--public"
+        [ -n "$3" ] && gitignore="$3"
+        [ -n "$4" ] && license="$4"
+    else
+        # If second arg is not privacy, treat others as gitignore/license
+        [ -n "$2" ] && gitignore="$2"
+        [ -n "$3" ] && license="$3"
+    fi
 
-    # Create the repo on GitHub and clone it locally.
-    gh repo create "vaibhav423/$project" --public --clone --add-readme --gitignore="$gitignore" --license="$license" || return 1
+    local user
+    user=$(gh api user --jq .login 2>/dev/null) || user="vaibhav423"
 
-    cd "$project" || return 1
+    echo "Creating repository $project (Privacy: $privacy_flag, Ignore: $gitignore, License: $license)..."
 
-    # Optionally update README.md (this example overwrites it with a header)
-    echo "# $project" > README.md
-    git add README.md
-    git commit -m "Initial commit with README update"
-    git branch -M main
-    git push -u origin main
+    # Create the repo and clone it
+    if gh repo create "$project" $privacy_flag --clone --add-readme --gitignore="$gitignore" --license="$license"; then
+        cd "$project" || return 1
+        
+        # Ensure README has the title
+        if ! grep -q "^# $project" README.md; then
+            echo "# $project" > README.md
+            git add README.md
+            git commit -m "Initial commit: Update README title"
+            git push
+        fi
+    else
+        echo "Failed to create repository."
+        return 1
+    fi
 }
 
 # Fork, clone, and initialize repository
@@ -153,7 +175,7 @@ gitfr() {
     name=$(basename "$repo" .git)
 
     if [ -z "$repo" ]; then
-        echo "Usage: forkclonepush <repo-url>"
+        echo "Usage: gitfr <repo-url>"
         return 1
     fi
 
@@ -171,7 +193,7 @@ gitfr() {
 }
 
 # Delete GitHub repository
-ghdel() {
+gitdel() {
     if [ -z "$1" ]; then
         echo "Usage: ghdel <repo-name>"
         return 1

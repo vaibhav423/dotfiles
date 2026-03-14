@@ -102,7 +102,6 @@ x() {
      ~/Water/scripts/"$script"
 }
 alias n='nvim'
-alias gitf='~/.config/ml4w/scripts/git'
 alias cdf='cd ~/Water/Fire'
 alias cds='cd ~/Water/scripts/'
 # File and directory operations
@@ -178,7 +177,7 @@ git push
 alias ghlist='GH_PAGER= gh repo list vaibhav423 --limit 100 --json name --jq ".[].name"'
 
 # Create GitHub repo from current directory
-ghinsert() {
+gitinsert() {
     # Use current directory name as the repo name
     local project="${PWD##*/}"
 
@@ -212,7 +211,7 @@ gitcl(){
     cd "$repo" || return 1
 }
 # Create new GitHub repository with templates
-ghcr() {
+gitcr() {
     if [ -z "$1" ]; then
         echo "Usage: gitcr <project-name> [private|public] [gitignore] [license]"
         return 1
@@ -262,7 +261,7 @@ ghcr() {
 
 
 # Fork, clone, and initialize repository
-ghfr() {
+gitfr() {
     repo="$1"
     name=$(basename "$repo" .git)
 
@@ -285,7 +284,7 @@ ghfr() {
 }
 
 # Delete GitHub repository
-ghdel() {
+gitdel() {
     if [ -z "$1" ]; then
         echo "Usage: ghdel <repo-name>"
         return 1

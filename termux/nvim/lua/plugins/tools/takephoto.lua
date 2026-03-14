@@ -37,9 +37,8 @@ return {
           return
         end
 
-        local rand = tostring(math.random(100000, 999999))
-        local tmp_dir = "/sdcard/tmp/" .. rand
-        vim.fn.mkdir(tmp_dir, "p")
+        local tmp_dir = "/sdcard/tmp"
+        vim.fn.system(string.format("mkdir -p %s && rm -rf %s/*", vim.fn.shellescape(tmp_dir), vim.fn.shellescape(tmp_dir)))
 
         local copied = 0
         for _, rel_or_abs in ipairs(paths) do

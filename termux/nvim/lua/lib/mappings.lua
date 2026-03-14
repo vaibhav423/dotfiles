@@ -113,22 +113,6 @@ return {
     -- Jeerem reminder
     ["<Leader>jr"] = { "<cmd>Jeerem<CR>", desc = "Insert reminder on first line" },
 
-    -- remap Lspsaga
-    ["<Leader>lr"] = { "<Cmd>Lspsaga finder<CR>", desc = "LSP Finder" },
-    ["<Leader>lR"] = { "<Cmd>Lspsaga rename<CR>", desc = "Rename symbol" },
---     ["<Leader>lr"] = { "<Cmd>Lspsaga finder<CR>", desc = "Search references",
---                         cond = function(client)
---                           return client.supports_method "textDocument/references"
---                             or client.supports_method "textDocument/implementation"
---                         end,
---                         },
---     ["<Leader>lR"] = { 
---   "<Cmd>Lspsaga rename<CR>", 
---   desc = "Rename symbol", 
---   cond = function(client) return client.supports_method "textDocument/rename" end 
--- },
-
-
     -- File finder (documents)
     ["<Leader>fd"] = {
       function()
