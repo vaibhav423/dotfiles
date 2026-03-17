@@ -13,4 +13,5 @@ return {
   { import = "astrocommunity.editing-support.copilotchat-nvim" },
   { import = "astrocommunity.completion.cmp-latex-symbols" },
   { import = "astrocommunity.lsp.lspsaga-nvim" },
+  { import = "astrocommunity.completion.avante-nvim" },
 }

@@ -16,6 +16,21 @@ return {
       desc = "Edit photo under cursor in Picsart, update markdown link",
     }
 
+    opts.commands["VaultInit"] = {
+      function() require("lib.vault").init_template() end,
+      desc = "Initialise vault topic template and pin directory",
+    }
+
+    opts.commands["VaultPin"] = {
+      function() require("lib.vault").set_pinned() end,
+      desc = "Pick and save a vault directory as pinned",
+    }
+
+    opts.commands["VaultOpen"] = {
+      function() require("lib.vault").open_pinned() end,
+      desc = "Open pinned topic files in splits",
+    }
+
     opts.commands["OpenImages"] = {
       function(args)
         local cwd = vim.fn.getcwd()

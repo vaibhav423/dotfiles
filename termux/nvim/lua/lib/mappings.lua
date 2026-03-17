@@ -72,7 +72,7 @@ return {
     -- Buffers
     ["<Tab>"]      = { function() require("astrocore.buffer").nav(vim.v.count1) end,  desc = "Next buffer" },
     -- t is nvim inbuilt key for till  , this new map blocks tt which should make cursour movie behind next t 
-    ["tt"]    = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
+    ["<Leader><Leader>"]    = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
     ["<Leader>bd"] = {
       function()
         require("astroui.status.heirline").buffer_picker(
@@ -112,6 +112,11 @@ return {
 
     -- Jeerem reminder
     ["<Leader>jr"] = { "<cmd>Jeerem<CR>", desc = "Insert reminder on first line" },
+
+    -- Vault
+    ["<Leader>vi"] = { function() require("lib.vault").init_template() end, desc = "Vault: init topic template" },
+    ["<Leader>vp"] = { function() require("lib.vault").set_pinned() end,    desc = "Vault: pick pinned directory" },
+    ["<Leader>vo"] = { function() require("lib.vault").open_pinned() end,   desc = "Vault: open pinned topic files" },
 
     -- File finder (documents)
     ["<Leader>fd"] = {

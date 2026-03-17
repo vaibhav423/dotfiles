@@ -122,32 +122,24 @@ gitadd() {
 # Create new GitHub repository with templates
 
 gitcr() {
-    if [ -z "$1" ]; then
-        echo "Usage: gitcr <project-name> [private|public]"
-        return 1
-    fi
+    [ -z "$1" ] && { echo "Usage: gitcr <name> [private]"; return 1; }
 
     local project="$1"
-    local privacy_flag="--public"
+    local privacy="--public"
 
-    # Set privacy to private only if explicitly requested
-    if [ "$2" = "private" ]; then
-        privacy_flag="--private"
-    fi
+    # Simple check for private
+    [[ "$2" == *"private"* ]] && privacy="--private"
 
-    echo "Creating repository $project (Privacy: $privacy_flag)..."
-
-    # Create the repo with just the README
-    if gh repo create "$project" "$privacy_flag" --clone --add-readme; then
+    # 1. Create and Clone
+    if gh repo create "$project" "$privacy" --clone --add-readme; then
         cd "$project" || return 1
         
-        # Ensure README has the title (Overwrites the default GH template)
+        # 2. Reset README and Push Upstream
         echo "# $project" > README.md
         git add README.md
         git commit -m "Initial commit"
         git push -u origin main
     else
-        echo "Failed to create repository."
         return 1
     fi
 }

@@ -121,21 +121,19 @@ function M.edit()
         timer:stop()
         timer:close()
 
-        -- Build new filename: timestamp + original extension
-        local ext = found:match("%.(%w+)$") or "jpg"
-        local new_filename = tostring(os.time()) .. "." .. ext
+        -- Keep original filename (preserve name) and move the edited file to that name
+        local new_filename = vim.fn.fnamemodify(orig_abs, ":t")
         local new_abs = abs_dir .. "/" .. new_filename
 
-        -- Move new file to destination
-        local mv = vim.fn.system(string.format("mv %s %s",
+        -- Move new file to destination (overwrite original)
+        local mv = vim.fn.system(string.format("mv -f %s %s",
           vim.fn.shellescape(found), vim.fn.shellescape(new_abs)))
         if vim.v.shell_error ~= 0 then
           vim.notify("EditPhoto: move failed\n" .. mv, vim.log.levels.ERROR)
           return
         end
 
-        -- Delete original
-        vim.fn.delete(orig_abs)
+        -- Note: do NOT delete orig_abs here — we've moved/overwritten the original.
 
         -- Update the markdown link on the saved row:
         -- replace only the filename part, keep the directory
