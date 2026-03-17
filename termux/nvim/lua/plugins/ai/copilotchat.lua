@@ -1,3 +1,5 @@
+
+if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
 local prefix = "<Leader>a"
 local old_prefix = "<Leader>P"
 

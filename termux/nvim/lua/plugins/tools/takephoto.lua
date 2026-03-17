@@ -31,6 +31,11 @@ return {
       desc = "Open pinned topic files in splits",
     }
 
+    opts.commands["YtFrame"] = {
+      function() require("lib.ytframe").capture() end,
+      desc = "Capture a frame from a YouTube URL and insert as markdown image",
+    }
+
     opts.commands["OpenImages"] = {
       function(args)
         local cwd = vim.fn.getcwd()

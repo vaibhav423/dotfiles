@@ -164,13 +164,6 @@ function M.set_pinned()
 
   -- 2. Enumerate subdirs via find, excluding .git and .obsidian
   local raw = vim.fn.systemlist(
-    "find . -mindepth 1 -type d"
-    .. " \\( -name '.git' -o -name '.obsidian' \\) -prune"
-    .. " -o -type d -printf '%P\\n'",
-    nil, false  -- no stdin, keep exit code
-  )
-  -- systemlist with cwd trick: run inside vault root
-  raw = vim.fn.systemlist(
     "cd " .. vim.fn.shellescape(vault)
     .. " && find . -mindepth 1 -type d"
     .. " \\( -name '.git' -o -name '.obsidian' \\) -prune"

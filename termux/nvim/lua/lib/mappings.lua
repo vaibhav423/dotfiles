@@ -72,7 +72,7 @@ return {
     -- Buffers
     ["<Tab>"]      = { function() require("astrocore.buffer").nav(vim.v.count1) end,  desc = "Next buffer" },
     -- t is nvim inbuilt key for till  , this new map blocks tt which should make cursour movie behind next t 
-    ["<Leader><Leader>"]    = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
+    ["<S-TAB>"]    = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
     ["<Leader>bd"] = {
       function()
         require("astroui.status.heirline").buffer_picker(
@@ -91,12 +91,16 @@ return {
     ["<Leader>rl"] = { "<cmd>LspRestart<CR>", desc = "Restart LSP" },
 
     -- Code runner
-    ["<Leader>rt"]  = { ":w<CR>:RunCode<CR>",              desc = "Run code (float)" },
+    -- ["<Leader>rt"]  = { ":w<CR>:RunCode<CR>",              desc = "Run code (float)" },
     ["<Leader>rb"]  = { ":w<CR>:RunFile better_term<CR>",  desc = "Run file in terminal" },
     ["<Leader>rf"]  = { ":RunFile<CR>",                    desc = "Run file" },
     ["<Leader>rft"] = { ":RunFile tab<CR>",                desc = "Run file (tab)" },
     ["<Leader>rp"]  = { ":RunProject<CR>",                 desc = "Run project" },
 
+    -- tasker
+    ["<Leader>rt"] = { 
+      ":silent !am broadcast -a net.dinglisch.android.tasker.ACTION_TASK -e task_name youtube_img_url_mode_toggle<CR><CR>", desc = "Run Tasker task" 
+    },
     -- Copilot
     ["<Leader>tc"] = {
       function()
@@ -117,6 +121,9 @@ return {
     ["<Leader>vi"] = { function() require("lib.vault").init_template() end, desc = "Vault: init topic template" },
     ["<Leader>vp"] = { function() require("lib.vault").set_pinned() end,    desc = "Vault: pick pinned directory" },
     ["<Leader>vo"] = { function() require("lib.vault").open_pinned() end,   desc = "Vault: open pinned topic files" },
+
+    -- YouTube frame capture (normal: auto-detect URL on current line)
+    ["<Leader>yf"] = { function() require("lib.ytframe").capture_normal() end, desc = "Capture YouTube frame (current line URL)" },
 
     -- File finder (documents)
     ["<Leader>fd"] = {
@@ -238,6 +245,12 @@ return {
     ["<Leader>gg"] = {
       ":<C-u>'<,'>OpenImages<CR>",
       desc = "Copy selected images to tmp dir and open in MixPlorer",
+    },
+
+    -- YouTube frame capture: visually select lines containing URLs, press <Leader>yf
+    ["<Leader>yf"] = {
+      ":<C-u>lua require('lib.ytframe').capture_visual()<CR>",
+      desc = "Capture YouTube frames from all URLs in selection",
     },
   },
 

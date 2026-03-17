@@ -515,6 +515,21 @@ Config is in `.stylua.toml` — 2-space indent, 100-column width.
 - `open_pinned()` cds into `full_pinned` (important for LSP root detection), then
   `edit`s the topic file and `badd`s the questions file (no split).
 
+### lib/ytframe.lua
+
+- Triggered by `:YtFrame` or `<Leader>yf`. Prompts for a YouTube URL via `Snacks.input`.
+- Timestamp parsing from `?t=` param supports: `7m28s`, `1h7m28s`, `7m`, `28s`, raw
+  seconds (e.g. `448`). Produces `MM:SS` or `HH:MM:SS` for ffmpeg `-ss`.
+- The `?t=` param is stripped from the URL before passing to `yt-dlp` (avoids errors).
+- Execution chain (fully async via `vim.system`):
+  1. `yt-dlp -f bestvideo -g <clean_url>` → direct stream URL
+  2. `ffmpeg -ss <ts> -i <stream> -frames:v 1 -q:v 2 -y <out.jpg>`
+- Output path uses the same `find_section_path("gallery")` logic as `takephoto.lua`
+  (falls back to `"Assets/"`). Filename is `<unix_timestamp>.jpg`.
+- The markdown link is inserted **immediately** before the async jobs start (same UX
+  as TakePhoto — the link is there optimistically while ffmpeg runs in the background).
+- If no `?t=` is present, ffmpeg grabs the frame at position 0 (no `-ss` flag).
+
 ### Neovim luac cache
 
 - Neovim caches compiled `.luac` files keyed by original path. After any file move,
