@@ -263,7 +263,7 @@ function M.open_pinned()
   vim.cmd("edit " .. vim.fn.fnameescape(topic_file))
   vim.cmd("badd " .. vim.fn.fnameescape(questions_file))
 
-  vim.notify("vault: opened " .. topic_name, vim.log.levels.INFO)
+  -- vim.notify("vault: opened " .. topic_name, vim.log.levels.INFO)
 end
 
 return M
