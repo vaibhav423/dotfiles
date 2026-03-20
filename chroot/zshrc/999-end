@@ -10,3 +10,45 @@ cd ~
 #    tmux attach-session -t default || tmux new-session -s default
 #fi
 
+export FZF_COMPLETION_TRIGGER=',,'
+
+# export NVM_DIR="$HOME/.nvm"
+# # Lazy-load nvm: only source nvm when node/npm/npx are first used
+# load_nvm() {
+#     [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+#     [ -s "$NVM_DIR/bash_completion" ] && source "$NVM_DIR/bash_completion"
+#     unset -f load_nvm
+# }
+# alias node='load_nvm; node'
+# alias npm='load_nvm; npm'
+# alias npx='load_nvm; npx'
+#
+# # bun completions
+# [ -s "/home/fire/.bun/_bun" ] && source "/home/fire/.bun/_bun"
+#
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# Ensure common npm global bin locations are on PATH so globally installed
+# packages remain runnable even when nvm is lazy-loaded.
+if [ -d "$HOME/.npm-global/bin" ]; then
+    export PATH="$HOME/.npm-global/bin:$PATH"
+fi
+if [ -d "$HOME/.npm-packages/bin" ]; then
+    export PATH="$HOME/.npm-packages/bin:$PATH"
+fi
+if [ -d "$HOME/.npm/bin" ]; then
+    export PATH="$HOME/.npm/bin:$PATH"
+fi
+if [ -d "$HOME/.local/bin" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+# If nvm has installed node versions, add their bin dirs so global npm
+# executables are available before nvm is sourced by the lazy loader.
+if [ -d "$NVM_DIR/versions/node" ]; then
+    for v in "$NVM_DIR/versions/node"/*; do
+        [ -d "$v/bin" ] && export PATH="$v/bin:$PATH"
+    done
+fi
+export GEMINI_API_KEY=$(cat ~/gemini)
