@@ -9,6 +9,7 @@ prepend_keymap = [
 	{ on = [ "g", "i" ],       run = "cd ~/Water/crap",       desc = "go to crap" },
 	{ on = [ "g", "y" ],       run = "cd ~/.config/yazi",       desc = "go to yazi" },
 	{ on = [ "g", "n" ],       run = "cd ~/.config/nvim",       desc = "go to nvim" },
+	{ on = [ "g", "d" ],       run = "cd ~/Water/crap/dotfiles/",       desc = "go to nvim" },
 	{ on = [ "g", "F" ],       run = "follow",           desc = "Follow hovered symlink" },
 
 	# Operation
