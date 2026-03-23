@@ -24,7 +24,7 @@ alias ls='ls -t'
 alias inx='cd ~/crap'
 alias n='nvim'
 # Text editor shortcuts
-alias vhis='nano .zsh_history'
+alias vhis='nvim ~/.zsh_history'
 alias sshcon='nvim /data/data/com.termux/files/usr/etc/ssh/ssh_config'
 # Edit and reload bashrc
 vbash() {
@@ -259,7 +259,7 @@ fk() {
 }
 
 #==============================================================================
-# UBUNTU CHROOT MANAGEMENT
+# CHROOT MANAGEMENT
 #==============================================================================
 chrootpath="/data/local/tmp/archl"
 
@@ -299,19 +299,10 @@ ubset() {
         su -c "mount --bind /dev $chrootpath/dev"
        # su -c "mount --rbind /dev $chrootpath/dev"
         
-        # Fix TTY mapping
-       # su -c "rm -f $chrootpath/dev/ptmx"
-       # su -c "ln -s /dev/pts/ptmx $chrootpath/dev/ptmx"
 
-       # # Fix Standard Streams
-       # su -c "ln -sf /proc/self/fd $chrootpath/dev/fd"
-       # su -c "ln -sf /proc/self/fd/0 $chrootpath/dev/stdin"
-       # su -c "ln -sf /proc/self/fd/1 $chrootpath/dev/stdout"
-       # su -c "ln -sf /proc/self/fd/2 $chrootpath/dev/stderr"
 
         su -c "mount --bind /sys $chrootpath/sys"
         su -c "mount --bind /proc $chrootpath/proc"
-#        su -c "mount -t devpts devpts $chrootpath/dev/pts -o gid=5,mode=620"
         su -c "mount -t devpts devpts $chrootpath/dev/pts "
         # --- extra mount to use  sandroid su  binaries.
     #    su -c "mount --bind /system $chrootpath/system"
@@ -322,7 +313,7 @@ ubset() {
         su -c "mount -t tmpfs -o size=256M tmpfs $chrootpath/dev/shm"
         sudo bindfs -u 1001 -g 984 /data/data/com.termux/files "${chrootpath}/termux"
         sudo bindfs -u 1001 -g 984 /sdcard $chrootpath/sdcard 
-      #  su -c "mount --bind /data/data/com.termux/files/usr/tmp $chrootpath/tmp"
+        su -c "mount --bind /data/data/com.termux/files/usr/tmp $chrootpath/tmp"
         #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/usr/bin/nvim "${chrootpath}/usr/bin/nvim"
         #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/home/.config/nvim "${chrootpath}/data/data/com.termux/files/home/.config/nvim"
         echo "mount done"

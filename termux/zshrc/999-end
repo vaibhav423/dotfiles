@@ -12,4 +12,4 @@ eval "$(zoxide init zsh)"
 #if [ -z "$TMUX" ]; then
 #    tmux attach-session -t default || tmux new-session -s default
 #fi
-
+export GEMINI_API_KEY=$(cat ~/gemini)

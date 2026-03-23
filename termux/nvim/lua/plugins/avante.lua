@@ -25,8 +25,7 @@ return {
     { "AstroNvim/astrocore", opts = function(_, opts) opts.mappings.n[prefix] = { desc = " Avante" } end },
   },
   opts = {
-    provider = "gemini",
-    auto_suggestions_provider = "gemini",
+    provider = "gemini-cli",
     providers = {
       gemini = {
         endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
@@ -38,6 +37,21 @@ return {
         },
       },
     },
+    acp_providers = {
+      ["gemini-cli"] = {
+        command = "gemini",
+        args = { "--experimental-acp" },
+        env = {
+          NODE_NO_WARNINGS = "1",
+          HOME = os.getenv("HOME"),
+          GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"),
+          GEMINI_DEFAULT_AUTH_TYPE = "oauth-personal",
+          -- GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"),
+        },
+        auth_method = "oauth-personal",
+      },
+    },
+        
     selection = { hint_display = "none", },
 
     mappings = {
