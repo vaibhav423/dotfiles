@@ -1,0 +1,249 @@
+#!/usr/bin/env bash
+
+# Copyright 2025 by Milind Mishra 'thatbeautifuldream' in Github
+# Modifications by Miguel Pérez Colino 'mmmmmmpc' in GitHub
+# Published under GNU GPLv3 License
+# 
+# It requires the tools "curl" and "jq" to function as well as
+# Internet access and a Google Gemini API Key to access it
+
+# Load .env file if it exists
+if [[ -f ~/.env ]]; then
+    source ~/.env
+elif [[ -f .env ]]; then
+    source .env
+fi
+
+# Check if GEMINI_API_KEY is set
+if [[ -z "$GEMINI_API_KEY" ]]; then
+    echo "Error: GEMINI_API_KEY is not set. Please set it in your environment or in a .env file."
+    exit 1
+fi
+
+AVAILABLE_MODELS=(
+    "gemini-2.5-flash-lite"
+    "gemini-2.5-flash"
+    "gemini-2.5-pro"
+    "gemini-2.0-flash"
+    "gemini-2.0-flash-001"
+    "gemini-2.0-flash-lite-001"
+    "gemini-2.0-flash-lite"
+    "gemini-2.5-flash-preview-tts"
+    "gemini-2.5-pro-preview-tts"
+    "gemma-3-1b-it"
+    "gemma-3-4b-it"
+    "gemma-3-12b-it"
+    "gemma-3-27b-it"
+    "gemma-3n-e4b-it"
+    "gemma-3n-e2b-it"
+    "gemini-flash-latest"
+    "gemini-flash-lite-latest"
+    "gemini-pro-latest"
+    "gemini-2.5-flash-image"
+    "gemini-2.5-flash-lite-preview-09-2025"
+    "gemini-3-pro-preview"
+    "gemini-3-flash-preview"
+    "gemini-3.1-pro-preview"
+    "gemini-3.1-pro-preview-customtools"
+    "gemini-3.1-flash-lite-preview"
+    "gemini-3-pro-image-preview"
+    "nano-banana-pro-preview"
+    "gemini-3.1-flash-image-preview"
+    "gemini-robotics-er-1.5-preview"
+    "gemini-2.5-computer-use-preview-10-2025"
+    "deep-research-pro-preview-12-2025"
+    "gemini-embedding-001"
+    "gemini-embedding-2-preview"
+    "aqa"
+    "imagen-4.0-generate-001"
+    "imagen-4.0-ultra-generate-001"
+    "imagen-4.0-fast-generate-001"
+    "veo-2.0-generate-001"
+    "veo-3.0-generate-001"
+    "veo-3.0-fast-generate-001"
+    "veo-3.1-generate-preview"
+    "veo-3.1-fast-generate-preview"
+    "gemini-2.5-flash-native-audio-latest"
+    "gemini-2.5-flash-native-audio-preview-09-2025"
+    "gemini-2.5-flash-native-audio-preview-12-2025"
+)
+DEFAULT_MODEL="${AVAILABLE_MODELS[0]}"
+
+function print_help() {
+    echo "Usage: ai [-q] [-t] [--select-model] [--list-models] [prompt]"
+    echo "  -q                       Use model gemini-2.5-flash-lite"
+    echo "  -t                       Use model gemini-3-flash-preview"
+    echo "  --list-models            Show all available Gemini models"
+    echo "  --select-model           Select a model from the list"
+    echo "  --help                   Show this help message"
+    echo "  prompt                   The prompt to send to Gemini"
+}
+
+function list_models() {
+    echo "Available models:"
+    for model in "${AVAILABLE_MODELS[@]}"; do
+        echo "  $model"
+    done
+}
+
+function is_valid_model() {
+    local check_model="$1"
+    for model in "${AVAILABLE_MODELS[@]}"; do
+        if [[ "$model" == "$check_model" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+
+function ai() {
+    local model_name="$DEFAULT_MODEL"
+    local prompt_args=()
+    local select_model=0
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --help)
+                print_help
+                return 0
+                ;;
+            --list-models)
+                list_models
+                return 0
+                ;;
+            --select-model)
+                select_model=1
+                shift
+                ;;
+            -q)
+                model_name="gemini-2.5-flash-lite"
+                shift
+                ;;
+            -t)
+                model_name="gemini-3-flash-preview"
+                shift
+                ;;
+            *)
+                prompt_args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    if [[ $select_model -eq 1 ]]; then
+        if command -v fzf >/dev/null 2>&1; then
+            model_name=$(printf "%s\n" "${AVAILABLE_MODELS[@]}" | fzf --prompt="Select Gemini model: ")
+            if [[ -z "$model_name" ]]; then
+                echo "No model selected."
+                return 1
+            fi
+        else
+            echo "fzf not found. Falling back to basic selector."
+            select m in "${AVAILABLE_MODELS[@]}"; do
+                if [[ -n "$m" ]]; then
+                    model_name="$m"
+                    break
+                else
+                    echo "Invalid selection."
+                fi
+            done
+        fi
+    fi
+
+    if [[ ${#prompt_args[@]} -eq 0 ]]; then
+        if [[ $select_model -eq 1 ]]; then
+            echo "Selected model: $model_name"
+            return 0
+        fi
+        
+        local stdin_input=""
+        if [ -t 0 ]; then
+            echo "Enter your prompt (Press Ctrl+D to submit, or Ctrl-E to open nvim):" >&2
+            
+            _open_nvim_temp() {
+                local temp_file=$(mktemp)
+                echo -n "$stdin_input$READLINE_LINE" > "$temp_file"
+                # Open nvim directly on the TTY to ensure it has full control
+                nvim "$temp_file" </dev/tty >/dev/tty 2>&1
+                
+                # Update stdin_input with the new content
+                local file_content
+                file_content=$(cat "$temp_file")
+                
+                # Clear the terminal screen to remove the old prompt clutter
+                clear >&2
+                
+                # Reprint the header
+                echo "Enter your prompt (Press Ctrl+D to submit, or Ctrl-E to open nvim):" >&2
+                
+                # Reprint the edited buffer so it looks like it was naturally typed
+                if [[ -n "$file_content" ]]; then
+                    # Print each line with "> " prefix
+                    awk '{print "> " $0}' "$temp_file" >&2
+                fi
+                
+                # Store the content back
+                stdin_input="$file_content"
+                
+                # Ensure stdin_input has a trailing newline so the next 'read' loop appends correctly
+                if [[ -n "$stdin_input" && ! "$stdin_input" =~ $'\n'$ ]]; then
+                    stdin_input+=$'\n'
+                fi
+                
+                # Clear the current readline line to avoid duplication on next enter
+                READLINE_LINE=""
+                READLINE_POINT=0
+                
+                rm -f "$temp_file"
+            }
+            
+            # Enable emacs editing mode and bind Ctrl-E to the function
+            set -o emacs
+            bind -x '"\C-e": _open_nvim_temp' 2>/dev/null
+            
+            # Disable bracketed paste so multi-line pastes are processed line-by-line.
+            # This prevents Bash's `read -e` from discarding everything after the first newline.
+            bind 'set enable-bracketed-paste off' 2>/dev/null
+            
+            local line
+            # Read line by line with readline support
+            while IFS= read -e -p "> " line; do
+                stdin_input+="$line"$'\n'
+            done
+        else
+            # Reading from piped input
+            stdin_input=$(cat)
+        fi
+        
+        if [[ -n "$stdin_input" ]]; then
+            prompt_args=("$stdin_input")
+        else
+            echo "Error: No prompt provided."
+            print_help
+            return 1
+        fi
+    fi
+    echo $model_name | glow
+
+    jq -n \
+        --arg content "${prompt_args[*]}" \
+        '{
+          "contents": [
+            {
+              "parts": [
+                {
+                  "text": $content
+                }
+              ]
+            }
+          ]
+        }' | curl --silent --no-buffer \
+        --header 'Content-Type: application/json' \
+        --data @- \
+        --request POST \
+        "https://generativelanguage.googleapis.com/v1beta/models/${model_name}:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY" |
+        sed -u 's/^data: //' |
+        jq -r 'select(.candidates) | .candidates[].content.parts[].text' | (command -v glow >/dev/null 2>&1 && glow  || cat)
+}
+ai "$@"
