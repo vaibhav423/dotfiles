@@ -50,6 +50,8 @@ vbash() {
 # Development server
 alias vbser='python -m http.server 8080'
 
+alias t='ai -t'
+alias q='ai -q'
 #==============================================================================
 # ANDROID/DEVICE ALIASES
 #==============================================================================
@@ -255,8 +257,8 @@ extract() {
 #==============================================================================
 # SECURITY/PENTESTING FUNCTIONS
 #==============================================================================
-
 # Gobuster directory fuzzing
+
 fk() {
     local url="$1"
     local wordlist="crap/SecLists/Discovery/Web-Content/common.txt"

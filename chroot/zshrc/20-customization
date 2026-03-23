@@ -23,6 +23,7 @@ plugins=(
 
 # Don't run compfix security fixer (we already use a cached compdump above)
 # This avoids an extra compaudit run inside oh-my-zsh and speeds startup.
+
 export ZSH_DISABLE_COMPFIX=true
 
 # Speed up completions: use cached compinit before loading oh-my-zsh
@@ -36,7 +37,7 @@ source $ZSH/oh-my-zsh.sh
 # -----------------------------------------------------
 # Set-up FZF key bindings (CTRL R for fuzzy history finder)
 # -----------------------------------------------------
-source <(fzf --zsh)
+
 
 # zsh history
 HISTFILE=~/.zsh_history

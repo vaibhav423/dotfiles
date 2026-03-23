@@ -22,10 +22,29 @@ return {
     { "stevearc/dressing.nvim", optional = true },
     "nvim-lua/plenary.nvim",
     "MunifTanjim/nui.nvim",
-    { "AstroNvim/astrocore", opts = function(_, opts) opts.mappings.n[prefix] = { desc = " Avante" } end },
+    {
+      "AstroNvim/astrocore",
+      opts = function(_, opts)
+        local maps = opts.mappings.n
+        maps[prefix] = { desc = " Avante" }
+        maps[prefix .. "N"] = {
+          function()
+            local config = require "avante.config"
+            local saved = config.behaviour.auto_add_current_file
+            config.behaviour.auto_add_current_file = false
+            vim.cmd "AvanteChatNew"
+            config.behaviour.auto_add_current_file = saved
+          end,
+          desc = "Avante New Chat (No Files)",
+        }
+      end,
+    },
   },
   opts = {
     provider = "gemini-cli",
+    behaviour = {
+      auto_add_current_file = true, -- Default behavior
+    },
     providers = {
       gemini = {
         endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
@@ -43,9 +62,10 @@ return {
         args = { "--experimental-acp" },
         env = {
           NODE_NO_WARNINGS = "1",
-          -- HOME = os.getenv("HOME"),
+          HOME = os.getenv("HOME"),
           GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"),
           GEMINI_DEFAULT_AUTH_TYPE = "oauth-personal",
+          GEMINI_MODEL = "gemini-3-flash-preview",
           -- GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"),
         },
         auth_method = "oauth-personal",
@@ -53,6 +73,21 @@ return {
     },
         
     selection = { hint_display = "none", },
+    windows = {
+      width = 60,
+    },
+    shortcuts = {
+      {
+        name = "quick",
+        description = "One line answer",
+        prompt = "Provide a concise answer that fits in a single line.",
+      },
+      {
+        name = "tuick",
+        description = "One line answer",
+        prompt = "Provide a concise answer that fits in a single line.",
+      },
+    },
 
     mappings = {
       ask = prefix .. "<CR>",
@@ -184,4 +219,3 @@ return {
     },
   },
 }
-

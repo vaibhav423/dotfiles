@@ -27,13 +27,16 @@ preexec() { echo -ne '\e[5 q' ;} # Use beam shapeuuuu rsor for each new prompt.
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^e' edit-command-line
 
+# no need by default alt c
 # ---- fzf in directory -----
-ffcd() {
-    dir=$(find . -type d 2>/dev/null | fzf)
-    [ -n "$dir" ] && cd "$dir"
-}
-bindkey -s '^p' 'ffcd\n'
+# ffcd() {
+#    dir=$(find . -type d 2>/dev/null | fzf)
+#    [ -n "$dir" ] && cd "$dir"
+#}
+#bindkey -s '^p' 'ffcd\n'
 
 
 bindkey '^o' fzf-history-widget
+export FZF_COMPLETION_TRIGGER=',,'
+source <(fzf --zsh)
 

@@ -1,50 +1,48 @@
--- This file is automatically loaded by lazy.nvim after all plugins
--- Use this file for any custom configurations that should run after plugins are loaded
+-- polish.lua: runs after all plugins are loaded.
+-- Used only for final setup that cannot live inside a plugin spec.
 
--- Command to insert/overwrite a system reminder on the first line
-local function jeerem_insert()
-  -- check buffer writable
-  if vim.bo.readonly or not vim.bo.modifiable then
-    vim.notify("Buffer is not writable; cannot insert reminder", vim.log.levels.WARN)
-    return
-  end
+-- Encryption support for .enc files
+require("lib.encryption").setup()
 
-  -- normalize today's date to midnight
-  local now = os.time()
-  local today_tm = os.date("*t", now)
-  today_tm.hour = 0; today_tm.min = 0; today_tm.sec = 0
-  local today_mid = os.time(today_tm)
+-- Jeerem date-countdown command
+require("lib.jeerem").setup()
 
-  -- target date: April 2, 2026
-  local target_tm = { year = 2026, month = 4, day = 2, hour = 0, min = 0, sec = 0 }
-  local target_time = os.time(target_tm)
+-- Use termux-api for clipboard when in Termux (even via SSH)
+-- This avoids the 5-second OSC 52 timeout
+local termux_api_dir = "/usr/local/bin/"
+local has_termux_api = vim.fn.executable(termux_api_dir .. "termux-clipboard-get") == 1
 
-  local diff = target_time - today_mid
-  local days = math.floor(math.abs(diff) / 86400)
-  local rem_text
-  -- pick a random smiley to prefix the text
-local smileys = { "😊","🫠" ,"🫨" ,"😄", "🙂", "😁", "😃", "😅", "😎", "😉", "😂", "😍", "🥰", "🤩", "😘", "😋", "😜", "🤗", "😏", "😇" }
-  math.randomseed(os.time())
-  local s = smileys[math.random(#smileys)]
-  if diff > 0 then
-    rem_text = string.format("%s %d days left", s, days)
-  elseif diff < 0 then
-    rem_text = string.format("%s %d days since", s, days)
-  else
-    rem_text = string.format("%s 0 days left", s)
-  end
-
-  local insert_text = rem_text
-
-  local bufnr = vim.api.nvim_get_current_buf()
-  -- overwrite the first line (line 0..1)
-  vim.api.nvim_buf_set_lines(bufnr, 0, 1, false, { insert_text })
+-- if has_termux_api then
+--   vim.g.clipboard = {
+--     name = "termux-api",
+--     copy = {
+--       ["+"] = { termux_api_dir .. "termux-clipboard-set" },
+--       ["*"] = { termux_api_dir .. "termux-clipboard-set" },
+--     },
+--     paste = {
+--       ["+"] = { termux_api_dir .. "termux-clipboard-get" },
+--       ["*"] = { termux_api_dir .. "termux-clipboard-get" },
+--     },
+--     cache_enabled = 0,
+--   }
+-- elseif vim.env.SSH_TTY then
+if vim.env.SSH_TTY then
+  -- Fallback to OSC 52 if Termux API is not available and we are on SSH
+  vim.g.clipboard = {
+    name = "OSC 52",
+    copy = {
+      ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+      ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+    },
+    -- paste = {
+    --   ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
+    --   ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+    -- },
+    --
+    paste = {                                               
+      ["+"] = { termux_api_dir .. "termux-clipboard-get" }, 
+      ["*"] = { termux_api_dir .. "termux-clipboard-get" }, 
+    },                                                      
+    cache_enabled = 0,                                      
+  }
 end
-
--- Create the :Jeerem command (Neovim requires commands to start with uppercase)
-vim.api.nvim_create_user_command('Jeerem', function() jeerem_insert() end, { desc = 'Insert/overwrite system reminder on first line' })
--- Provide a command-line abbreviation so typing :jeerem will expand to :Jeerem
-vim.cmd("cnoreabbrev jeerem Jeerem")
-
--- Return nil to keep module benign if required
-return nil

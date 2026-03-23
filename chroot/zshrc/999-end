@@ -10,7 +10,6 @@ cd ~
 #    tmux attach-session -t default || tmux new-session -s default
 #fi
 
-export FZF_COMPLETION_TRIGGER=',,'
 
 # export NVM_DIR="$HOME/.nvm"
 # # Lazy-load nvm: only source nvm when node/npm/npx are first used
@@ -52,3 +51,4 @@ if [ -d "$NVM_DIR/versions/node" ]; then
     done
 fi
 export GEMINI_API_KEY=$(cat ~/gemini)
+
