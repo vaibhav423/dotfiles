@@ -1,0 +1,18 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+# Configuration
+CHROOT_USER="fire"
+CHROOT_HOST="localhost"
+CHROOT_PORT="22"
+
+# Check if arguments are provided
+if [ "$1" = "-c" ]; then
+    shift
+    # Join the remaining arguments to form the command
+    COMMAND_TO_RUN="$*"
+    # Use -t to force TTY allocation (needed for interactive commands like nvim)
+    ssh -t -p $CHROOT_PORT "$CHROOT_USER@$CHROOT_HOST" "$COMMAND_TO_RUN"
+else
+    # Interactive login
+    ssh -p $CHROOT_PORT "$CHROOT_USER@$CHROOT_HOST"
+fi
