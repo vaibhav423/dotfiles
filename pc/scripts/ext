@@ -1,0 +1,27 @@
+mkdir -p extracted_firmware
+cd extracted_firmware
+
+# 1. Extract all payloads from u-boot images (stripping 64-byte headers)
+for f in ../*.img; do
+    name=$(basename "$f" .img)
+    dd if="$f" of="$name.raw" bs=64 skip=1
+done
+
+# 2. Decompress gzipped components (fdt, loader, u-boot, etc.)
+for f in *.raw; do
+    if zcat "$f" > /dev/null 2>&1; then
+        mv "$f" "$f.gz"
+        gunzip "$f.gz"
+        mv "${f%.gz}" "${f%.raw}.bin"
+    fi
+done
+
+# 3. Extract CRAMFS filesystems
+for f in *cramfs*.raw; do
+    dirname="${f%.raw}"
+    mkdir -p "$dirname"
+    7z x "$f" -o"$dirname" || echo "Failed to extract $f - may require sudo mount"
+done
+
+# 4. Cleanup raw files if extraction succeeded
+rm *.raw 2>/dev/null
