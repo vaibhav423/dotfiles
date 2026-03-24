@@ -104,102 +104,101 @@ git commit -m "new"
 git push 
 }
 
-# List GitHub repositories
-alias ghlist='GH_PAGER= gh repo list vaibhav423 --limit 100 --json name --jq ".[].name"'
 
-gitcl(){
-    if [ -z "$1" ]; then
-        echo "Usage: gitcl <repo-name>"
+_get_gh_ctx() {
+    if [[ "$1" == gho_* ]]; then
+        echo "$1"
+    else
+        echo "$DEFAULT_GH_TOKEN"
+    fi
+}
+
+# Helper for status messages
+_log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
+_log_err() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
+gitlist() {
+    local token=$(_get_gh_ctx "$1")
+    GH_TOKEN="$token" gh repo list --limit 100 --json name --jq '.[].name'
+}
+
+gitinsert() {
+    # Usage: gitinsert [token] [public|private]
+    local token=$(_get_gh_ctx "$1")
+    [[ "$1" == gho_* ]] && shift
+    local privacy="--public"
+    [[ "$1" == "private" ]] && privacy="--private"
+    local project="${PWD##*/}"
+    local user
+    user=$(GH_TOKEN="$token" gh api user --jq '.login' 2>/dev/null)
+    if [[ -z "$user" ]]; then
+        _log_err "Could not verify GitHub user. Check your token."
         return 1
     fi
-    local repo="$1"
-    local url="git@github.com:vaibhav423"
-    git clone "$url"/"$repo".git
-    cd "$repo" || return 1
-}
-# Create GitHub repo from current directory
-gitadd() {
-    # Use current directory name as the repo name
-    local project="${PWD##*/}"
-
-    echo "Creating GitHub repo: $project (using current folder's content)"
-
-    # Create GitHub repository without adding gitignore or license
-    gh repo create vaibhav423/"$project" --public --add-readme || return 1
-
-    # Initialize git repo if it doesn't exist
+    # 1. Initialize git if it hasn't been already
     if [ ! -d .git ]; then
+        _log_info "Initializing new Git repository..."
         git init
     fi
-    git remote add origin git@github.com:vaibhav423/$project.git
-    git fetch origin
-    git checkout -B main
-
-    git add .
-    git commit -m "Initial commit"
-    git push -u origin main --force
+    # 2. Handle existing remotes (optional but recommended for robustness)
+    # If 'origin' exists, gh repo create --source might conflict
+    git remote remove origin 2>/dev/null
+    _log_info "Creating $privacy repo: $user/$project"
+    # 3. Create repo (removed deprecated --confirm)
+    if GH_TOKEN="$token" gh repo create "$project" "$privacy" --source=. --remote=origin; then
+        git branch -M main
+        git add .
+        
+        # Only commit if there are files to commit
+        if ! git diff --quiet --cached; then
+            git commit -m "Initial commit via gitinsert"
+        fi
+        
+        _log_info "Pushing to main..."
+        git push -u origin main
+    fi
 }
-
-# Create new GitHub repository with templates
+gitcl() {
+    local token=$(_get_gh_ctx "$1")
+    [[ "$1" == gho_* ]] && shift
+    local repo="$1"
+    local user
+    user=$(GH_TOKEN="$token" gh api user --jq '.login' 2>/dev/null)
+    
+    _log_info "Cloning $user/$repo..."
+    GH_TOKEN="$token" gh repo clone "$user/$repo" && cd "$repo" || return 1
+}
 gitcr() {
-    if [ -z "$1" ]; then
-        echo "Usage: gitcr <project-name> [gitignore] [license]"
-        return 1
-    fi
-
+    local token=$(_get_gh_ctx "$1")
+    [[ "$1" == gho_* ]] && shift
+    
     local project="$1"
-    # Default .gitignore template is "Node" unless provided
-    local gitignore="${2:-Node}"
-    # Default license is "MIT" unless provided
-    local license="${3:-MIT}"
-
-    echo "Creating repository $project with gitignore $gitignore and license $license..."
-
-    # Create the repo on GitHub and clone it locally.
-    gh repo create "vaibhav423/$project" --public --clone --add-readme --gitignore="$gitignore" --license="$license" || return 1
-
-    cd "$project" || return 1
-
-    # Optionally update README.md (this example overwrites it with a header)
-    echo "# $project" > README.md
-    git add README.md
-    git commit -m "Initial commit with README update"
-    git branch -M main
-    git push -u origin main
+    local privacy="--public"
+    [[ "$2" == "private" ]] && privacy="--private"
+    _log_info "Creating $project ($privacy)..."
+    # Use --add-readme directly in gh repo create
+    if GH_TOKEN="$token" gh repo create "$project" "$privacy" --clone --add-readme; then
+        cd "$project" || return 1
+    fi
 }
-
-# Fork, clone, and initialize repository
 gitfr() {
-    repo="$1"
-    name=$(basename "$repo" .git)
-
-    if [ -z "$repo" ]; then
-        echo "Usage: forkclonepush <repo-url>"
-        return 1
+    local token=$(_get_gh_ctx "$1")
+    [[ "$1" == gho_* ]] && shift
+    local repo_url="$1"
+    _log_info "Forking $repo_url..."
+    if GH_TOKEN="$token" gh repo fork "$repo_url" --clone; then
+        local name
+        name=$(basename "$repo_url" .git)
+        cd "$name" || return 1
     fi
-
-    echo "Forking $repo..."
-    gh repo fork "$repo" --clone
-
-    echo "Making initial commit in $name..."
-    cd "$name" || return 1
-    echo "# $name" > README.md
-    git add README.md
-    git commit -m "Initial commit with README"
-    git push -u origin HEAD
-
-    echo "Done! Forked, cloned, and pushed README.md to your fork."
 }
-
-# Delete GitHub repository
-ghdel() {
-    if [ -z "$1" ]; then
-        echo "Usage: ghdel <repo-name>"
-        return 1
-    fi
-
-    local REPO="$1"
-    gh repo delete "vaibhav423/$REPO" --yes
+gitdel() {
+    local token=$(_get_gh_ctx "$1")
+    [[ "$1" == gho_* ]] && shift
+    local repo="$1"
+    local user
+    user=$(GH_TOKEN="$token" gh api user --jq '.login' 2>/dev/null)
+    
+    GH_TOKEN="$token" gh repo delete "$user/$repo" --yes
 }
 
 #==============================================================================
