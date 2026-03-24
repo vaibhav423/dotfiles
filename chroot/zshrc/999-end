@@ -51,4 +51,4 @@ if [ -d "$NVM_DIR/versions/node" ]; then
     done
 fi
 export GEMINI_API_KEY=$(cat ~/gemini)
-
+source ~/crap/python/bin/activate
