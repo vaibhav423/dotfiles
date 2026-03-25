@@ -1,0 +1,3 @@
+#!/bin/bash
+export USE_SYSTEM_AM=1
+exec /data/data/com.termux/files/usr/libexec/termux-api Clipboard "$@"

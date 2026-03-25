@@ -1,0 +1,14 @@
+#!/bin/bash
+export ANDROID_DATA=/data
+export ANDROID_ROOT=/system
+export LD_LIBRARY_PATH=/system/lib64:/system/lib
+export PATH=/system/bin:/system/xbin:$PATH
+
+if [ -t 1 ]; then
+    # Run with sudo -E to retain environment but gain root
+    sudo -E /system/bin/am "$@"
+else
+    # Use script with sudo -E for headless/pipe environments
+    CMD_STR=$(printf "%q " "$@")
+    script -q -c "sudo -E /system/bin/am $CMD_STR" /dev/null
+fi
