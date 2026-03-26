@@ -55,6 +55,10 @@ return {
           maxOutputTokens = 8192,
         },
       },
+      ["gemini-cli"] = {
+        __inherited_from = "gemini",
+        model = "gemini-3.1-flash-lite-preview",
+      },
     },
     acp_providers = {
       ["gemini-cli"] = {
@@ -65,8 +69,7 @@ return {
           HOME = os.getenv("HOME"),
           GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"),
           GEMINI_DEFAULT_AUTH_TYPE = "oauth-personal",
-          GEMINI_MODEL = "gemini-3-flash-preview",
-          -- GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"),
+          GEMINI_MODEL = "gemini-3.1-flash-lite-preview",
         },
         auth_method = "oauth-personal",
       },
