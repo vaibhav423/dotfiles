@@ -35,7 +35,7 @@ Android() {
 # BASIC ALIASES
 #==============================================================================
 alias cd='z'
-alias cdf='/sdcard/Documents/Fire'
+alias cdf='cd /sdcard/Documents/Fire'
 # File and directory operations
 alias ls='ls -t'
 alias inx='cd ~/crap'
