@@ -38,11 +38,18 @@ gauth() {
     local user=$(get_username "$token")
     local repo_name=$(basename "$PWD")
 
+    # Set identity
     git config --local user.name "$name"
     git config --local user.email "$mail"
-    git remote set-url origin "$user:$user/$repo_name.git" 2>/dev/null
     
-    _log_info "Identity set: $name <$mail> | Remote: $user"
+    # Set remote URL with custom SSH alias
+    if git remote | grep -q "^origin$"; then
+        git remote set-url origin "$name:$user/$repo_name.git" 2>/dev/null
+    else
+        git remote add origin "$name:$user/$repo_name.git" 2>/dev/null
+    fi
+    
+    _log_info "Identity: $name | Remote: $name:$user"
 }
 
 # --- Repository Commands ---
@@ -70,12 +77,14 @@ gitinsert() {
     
     local repo_name=$(basename "$PWD")
 
-    [ -d .git ] || git init
+    [ -d .git ] || { git init && git config --local init.defaultBranch main; }
     git remote remove origin 2>/dev/null
     
     if GH_TOKEN="$token" gh repo create "$repo_name" "--$privacy" --source=. --remote=origin; then
         gauth "$ctx"
-        git branch -M main
+        git branch -M main 2>/dev/null
+        git config branch.main.remote origin
+        git config branch.main.merge refs/heads/main
         git add .
         git diff --quiet --cached || git commit -m "new"
         git push -u origin main
@@ -92,8 +101,9 @@ gitcl() {
     [[ "$1" == \{* ]] && repo="$2" || repo="$1"
 
     _log_info "Cloning $user/$repo..."
-    if GH_TOKEN="$token" gh repo clone "$user/$repo" && cd "$repo"; then
-        gauth "$ctx"
+    if GH_TOKEN="$token" gh repo clone "$user/$repo"; then
+        local actual_name=$(GH_TOKEN="$token" gh repo view "$user/$repo" --json name -q .name 2>/dev/null)
+        cd "${actual_name:-$repo}" && gauth "$ctx"
     fi
 }
 
@@ -109,8 +119,13 @@ gitcr() {
     fi
 
     _log_info "Creating $repo ($privacy)..."
-    if GH_TOKEN="$token" gh repo create "$repo" "--$privacy" --clone; then
-        cd "$repo" && gauth "$ctx"
+    if GH_TOKEN="$token" gh repo create "$repo" "--$privacy" --clone --add-readme; then
+        local actual_name=$(GH_TOKEN="$token" gh repo view "$repo" --json name -q .name 2>/dev/null)
+        cd "${actual_name:-$repo}" && gauth "$ctx"
+        git branch -M main 2>/dev/null
+        git config branch.main.remote origin
+        git config branch.main.merge refs/heads/main
+        git pull origin main 2>/dev/null
     fi
 }
 
@@ -122,8 +137,8 @@ gitfr() {
 
     _log_info "Forking $repo_url..."
     if GH_TOKEN="$token" gh repo fork "$repo_url" --clone; then
-        local name=$(basename "$repo_url" .git)
-        cd "$name" && gauth "$ctx"
+        local actual_name=$(GH_TOKEN="$token" gh repo view "$repo_url" --json name -q .name 2>/dev/null)
+        cd "${actual_name:-$(basename "$repo_url" .git)}" && gauth "$ctx"
     fi
 }
 
