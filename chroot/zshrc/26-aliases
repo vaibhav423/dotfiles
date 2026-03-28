@@ -14,7 +14,7 @@
 # Add Go binaries to PATH
 export PATH=$PATH:$HOME/go/bin
 # Add to ~/.bashrc
-Android() {
+android() {
     # We use sudo to become root, which Android allows to talk to 'am'
     sudo ANDROID_DATA=/data \
          ANDROID_ROOT=/system \
@@ -35,10 +35,10 @@ Android() {
 # BASIC ALIASES
 #==============================================================================
 alias cd='z'
-alias cdf='cd /sdcard/Documents/Fire'
+alias cdf='cd ~/Water/Fire'
 # File and directory operations
 alias ls='ls -t'
-alias inx='cd ~/crap'
+alias inx='cd ~/Water/crap'
 alias n='nvim'
 # Text editor shortcuts
 alias vhis='nvim ~/.zsh_history'
@@ -132,7 +132,7 @@ extract() {
 
 fk() {
     local url="$1"
-    local wordlist="crap/SecLists/Discovery/Web-Content/common.txt"
+    local wordlist="~/Water/crap/SecLists/Discovery/Web-Content/common.txt"
     #local wordlist="/data/data/com.termux/files/home/crap/SecLists/Discovery/Web-Content/LEGACY-SERVICES/CGIs/CGIs.txt"
     local extensions="php,html"
     local blacklist="400,403,404,500,502,405"

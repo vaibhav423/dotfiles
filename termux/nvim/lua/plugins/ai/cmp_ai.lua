@@ -2,17 +2,6 @@ return {
   "Saghen/blink.cmp",
   optional = true,
   opts = function(_, opts)
-    -- Enable cmdline auto_show
-    -- opts.completion.menu.auto_show covers insert mode (AstroNvim disables cmdline there)
-    -- opts.cmdline.completion.menu.auto_show covers the actual cmdline (blink default: cmdwin only)
-    -- if not opts.completion then opts.completion = {} end
-    -- if not opts.completion.menu then opts.completion.menu = {} end
-    -- opts.completion.menu.auto_show = true
-    -- if not opts.cmdline then opts.cmdline = {} end
-    -- if not opts.cmdline.completion then opts.cmdline.completion = {} end
-    -- if not opts.cmdline.completion.menu then opts.cmdline.completion.menu = {} end
-    -- opts.cmdline.completion.menu.auto_show = true
-
     if not opts.keymap then opts.keymap = {} end
     opts.keymap["<Tab>"] = {
       "snippet_forward",

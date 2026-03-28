@@ -41,14 +41,13 @@ return {
         local cwd = vim.fn.getcwd()
         local lines = vim.api.nvim_buf_get_lines(0, args.line1 - 1, args.line2, false)
 
+        local text = table.concat(lines, "\n")
         local seen = {}
         local paths = {}
-        for _, line in ipairs(lines) do
-          for path in line:gmatch("!%[.-%]%((.-)%)") do
-            if not seen[path] then
-              seen[path] = true
-              table.insert(paths, path)
-            end
+        for path in text:gmatch("!%[.-%]%((.-)%)") do
+          if not seen[path] then
+            seen[path] = true
+            table.insert(paths, path)
           end
         end
 
@@ -58,28 +57,34 @@ return {
         end
 
         local tmp_dir = "/sdcard/tmp"
-        vim.fn.system(string.format("mkdir -p %s && rm -rf %s/*", vim.fn.shellescape(tmp_dir), vim.fn.shellescape(tmp_dir)))
-
-        local copied = 0
+        local abs_paths = {}
         for _, rel_or_abs in ipairs(paths) do
-          local abs_path = rel_or_abs:sub(1, 1) == "/" and rel_or_abs or (cwd .. "/" .. rel_or_abs)
-          if vim.fn.filereadable(abs_path) == 1 then
-            vim.fn.system(string.format("cp %s %s/",
-              vim.fn.shellescape(abs_path), vim.fn.shellescape(tmp_dir)))
-            copied = copied + 1
+          local abs = rel_or_abs:sub(1, 1) == "/" and rel_or_abs or (cwd .. "/" .. rel_or_abs)
+          if vim.fn.filereadable(abs) == 1 then
+            table.insert(abs_paths, vim.fn.shellescape(abs))
           end
         end
 
-        if copied == 0 then
+        if #abs_paths == 0 then
           vim.notify("OpenImages: no readable files found", vim.log.levels.WARN)
           return
         end
 
-        vim.fn.system(string.format(
+        local cp_cmd = string.format(
+          "mkdir -p %s && rm -rf %s/* && cp %s %s/",
+          vim.fn.shellescape(tmp_dir),
+          vim.fn.shellescape(tmp_dir),
+          table.concat(abs_paths, " "),
+          vim.fn.shellescape(tmp_dir)
+        )
+        vim.fn.system(cp_cmd)
+
+        local intent_cmd = string.format(
           'am start -a android.intent.action.VIEW -d "file://%s" -t "resource/folder" com.mixplorer',
           tmp_dir
-        ))
-        vim.notify(string.format("OpenImages: copied %d file(s) → %s", copied, tmp_dir), vim.log.levels.INFO)
+        )
+        vim.fn.jobstart(intent_cmd)
+        vim.notify(string.format("OpenImages: copied %d file(s) → %s", #abs_paths, tmp_dir), vim.log.levels.INFO)
       end,
       range = true,
       desc = "Copy images from line range to tmp dir and open in MixPlorer",

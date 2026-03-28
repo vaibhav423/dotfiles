@@ -1,0 +1,344 @@
+# -----------------------------------------------------
+# ALIASES
+# -----------------------------------------------------
+
+# -----------------------------------------------------
+# General
+# -----------------------------------------------------
+
+
+
+#==============================================================================
+# ENVIRONMENT VARIABLES
+#==============================================================================
+# Add Go binaries to PATH
+export PATH=$PATH:$HOME/go/bin
+
+#==============================================================================
+# BASIC ALIASES
+#==============================================================================
+alias cd='z'
+alias cdf='/sdcard/Documents/Fire'
+# File and directory operations
+alias ls='ls -t'
+alias inx='cd ~/archive'
+alias n='nvim'
+# Text editor shortcuts
+alias vhis='nano .zsh_history'
+alias sshcon='nvim /data/data/com.termux/files/usr/etc/ssh/ssh_config'
+# Edit and reload bashrc
+vbash() {
+    nvim ~/.config/zshrc/25-aliases && source ~/.config/zshrc/25-aliases
+}
+# Development server
+alias vbser='python -m http.server 8080'
+
+#==============================================================================
+# ANDROID/DEVICE ALIASES
+#==============================================================================
+
+# Screen rotation controls
+alias hori='adb shell settings put system user_rotation 0'
+alias verti='adb shell settings put system user_rotation 1'
+
+#==============================================================================
+# IPTABLES/NETWORKING ALIASES
+#==============================================================================
+
+# Show iptables rules
+alias showipt='sudo iptables -L INPUT --line-numbers && echo && \
+sudo iptables -L OUTPUT --line-numbers && echo && \
+sudo iptables -L FORWARD --line-numbers && echo && \
+echo "Table nat" && sudo iptables -t nat -L PREROUTING --line-numbers'
+
+# Port redirection management
+alias diport='sudo iptables -t nat -D PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080'
+alias aport='sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080'
+
+#==============================================================================
+# GIT/GITHUB MANAGEMENT
+#==============================================================================
+
+# GitHub authentication
+alias vglog='gh auth login'
+
+# Quick git operations
+alias gitmod='git add . && git commit -m "new" && git push'
+
+# List GitHub repositories
+alias ghlist='GH_PAGER= gh repo list vaibhav423 --limit 100 --json name --jq ".[].name"'
+
+gitcl(){
+    if [ -z "$1" ]; then
+        echo "Usage: gitcl <repo-name>"
+        return 1
+    fi
+    local repo="$1"
+    local url="git@github.com:vaibhav423"
+    git clone "$url"/"$repo".git
+    cd "$repo" || return 1
+}
+# Create GitHub repo from current directory
+gitadd() {
+    # Use current directory name as the repo name
+    local project="${PWD##*/}"
+
+    echo "Creating GitHub repo: $project (using current folder's content)"
+
+    # Create GitHub repository without adding gitignore or license
+    gh repo create vaibhav423/"$project" --public --add-readme || return 1
+
+    # Initialize git repo if it doesn't exist
+    if [ ! -d .git ]; then
+        git init
+    fi
+    git remote add origin git@github.com:vaibhav423/$project.git
+    git fetch origin
+    git checkout -B main
+
+    git add .
+    git commit -m "Initial commit"
+    git push -u origin main --force
+}
+
+# Create new GitHub repository with templates
+gitcr() {
+    if [ -z "$1" ]; then
+        echo "Usage: gitcr <project-name> [gitignore] [license]"
+        return 1
+    fi
+
+    local project="$1"
+    # Default .gitignore template is "Node" unless provided
+    local gitignore="${2:-Node}"
+    # Default license is "MIT" unless provided
+    local license="${3:-MIT}"
+
+    echo "Creating repository $project with gitignore $gitignore and license $license..."
+
+    # Create the repo on GitHub and clone it locally.
+    gh repo create "vaibhav423/$project" --public --clone --add-readme --gitignore="$gitignore" --license="$license" || return 1
+
+    cd "$project" || return 1
+
+    # Optionally update README.md (this example overwrites it with a header)
+    echo "# $project" > README.md
+    git add README.md
+    git commit -m "Initial commit with README update"
+    git branch -M main
+    git push -u origin main
+}
+
+# Fork, clone, and initialize repository
+gitfr() {
+    repo="$1"
+    name=$(basename "$repo" .git)
+
+    if [ -z "$repo" ]; then
+        echo "Usage: forkclonepush <repo-url>"
+        return 1
+    fi
+
+    echo "Forking $repo..."
+    gh repo fork "$repo" --clone
+
+    echo "Making initial commit in $name..."
+    cd "$name" || return 1
+    echo "# $name" > README.md
+    git add README.md
+    git commit -m "Initial commit with README"
+    git push -u origin HEAD
+
+    echo "Done! Forked, cloned, and pushed README.md to your fork."
+}
+
+# Delete GitHub repository
+ghdel() {
+    if [ -z "$1" ]; then
+        echo "Usage: ghdel <repo-name>"
+        return 1
+    fi
+
+    local REPO="$1"
+    gh repo delete "vaibhav423/$REPO" --yes
+}
+
+#==============================================================================
+# FILE OPERATIONS FUNCTIONS
+#==============================================================================
+
+# Delete most recent files
+delrc() {
+    count=${1:-1}  # Default to 1 if no argument given
+    files=$(ls -tp | grep -v '/$' | head -n "$count")
+
+    if [ -z "$files" ]; then
+        echo "No files to delete."
+        return 1
+    fi
+
+    echo "Deleting the following file(s):"
+    echo "$files"
+    echo "$files" | xargs -d '\n' rm -f
+}
+
+# Make most recent file executable
+mkexc() {
+    latest=$(ls -tp | grep -v '/$' | head -n 1)
+    if [ -n "$latest" ]; then
+        chmod +x "$latest"
+        echo "Made '$latest' executable."
+    else
+        echo "No file found."
+    fi
+}
+
+# Universal archive extraction
+extract() {
+    if [ -f $1 ] ; then
+        case $1 in
+            *.tar.bz2)   tar xvjf $1    ;;
+            *.tar.gz)    tar xvzf $1    ;;
+            *.bz2)       bunzip2 $1     ;;
+            *.rar)       unrar x $1     ;;
+            *.gz)        gunzip $1      ;;
+            *.tar)       tar xvf $1     ;;
+            *.tbz2)      tar xvjf $1    ;;
+            *.tgz)       tar xvzf $1    ;;
+            *.zip)       unzip $1       ;;
+            *.Z)         uncompress $1  ;;
+            *.7z)        7z x $1        ;;
+            *)           echo "don't know how to extract '$1'..." ;;
+        esac
+    else
+        echo "'$1' is not a valid file!"
+    fi
+}
+
+#==============================================================================
+# SECURITY/PENTESTING FUNCTIONS
+#==============================================================================
+
+# Gobuster directory fuzzing
+fk() {
+    local url="$1"
+    local wordlist="crap/SecLists/Discovery/Web-Content/common.txt"
+    #local wordlist="/data/data/com.termux/files/home/crap/SecLists/Discovery/Web-Content/LEGACY-SERVICES/CGIs/CGIs.txt"
+    local extensions="php,html"
+    local blacklist="400,403,404,500,502,405"
+    local threads=50
+
+    if [[ -z "$url" ]]; then
+        echo "Usage: gobust_dir <url>"
+        return 1
+    fi
+
+    gobuster dir \
+        -w "$wordlist" \
+        -u "$url" \
+        -x "$extensions" \
+        -r \
+        -b "$blacklist" \
+        -t "$threads" \
+        --exclude-length 432198
+}
+
+#==============================================================================
+# UBUNTU CHROOT MANAGEMENT
+#==============================================================================
+chrootpath="/data/local/tmp/archl"
+
+startx11(){
+tmux new-session -d -s tmp
+tmux send-keys -t tmp "XDG_RUNTIME_DIR=${TMPDIR} termux-x11 :0 -ac" C-m
+sleep 2
+su -c "chroot $chrootpath /bin/su - fire -c \"export DISPLAY=:0 && dbus-launch --exit-with-session startxfce4\""
+}
+
+killx11(){
+pkill termux-x11
+pkill tmux
+sudo pkill dbus-launch
+}
+vncvb() {
+    tmux new-session -d -s tmp
+    tmux send-keys -t tmp "su -c 'chroot $chrootpath /bin/su - fire -c \"vncserver :0\"'" C-m
+}
+vncvk() {
+    pkill tmux
+    su -c "chroot $chrootpath /bin/su - fire -c 'pkill vncserver'"
+}
+
+ubuntu() {
+    ubset > /dev/null
+    if [ "$#" -eq 0 ]; then
+        su -c "unset PREFIX LD_PRELOAD; chroot $chrootpath /usr/bin/su  fire"
+    else
+        su -c "unset PREFIX LD_PRELOAD; chroot $chrootpath /usr/bin/su  fire -c \"$*\""
+    fi
+}
+
+ubset() {
+    if ! su -c "grep -q \"$chrootpath\" /proc/mounts"; then
+        su -c "mount -o remount,dev,suid /data"
+        su -c "mount --rbind /dev $chrootpath/dev"
+        
+        # Fix TTY mapping
+       # su -c "rm -f $chrootpath/dev/ptmx"
+       # su -c "ln -s /dev/pts/ptmx $chrootpath/dev/ptmx"
+
+       # # Fix Standard Streams
+       # su -c "ln -sf /proc/self/fd $chrootpath/dev/fd"
+       # su -c "ln -sf /proc/self/fd/0 $chrootpath/dev/stdin"
+       # su -c "ln -sf /proc/self/fd/1 $chrootpath/dev/stdout"
+       # su -c "ln -sf /proc/self/fd/2 $chrootpath/dev/stderr"
+
+        su -c "mount --bind /sys $chrootpath/sys"
+        su -c "mount --bind /proc $chrootpath/proc"
+        su -c "mount -t devpts devpts $chrootpath/dev/pts -o gid=5,mode=620"
+        # --- extra mount to use  sandroid su  binaries.
+        su -c "mount --bind /system $chrootpath/system"
+        su -c "mount --rbind /apex $chrootpath/apex"
+        su -c "mount --bind /linkerconfig $chrootpath/linkerconfig"
+        ## --
+        su -c "mkdir -p $chrootpath/tmp $chrootpath/termux $chrootpath/sdcard $chrootpath/dev/shm"
+        su -c "mount -t tmpfs -o size=256M tmpfs $chrootpath/dev/shm"
+        sudo bindfs -u 1001 -g 984 /data/data/com.termux/files "${chrootpath}/termux"
+        sudo bindfs -u 1001 -g 984 /sdcard $chrootpath/sdcard 
+        su -c "mount --bind /data/data/com.termux/files/usr/tmp $chrootpath/tmp"
+        #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/usr/bin/nvim "${chrootpath}/usr/bin/nvim"
+        #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/home/.config/nvim "${chrootpath}/data/data/com.termux/files/home/.config/nvim"
+        echo "mount done"
+    else
+        echo "mount already done"
+    fi
+}
+
+ubunset() {
+    for mnt in tmp sdcard linkerconfig apex system termux dev/shm dev/pts proc sys dev home/fire/.config/zshrc; do
+        su -c "umount -l $chrootpath/$mnt" 2>/dev/null
+    done
+}
+#==============================================================================
+# DNS/NETWORK MANAGEMENT
+#==============================================================================
+
+# Clear DNS redirections
+cldns() {
+    su -c "iptables -t nat -D PREROUTING -i ap0 -p tcp --dport 53 -j REDIRECT --to-port 1053"
+    su -c "iptables -t nat -D PREROUTING -i ap0 -p udp --dport 53 -j REDIRECT --to-port 1053"
+    sudo iptables -t nat -D PREROUTING -i ap0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+    sudo kill "$(cat /sdcard/dnsmasq-ap0.pid)"
+}
+
+# Setup DNS redirections
+stdns() {
+    sudo pkill -u dns_tether dnsmasq
+    su -c "iptables -t nat -I PREROUTING -i ap0 -p tcp --dport 53 -j REDIRECT --to-port 1053"
+    su -c "iptables -t nat -I PREROUTING -i ap0 -p udp --dport 53 -j REDIRECT --to-port 1053"
+    sudo iptables -t nat -I PREROUTING -i ap0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+    sudo dnsmasq --no-resolv --port=1053 --interface=ap0 \
+        --address=/#/$(sudo ip -4 -o addr show dev ap0 | awk '{print $4}' | cut -d/ -f1) \
+        --pid-file=/sdcard/dnsmasq-ap0.pid
+}
+

@@ -121,11 +121,19 @@ function M.edit()
         timer:stop()
         timer:close()
 
-        -- Keep original filename (preserve name) and move the edited file to that name
-        local new_filename = vim.fn.fnamemodify(orig_abs, ":t")
+        -- Generate a new filename to avoid image viewer caching issues
+        -- We append a timestamp so Neovim/markdown viewer sees a text change and reloads
+        local old_filename = vim.fn.fnamemodify(orig_abs, ":t")
+        local name_noext = vim.fn.fnamemodify(orig_abs, ":t:r")
+        local ext = vim.fn.fnamemodify(found, ":e")
+        if ext == "" then ext = vim.fn.fnamemodify(orig_abs, ":e") end
+        
+        -- Strip previous _edit_ suffixes if editing an already edited photo
+        name_noext = name_noext:gsub("_edit_%d+$", "")
+        local new_filename = name_noext .. "_edit_" .. tostring(os.time()) .. "." .. ext
         local new_abs = abs_dir .. "/" .. new_filename
 
-        -- Move new file to destination (overwrite original)
+        -- Move new file to destination
         local mv = vim.fn.system(string.format("mv -f %s %s",
           vim.fn.shellescape(found), vim.fn.shellescape(new_abs)))
         if vim.v.shell_error ~= 0 then
@@ -133,14 +141,22 @@ function M.edit()
           return
         end
 
-        -- Note: do NOT delete orig_abs here — we've moved/overwritten the original.
+        -- Delete original unedited file
+        if orig_abs ~= new_abs and vim.fn.filereadable(orig_abs) == 1 then
+          vim.fn.delete(orig_abs)
+        end
 
-        -- Update the markdown link on the saved row:
-        -- replace only the filename part, keep the directory
-        local cur_line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
-        local old_filename = vim.fn.fnamemodify(orig_abs, ":t")
-        local new_line = cur_line:gsub(vim.pesc(old_filename), new_filename, 1)
-        vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, { new_line })
+        -- Update the markdown link safely (user might have added/removed lines)
+        if vim.api.nvim_buf_is_valid(bufnr) then
+          local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+          for i, line in ipairs(lines) do
+            if line:find(vim.pesc(old_filename)) then
+              local new_line = line:gsub(vim.pesc(old_filename), new_filename, 1)
+              vim.api.nvim_buf_set_lines(bufnr, i - 1, i, false, { new_line })
+              break -- Assuming only one occurrence needs to be updated or update all? Usually one per cursor action.
+            end
+          end
+        end
 
         vim.notify("EditPhoto: updated → " .. rel_dir .. "/" .. new_filename, vim.log.levels.INFO)
 

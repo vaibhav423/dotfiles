@@ -54,10 +54,12 @@ return {
           temperature = 0.75,
           maxOutputTokens = 8192,
         },
+        is_env_set = function() return true end,
       },
       ["gemini-cli"] = {
         __inherited_from = "gemini",
         model = "gemini-3.1-flash-lite-preview",
+        is_env_set = function() return true end,
       },
     },
     acp_providers = {

@@ -30,12 +30,10 @@ return {
         number = true,
         spell = false,
         signcolumn = "yes",
-        wrap = false,
+        wrap = true,
         clipboard = "unnamedplus",
       },
-      g = {
-        copilot_chat_prefix = "<Leader>a",
-      },
+      g = {},
     })
 
     -- Autocommands

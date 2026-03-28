@@ -51,6 +51,6 @@ if [ -d "$NVM_DIR/versions/node" ]; then
     done
 fi
 source ~/.secrets
-source ~/crap/python/bin/activate
+source ~/Water/crap/python/bin/activate
 # important setup to use termux-api refer in ot termux_chroot notes
 export USE_SYSTEM_AM=1

@@ -1,202 +1,83 @@
 #==============================================================================
 # GIT/GITHUB MANAGEMENT
 #==============================================================================
-usage_copilot() {
-    local token
-    token=$(jq -r '.[].oauth_token' ~/.config/github-copilot/apps.json 2>/dev/null)
-    
-    if [ -z "$token" ]; then
-        echo "Error: Copilot token not found."
-        return 1
-    fi
 
-    curl -s -H "Authorization: Bearer $token" \
-    https://api.github.com/copilot_internal/user | \
-    jq -r '.quota_snapshots.premium_interactions.percent_remaining | floor | "\(.)%"'
+usage_copilot() {
+    local token=$(jq -r '.[].oauth_token' ~/.config/github-copilot/apps.json 2>/dev/null)
+    [ -z "$token" ] && { echo "Error: Copilot token not found."; return 1; }
+    curl -s -H "Authorization: Bearer $token" https://api.github.com/copilot_internal/user | \
+        jq -r '.quota_snapshots.premium_interactions.percent_remaining | floor | "\(.)%"'
 }
 
-
-
-# GitHub authentication
 alias vglog='gh auth login'
 
-# Quick git operations
-gitmod(){ 
-git pull 
-git add .
-git commit -m "new"
-git push 
-}
+gitmod() { git pull; git add .; git commit -m "new"; git push; }
 
-
-_get_gh_ctx() {
-    if [[ "$1" == gho_* ]]; then
-        echo "$1"
-    else
-        echo "$DEFAULT_GH_TOKEN"
-    fi
-}
-
-# Helper for status messages
 _log_info() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
-_log_err() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
-gitlistf() {
-    local token=$(_get_gh_ctx "$1")
-    GH_TOKEN="$token" gh repo list --limit 100 
-}
-gitlist() {
-    local token=$(_get_gh_ctx "$1")
-    GH_TOKEN="$token" gh repo list --limit 100 --json name --jq '.[].name'
-}
+_log_err()  { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
+
+# --- Helpers ---
+_get_token() { echo "$1" | jq -r '.gh_key'; }
+_get_user()  { GH_TOKEN="$1" gh api user --jq '.login' 2>/dev/null; }
+
+# --- Commands ---
+
+gitlistf() { GH_TOKEN=$(_get_token "$1") gh repo list --limit 100; }
+gitlist()  { GH_TOKEN=$(_get_token "$1") gh repo list --limit 100 --json name --jq '.[].name'; }
 
 gitinsert() {
-    # Usage: gitinsert [token] [public|private]
-    local token=$(_get_gh_ctx "$1")
-    [[ "$1" == gho_* ]] && shift
-    local privacy="--public"
-    [[ "$1" == "private" ]] && privacy="--private"
+    # Usage: gitinsert <json> [public|private]
+    local token=$(_get_token "$1")
+    local user=$(_get_user "$token")
+    local privacy=${2:-public}
     local project="${PWD##*/}"
-    local user
-    user=$(GH_TOKEN="$token" gh api user --jq '.login' 2>/dev/null)
-    if [[ -z "$user" ]]; then
-        _log_err "Could not verify GitHub user. Check your token."
-        return 1
-    fi
-    # 1. Initialize git if it hasn't been already
-    if [ ! -d .git ]; then
-        _log_info "Initializing new Git repository..."
-        git init
-    fi
-    # 2. Handle existing remotes (optional but recommended for robustness)
-    # If 'origin' exists, gh repo create --source might conflict
+
+    [ -z "$user" ] && { _log_err "Could not verify user."; return 1; }
+    [ ! -d .git ] && { _log_info "Init repo..."; git init; }
+    
     git remote remove origin 2>/dev/null
-    _log_info "Creating $privacy repo: $user/$project"
-    # 3. Create repo (removed deprecated --confirm)
-    if GH_TOKEN="$token" gh repo create "$project" "$privacy" --source=. --remote=origin; then
-        gauth
+    _log_info "Creating --$privacy repo: $user/$project"
+    
+    if GH_TOKEN="$token" gh repo create "$project" "--$privacy" --source=. --remote=origin; then
+        gauth "$1"
         git branch -M main
         git add .
-        
-        # Only commit if there are files to commit
-        if ! git diff --quiet --cached; then
-            git commit -m "Initial commit via gitinsert"
-        fi
-        
-        _log_info "Pushing to main..."
+        git diff --quiet --cached || git commit -m "Initial commit via gitinsert"
+        _log_info "Pushing..."
         git push -u origin main
     fi
 }
+
 gitcl() {
-    local token=$(_get_gh_ctx "$1")
-    [[ "$1" == gho_* ]] && shift
-    local repo="$1"
-    local user
-    user=$(GH_TOKEN="$token" gh api user --jq '.login' 2>/dev/null)
-    
-    _log_info "Cloning $user/$repo..."
-    GH_TOKEN="$token" gh repo clone "$user/$repo" && cd "$repo" || return 1
-    gauth
+    local token=$(_get_token "$1")
+    local user=$(_get_user "$token")
+    _log_info "Cloning $user/$2..."
+    GH_TOKEN="$token" gh repo clone "$user/$2" && cd "$2" && gauth "$1"
 }
+
 gitcr() {
-    local token=$(_get_gh_ctx "$1")
-    [[ "$1" == gho_* ]] && shift
-    
-    local project="$1"
-    local privacy="--public"
-    [[ "$2" == "private" ]] && privacy="--private"
-    _log_info "Creating $project ($privacy)..."
-    # Use --add-readme directly in gh repo create
-    if GH_TOKEN="$token" gh repo create "$project" "$privacy" --clone --add-readme; then
-        cd "$project" || return 1
-    fi
-    gauth
+    local token=$(_get_token "$1")
+    local privacy=${3:-public}
+    _log_info "Creating $2 (--$privacy)..."
+    GH_TOKEN="$token" gh repo create "$2" "--$privacy" --clone --add-readme && cd "$2" && gauth "$1"
 }
+
 gitfr() {
-    local token=$(_get_gh_ctx "$1")
-    [[ "$1" == gho_* ]] && shift
-    local repo_url="$1"
-    _log_info "Forking $repo_url..."
-    if GH_TOKEN="$token" gh repo fork "$repo_url" --clone; then
-        local name
-        name=$(basename "$repo_url" .git)
-        cd "$name" || return 1
-    fi
-    gauth
+    _log_info "Forking $2..."
+    GH_TOKEN=$(_get_token "$1") gh repo fork "$2" --clone && cd "$(basename "$2" .git)" && gauth "$1"
 }
+
 gitdel() {
-    local token=$(_get_gh_ctx "$1")
-    [[ "$1" == gho_* ]] && shift
-    local repo="$1"
-    local user
-    user=$(GH_TOKEN="$token" gh api user --jq '.login' 2>/dev/null)
-    
-    GH_TOKEN="$token" gh repo delete "$user/$repo" --yes
+    local token=$(_get_token "$1")
+    GH_TOKEN="$token" gh repo delete "$(_get_user "$token")/$2" --yes
 }
 
-#==============================================================================
-# MANUAL IDENTITY SYNC BASED ON REMOTE
-#==============================================================================
-
-# Sync current repo identity based on remote URL
+# Sync current repo identity based on provided JSON
 gauth() {
-    # Exit if not in a git repository
-    if [ ! -d .git ]; then
-        _log_err "Not a git repository."
-        return 1
-    fi
-    
-    local remote_url
-    remote_url=$(git remote get-url origin 2>/dev/null)
-    
-    # If no origin, check if we have any remote
-    if [[ -z "$remote_url" ]]; then
-        remote_url=$(git remote 2>/dev/null | xargs -I {} git remote get-url {} 2>/dev/null | head -n 1)
-    fi
-    
-    if [[ -z "$remote_url" ]]; then
-        _log_err "No remote found to match identity against."
-        return 1
-    fi
-    
-    local target_name target_email match_found=false
-    
-    # Try to extract 'host' or 'user' from URL
-    # Handles: purr:org/repo, git@github.com:user/repo, https://github.com/user/repo
-    local host_or_user
-    if [[ "$remote_url" == *:* ]]; then
-        # For SSH style (host:path or git@host:path)
-        host_or_user=$(echo "$remote_url" | sed -E 's/.*(@|:\/\/)([^:/]+)[:\/].*/\2/')
-        # If it didn't match the regex (e.g. host:path), just get everything before colon
-        [[ "$host_or_user" == "$remote_url" ]] && host_or_user=$(echo "$remote_url" | cut -d':' -f1)
-    else
-        # For HTTP style (https://host/user/repo)
-        host_or_user=$(echo "$remote_url" | cut -d'/' -f4)
-    fi
-
-    # 1. Try matching ~/.config/git/.gitconfig-<host_or_user>
-    local config_file="$HOME/.config/git/.gitconfig-$host_or_user"
-    
-    # 2. Special case for your 'purr' identity if the URL contains the username
-    if [[ ! -f "$config_file" ]] && [[ "$remote_url" == *purposeno968-ui* ]]; then
-        config_file="$HOME/.config/git/.gitconfig-purr"
-    fi
-
-    if [[ -f "$config_file" ]]; then
-        _log_info "Matching identity from $(basename "$config_file")..."
-        target_name=$(git config -f "$config_file" user.name)
-        target_email=$(git config -f "$config_file" user.email)
-        match_found=true
-    else
-        # Fallback to default identity
-        target_name="vaibhav"
-        target_email="20vaibhav2007@gmail.com"
-        _log_info "No specific config found for '$host_or_user'. Using default identity..."
-    fi
-    
-    # Set the local configuration
-    git config --local user.name "$target_name"
-    git config --local user.email "$target_email"
-    
-    echo -e "\033[0;32m[GIT]\033[0m Local identity set to: \033[1m$target_name <$target_email>\033[0m"
+    [ ! -d .git ] && { _log_err "Not a git repository."; return 1; }
+    local name=$(echo "$1" | jq -r '.name')
+    local mail=$(echo "$1" | jq -r '.mail')
+    git config --local user.name "$name"
+    git config --local user.email "$mail"
+    echo -e "\033[0;32m[GIT]\033[0m Local identity set to: \033[1m$name <$mail>\033[0m"
 }
-

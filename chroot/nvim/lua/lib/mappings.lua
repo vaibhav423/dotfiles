@@ -152,21 +152,22 @@ return {
     -- Open gallery path in MixPlorer via Android intent
     ["<Leader>gg"] = {
       function()
-        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        local gallery_line = vim.fn.search("^#%s+gallery%s*$", "nw")
+        if gallery_line == 0 then
+          vim.notify("No # gallery heading found", vim.log.levels.WARN)
+          return
+        end
 
-        local in_gallery = false
+        local next_heading = vim.fn.search("^#%s+", "nW", gallery_line + 1)
+        local end_line = (next_heading > 0) and (next_heading - 1) or -1
+        local lines = vim.api.nvim_buf_get_lines(0, gallery_line, end_line, false)
+
         local rel_path = nil
-
         for _, line in ipairs(lines) do
-          if line:match("^#%s+gallery%s*$") then
-            in_gallery = true
-          elseif in_gallery then
-            if line:match("^#%s+") then break end  -- next heading, stop
-            local p = line:match("^%s*path:%s*(.+)%s*$")
-            if p then
-              rel_path = p
-              break
-            end
+          local p = line:match("^%s*path:%s*(.+)%s*$")
+          if p then
+            rel_path = p
+            break
           end
         end
 
@@ -182,16 +183,11 @@ return {
 
         local cmd = string.format(
           'am start -a android.intent.action.VIEW -d "file://%s" -t "resource/folder" -f 0x14000000 com.mixplorer',
-          -- 'am start -a android.intent.action.VIEW -d "file://%s" -t "resource/folder" -f 0x10008000 com.mixplorer',
           full_path
         )
         
         vim.notify("Opening: " .. full_path)
-        
-        local result = vim.fn.system(cmd)
-        if vim.v.shell_error ~= 0 then
-          vim.notify("MixPlorer open failed:\n" .. result, vim.log.levels.ERROR)
-        end
+        vim.fn.jobstart(cmd)
       end,
       desc = "Open gallery path in MixPlorer",
     },
