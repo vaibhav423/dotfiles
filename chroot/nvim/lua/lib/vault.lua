@@ -41,6 +41,14 @@ local function write_file(path, text)
   return true
 end
 
+--- Write text + newline to a file. Returns true or nil + error message.
+local function write_file2(path, text)
+  local f, err = io.open(path, "w")
+  if not f then return nil, err end
+  f:write(text)
+  f:close()
+  return true
+end
 --- Create directory (and parents). Returns true or nil + error.
 local function mkdir(path)
   local ok = vim.fn.mkdir(path, "p")
@@ -87,7 +95,7 @@ function M.init_template()
     end
 
     -- 4. Persist to /sdcard/pinned
-    local ok, err = write_file(PINNED_CFG, value)
+    local ok, err = write_file2(PINNED_CFG, value)
     if not ok then
       vim.notify("vault: cannot write " .. PINNED_CFG .. ": " .. (err or "?"), vim.log.levels.ERROR)
       return
@@ -201,7 +209,7 @@ function M.set_pinned()
     confirm = function(picker, item)
       picker:close()
       if not item then return end
-      local ok, err = write_file(PINNED_CFG, item._rel)
+      local ok, err = write_file2(PINNED_CFG, item._rel)
       if not ok then
         vim.notify("vault: cannot write " .. PINNED_CFG .. ": " .. (err or "?"), vim.log.levels.ERROR)
         return

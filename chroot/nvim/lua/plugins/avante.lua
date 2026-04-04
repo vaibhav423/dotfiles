@@ -41,24 +41,24 @@ return {
     },
   },
   opts = {
-    provider = "gemini-cli",
+    -- provider = "gemini-cli",
     behaviour = {
-      auto_add_current_file = true, -- Default behavior
+      auto_add_current_file = false,
     },
     providers = {
       gemini = {
         endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
         model = "gemini-3-flash-preview",
         timeout = 30000,
-        extra_request_body = {
-          temperature = 0.75,
-          maxOutputTokens = 8192,
-        },
+        -- extra_request_body = {
+        --   temperature = 0.75,
+        --   maxOutputTokens = 8192,
+        -- },
         is_env_set = function() return true end,
       },
       ["gemini-cli"] = {
         __inherited_from = "gemini",
-        model = "gemini-3.1-flash-lite-preview",
+        model = "gemini-3-flash-preview",
         is_env_set = function() return true end,
       },
     },
@@ -71,7 +71,7 @@ return {
           HOME = os.getenv("HOME"),
           GEMINI_API_KEY = os.getenv("GEMINI_API_KEY"),
           GEMINI_DEFAULT_AUTH_TYPE = "oauth-personal",
-          GEMINI_MODEL = "gemini-3.1-flash-lite-preview",
+          GEMINI_MODEL = "gemini-3-flash-preview",
         },
         auth_method = "oauth-personal",
       },
@@ -84,11 +84,6 @@ return {
     shortcuts = {
       {
         name = "quick",
-        description = "One line answer",
-        prompt = "Provide a concise answer that fits in a single line.",
-      },
-      {
-        name = "tuick",
         description = "One line answer",
         prompt = "Provide a concise answer that fits in a single line.",
       },
@@ -122,6 +117,83 @@ return {
       },
     },
   },
+  config = function(_, opts)
+    require("avante").setup(opts)
+
+    -- ACP Session/Context Fixes (Monkey-patching)
+    -- These patches ensure that ACP sessions are correctly reset when the chat is cleared or a new chat is started.
+    local Sidebar = require("avante.sidebar")
+    local Llm = require("avante.llm")
+
+    -- 1. Ensure ACP client is killed on Sidebar reset
+    local old_reset = Sidebar.reset
+    Sidebar.reset = function(self)
+      if self.acp_client then
+        pcall(function() self.acp_client:stop() end)
+        self.acp_client = nil
+      end
+      return old_reset(self)
+    end
+
+    -- 2. Ensure ACP client is killed when starting a New Chat
+    local old_new_chat = Sidebar.new_chat
+    Sidebar.new_chat = function(self, args, cb)
+      if self.acp_client then
+        pcall(function() self.acp_client:stop() end)
+        self.acp_client = nil
+      end
+      return old_new_chat(self, args, cb)
+    end
+
+    -- 3. Clear ACP session ID on history clear
+    local old_clear_history = Sidebar.clear_history
+    Sidebar.clear_history = function(self, args, cb)
+      if self.chat_history then
+        self.chat_history.acp_session_id = nil
+      end
+      return old_clear_history(self, args, cb)
+    end
+
+    -- 4. Prevent UI hang on compaction failure
+    local old_summarize_memory = Llm.summarize_memory
+    Llm.summarize_memory = function(prev_memory, history_messages, cb)
+      old_summarize_memory(prev_memory, history_messages, function(memory)
+        if memory == nil then
+          -- If summarization failed, we still need to trigger the callback
+          -- to reset the sidebar state from "compacting"
+          cb(nil)
+        else
+          cb(memory)
+        end
+      end)
+    end
+
+    -- 5. Persistent Model Fix (Monkey-patching)
+    -- This bypasses the ACP guard in apply_model_selection during startup
+    local config_mod = require("avante.config")
+    local old_setup = config_mod.setup
+    config_mod.setup = function(s_opts)
+      local real_acp_providers = config_mod.acp_providers
+      config_mod.acp_providers = {} -- Momentarily hide to bypass the guard in apply_model_selection
+      old_setup(s_opts)
+      config_mod.acp_providers = real_acp_providers -- Restore
+    end
+
+    -- 6. Dynamic Model Sync Fix (Monkey-patching)
+    -- Ensures the GEMINI_MODEL env var matches the selected model in the UI
+    local old_stream_acp = Llm._stream_acp
+    Llm._stream_acp = function(s_opts)
+      local conf = require("avante.config")
+      if conf.provider == "gemini-cli" then
+        local acp_provider = conf.acp_providers[conf.provider]
+        if acp_provider then
+          acp_provider.env = acp_provider.env or {}
+          acp_provider.env.GEMINI_MODEL = conf.get_provider_config(conf.provider).model
+        end
+      end
+      return old_stream_acp(s_opts)
+    end
+  end,
   specs = { -- configure optional plugins
     { "AstroNvim/astroui", opts = { icons = { Avante = "" } } },
     {

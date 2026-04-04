@@ -5,7 +5,6 @@ export TMPDIR=/tmp
 [ -f ~/archive/venv/bin/activate ] && source ~/archive/venv/bin/activate
 
 eval  "$(zoxide init zsh)"
-cd ~
 # if [ -z "$TMUX" ]; then
 #    tmux attach-session -t default || tmux new-session -s default
 #fi
@@ -52,5 +51,7 @@ if [ -d "$NVM_DIR/versions/node" ]; then
 fi
 source ~/.secrets
 source ~/Water/crap/python/bin/activate
+
 # important setup to use termux-api refer in ot termux_chroot notes
 export USE_SYSTEM_AM=1
+export PATH=$PATH:~/Water/crap/scripts

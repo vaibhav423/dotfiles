@@ -530,8 +530,3 @@ Config is in `.stylua.toml` — 2-space indent, 100-column width.
   as TakePhoto — the link is there optimistically while ffmpeg runs in the background).
 - If no `?t=` is present, ffmpeg grabs the frame at position 0 (no `-ss` flag).
 
-### Neovim luac cache
-
-- Neovim caches compiled `.luac` files keyed by original path. After any file move,
-  rename, or deletion, stale bytecode can cause `module not found` errors.
-- Fix: `rm -rf ~/.cache/nvim/luac/` — safe and fast, recompiles on next startup.

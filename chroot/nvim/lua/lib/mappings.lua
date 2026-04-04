@@ -143,7 +143,15 @@ return {
     -- change default notifications mapping from fn to fN
     ["<Leader>fN"] = { function() require("snacks").picker.notifications() end, desc = "Find notifications" },
 
-
+    -- Copy file path
+    ["<Leader>fp"] = {
+      function()
+        local filepath = vim.fn.expand("%:p")
+        vim.fn.setreg("+", filepath)
+        vim.notify("Copied: " .. filepath)
+      end,
+      desc = "Copy current file path",
+    },
 
     -- find buffer
     ["<Leader>fb"] = {false},
@@ -152,13 +160,13 @@ return {
     -- Open gallery path in MixPlorer via Android intent
     ["<Leader>gg"] = {
       function()
-        local gallery_line = vim.fn.search("^#%s+gallery%s*$", "nw")
+        local gallery_line = vim.fn.search("^#\\+\\s\\+\\cgallery\\s*$", "nw")
         if gallery_line == 0 then
           vim.notify("No # gallery heading found", vim.log.levels.WARN)
           return
         end
 
-        local next_heading = vim.fn.search("^#%s+", "nW", gallery_line + 1)
+        local next_heading = vim.fn.search("^#\\+\\s\\+", "nW", gallery_line + 1)
         local end_line = (next_heading > 0) and (next_heading - 1) or -1
         local lines = vim.api.nvim_buf_get_lines(0, gallery_line, end_line, false)
 

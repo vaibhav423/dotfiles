@@ -155,7 +155,10 @@ gitdel() {
 # --- Utils ---
 
 gitmod() { 
-    git pull && git add . && git commit -m "new" && git push 
+    git pull 
+    git add . 
+    git commit -m "new" 
+    git push 
 }
 
 usage_copilot() {

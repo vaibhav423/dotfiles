@@ -9,10 +9,10 @@ local function find_section_path(heading_pattern)
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
   local in_section = false
   for _, line in ipairs(lines) do
-    if line:lower():match("^#%s+" .. heading_pattern .. "%s*$") then
+    if line:lower():match("^#+%s+" .. heading_pattern .. "%s*$") then
       in_section = true
     elseif in_section then
-      if line:match("^#%s+") then break end
+      if line:match("^#+%s+") then break end
       local p = line:match("^%s*path:%s*(.+)%s*$")
       if p then return p end
     end
