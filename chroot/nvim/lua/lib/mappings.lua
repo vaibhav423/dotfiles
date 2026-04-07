@@ -155,6 +155,7 @@ return {
 
     -- find buffer
     ["<Leader>fb"] = {false},
+    ["\\"] = {false},
     ["te"] = { function() require("snacks").picker.buffers() end, desc = "Find buffers" },
 
     -- Open gallery path in MixPlorer via Android intent

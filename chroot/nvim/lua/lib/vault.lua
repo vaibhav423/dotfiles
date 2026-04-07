@@ -69,6 +69,64 @@ local function write_md(path, content)
 end
 
 -- ---------------------------------------------------------------------------
+-- M.create_topic_files
+-- ---------------------------------------------------------------------------
+
+local function create_topic_files(vault, value)
+  -- 5. Derive paths
+  local full_pinned = vault .. "/" .. value
+  local topic_name  = vim.fn.fnamemodify(full_pinned, ":t")
+  local assets_dir  = vault .. "/Assets/" .. topic_name
+  local questions_dir = assets_dir .. "/questions"
+
+  -- 6. Create directories
+  for _, dir in ipairs({ full_pinned, questions_dir }) do
+    local mok, merr = mkdir(dir)
+    if not mok then
+      vim.notify("vault: " .. (merr or "mkdir error"), vim.log.levels.ERROR)
+      return false
+    end
+  end
+
+  -- 7. Write <topic>.md
+  local topic_md = table.concat({
+    "# gallery",
+    "```img-gallery",
+    "path: Assets/" .. topic_name,
+    "type: vertical",
+    "mobile: 3",
+    "columns: 3",
+    "gutter: 2",
+    "radius: 20",
+    "```",
+    "# general",
+    "[[" .. topic_name .. "-Questions]]",
+    "# images",
+    "",
+  }, "\n")
+  write_md(full_pinned .. "/" .. topic_name .. ".md", topic_md)
+
+  -- 8. Write <topic>-Questions.md
+  local questions_md = table.concat({
+    "# gallery",
+    "```img-gallery",
+    "path: Assets/" .. topic_name .. "/questions",
+    "type: vertical",
+    "mobile: 3",
+    "columns: 3",
+    "gutter: 2",
+    "radius: 20",
+    "```",
+    "# solve-tips",
+    "# Question",
+    "",
+  }, "\n")
+  write_md(full_pinned .. "/" .. topic_name .. "-Questions.md", questions_md)
+  
+  return true
+end
+
+-- ---------------------------------------------------------------------------
 -- M.init_template
 -- ---------------------------------------------------------------------------
 
@@ -101,55 +159,13 @@ function M.init_template()
       return
     end
 
-    -- 5. Derive paths
+    -- 5. Derive paths and create files
     local full_pinned = vault .. "/" .. value
     local topic_name  = vim.fn.fnamemodify(full_pinned, ":t")
-    local assets_dir  = vault .. "/Assets/" .. topic_name
-    local questions_dir = assets_dir .. "/questions"
 
-    -- 6. Create directories
-    for _, dir in ipairs({ full_pinned, questions_dir }) do
-      local mok, merr = mkdir(dir)
-      if not mok then
-        vim.notify("vault: " .. (merr or "mkdir error"), vim.log.levels.ERROR)
-        return
-      end
+    if not create_topic_files(vault, value) then
+      return
     end
-
-    -- 7. Write <topic>.md
-    local topic_md = table.concat({
-      "# gallery",
-      "```img-gallery",
-      "path: Assets/" .. topic_name,
-      "type: vertical",
-      "mobile: 3",
-      "columns: 3",
-      "gutter: 2",
-      "radius: 20",
-      "```",
-      "# general",
-      "[[" .. topic_name .. "-Questions]]",
-      "# images",
-      "",
-    }, "\n")
-    write_md(full_pinned .. "/" .. topic_name .. ".md", topic_md)
-
-    -- 8. Write <topic>-Questions.md
-    local questions_md = table.concat({
-      "# gallery",
-      "```img-gallery",
-      "path: Assets/" .. topic_name .. "/questions",
-      "type: vertical",
-      "mobile: 3",
-      "columns: 3",
-      "gutter: 2",
-      "radius: 20",
-      "```",
-      "# solve-tips",
-      "# Question",
-      "",
-    }, "\n")
-    write_md(full_pinned .. "/" .. topic_name .. "-Questions.md", questions_md)
 
     vim.notify(
       "vault: initialized " .. topic_name .. "\npinned → " .. PINNED_CFG,
@@ -243,11 +259,12 @@ function M.open_pinned()
   local topic_file   = full_pinned .. "/" .. topic_name .. ".md"
   local questions_file = full_pinned .. "/" .. topic_name .. "-Questions.md"
 
-  -- 3. Verify files exist
+  -- 3. Verify files exist, create if not
   for _, f in ipairs({ topic_file, questions_file }) do
     if vim.fn.filereadable(f) == 0 then
-      vim.notify("vault: file not found: " .. f, vim.log.levels.ERROR)
-      return
+      vim.notify("vault: file not found, recreating templates...", vim.log.levels.INFO)
+      create_topic_files(vault, pinned_rel)
+      break
     end
   end
   -- 4. set markdown oxide with full path
