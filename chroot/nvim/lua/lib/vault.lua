@@ -20,8 +20,8 @@ local M = {}
 -- Helpers
 -- ---------------------------------------------------------------------------
 
-local VAULT_CFG  = "~/Water/Fire/vault"
-local PINNED_CFG = "~/Water/Fire/pinned"
+local VAULT_CFG  = vim.fn.expand("~/Water/Fire/vault")
+local PINNED_CFG = vim.fn.expand("~/Water/Fire/pinned")
 
 --- Read a file and return its trimmed contents, or nil + error message.
 local function read_file(path)
@@ -280,18 +280,13 @@ function M.open_pinned()
   -- this is python version
   -- Use 'tomlq' instead of 'yq'
   -- We remove '-p toml' and '-o toml' as tomlq assumes them
+  local moxide_cfg = vim.fn.expand("~/.config/moxide/settings.toml")
   local cmd = string.format(
-    "tomlq -it %s ~/.config/moxide/settings.toml",
-    vim.fn.shellescape(yq_expr)
+    "tomlq -it %s %s",
+    vim.fn.shellescape(yq_expr),
+    vim.fn.shellescape(moxide_cfg)
   )
 
-  -- vim.fn.system(cmd)
-  -- if vim.v.shell_error ~= 0 then
-  --   -- It's helpful to notify which path failed for easier debugging
-  --   vim.notify("vault: failed to update moxide path to " .. full_pinned, vim.log.levels.WARN)
-  -- end
-  vim.fn.system("cd ~/Water/Fire")
-  
   local output = vim.fn.system(cmd)
 
   if vim.v.shell_error ~= 0 then
