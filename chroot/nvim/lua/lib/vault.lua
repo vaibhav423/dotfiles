@@ -2,16 +2,16 @@
 -- Vault template initialisation and pinned-dir management.
 --
 -- M.init_template()
---   Reads vault root from /sdcard/vault, prompts for a relative path (pre-filled
---   with the current value in /sdcard/pinned), creates the directory tree and
+--   Reads vault root from ~/Water/Fire/vault, prompts for a relative path (pre-filled
+--   with the current value in ~/Water/Fire/pinned), creates the directory tree and
 --   writes the two topic markdown template files.
 --
 -- M.set_pinned()
 --   Opens a snacks.picker listing all vault subdirs (excluding .git / .obsidian).
---   On confirm, writes the chosen relative path to /sdcard/pinned.
+--   On confirm, writes the chosen relative path to ~/Water/Fire/pinned.
 --
 -- M.open_pinned()
---   Reads /sdcard/vault and /sdcard/pinned, cds into the pinned dir, then opens
+--   Reads ~/Water/Fire/vault and /Water/Fire/pinned, cds into the pinned dir, then opens
 --   <topic>.md and <topic>-Questions.md in two vertical splits.
 
 local M = {}
@@ -20,8 +20,8 @@ local M = {}
 -- Helpers
 -- ---------------------------------------------------------------------------
 
-local VAULT_CFG  = "/sdcard/vault"
-local PINNED_CFG = "/sdcard/pinned"
+local VAULT_CFG  = "~/Water/Fire/vault"
+local PINNED_CFG = "~/Water/Fire/pinned"
 
 --- Read a file and return its trimmed contents, or nil + error message.
 local function read_file(path)
@@ -152,7 +152,7 @@ function M.init_template()
       return
     end
 
-    -- 4. Persist to /sdcard/pinned
+    -- 4. Persist to ~/Water/Fire/pinned
     local ok, err = write_file2(PINNED_CFG, value)
     if not ok then
       vim.notify("vault: cannot write " .. PINNED_CFG .. ": " .. (err or "?"), vim.log.levels.ERROR)
@@ -290,7 +290,7 @@ function M.open_pinned()
   --   -- It's helpful to notify which path failed for easier debugging
   --   vim.notify("vault: failed to update moxide path to " .. full_pinned, vim.log.levels.WARN)
   -- end
-  vim.fn.system("cd /sdcard/Documents/Fire")
+  vim.fn.system("cd ~/Water/Fire")
   
   local output = vim.fn.system(cmd)
 
