@@ -1,44 +1,37 @@
--- plugins/tools/takephoto.lua
--- Registers :TakePhoto, :EditPhoto, and :OpenImages commands.
-
 return {
-  "AstroNvim/astrocore",
-  opts = function(_, opts)
-    opts.commands = opts.commands or {}
 
-    opts.commands["TakePhoto"] = {
+    TakePhoto = {
       function() require("lib.takephoto").take() end,
       desc = "Take photo and insert markdown link at current line",
-    }
+    },
 
-    opts.commands["EditPhoto"] = {
+    EditPhoto = {
       function() require("lib.takephoto").edit() end,
       desc = "Edit photo under cursor in Picsart, update markdown link",
-    }
+    },
 
-    opts.commands["VaultInit"] = {
+    VaultInit = {
       function() require("lib.vault").init_template() end,
       desc = "Initialise vault topic template and pin directory",
-    }
+    },
 
-    opts.commands["VaultPin"] = {
+    VaultPin = {
       function() require("lib.vault").set_pinned() end,
       desc = "Pick and save a vault directory as pinned",
-    }
+    },
 
-    opts.commands["VaultOpen"] = {
+    VaultOpen = {
       function() require("lib.vault").open_pinned() end,
       desc = "Open pinned topic files in splits",
-    }
+    },
 
-    opts.commands["YtFrame"] = {
+    YtFrame = {
       function() require("lib.ytframe").capture() end,
       desc = "Capture a frame from a YouTube URL and insert as markdown image",
-    }
+    },
 
-    opts.commands["OpenImages"] = {
+    OpenImages = {
       function() require("lib.takephoto").OpenImages() end,
       desc = "open multiple imgs",
-    }
-  end,
+    },
 }

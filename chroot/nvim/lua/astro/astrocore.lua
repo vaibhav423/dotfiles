@@ -37,6 +37,8 @@ return {
         copilot_chat_prefix = "<Leader>a",
       },
     })
+    -- commands
+    opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("config.commands"))
 
     -- Autocommands
     opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("config.autocmds"))

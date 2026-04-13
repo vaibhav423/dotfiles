@@ -1,4 +1,4 @@
--- lib/mappings.lua: all global keymaps for astrocore.
+-- config/mappings.lua: all global keymaps for astrocore.
 -- Add new mappings here. astrocore.lua merges this into opts.mappings.
 
 -- ---------------------------------------------------------------------------
