@@ -64,7 +64,7 @@ for (( i=0; i<${#content}; i++ )); do
     fi
 
     read -ra key_array <<< "$codes"
-    sudo virsh send-key "$vm_name" --codeset usb "${key_array[@]}" --holdtime "$holdtime" > /dev/null 2>&1
+    virsh send-key "$vm_name" --codeset usb "${key_array[@]}" --holdtime "$holdtime" > /dev/null 2>&1
 
     if [[ "$char" == " " ]]; then
         sleep "$(awk "BEGIN {print $pause_time_ms/1000}")"

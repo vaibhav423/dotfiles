@@ -6,7 +6,7 @@
 return {
   "AstroNvim/astrocommunity",
   { import = "astrocommunity.pack.lua" },
-   { import = "astrocommunity.editing-support.copilotchat-nvim" },
+   -- { import = "astrocommunity.editing-support.copilotchat-nvim" },
   { import = "astrocommunity.ai.opencode-nvim" },
   -- import/override with your plugins folder
   { import = "astrocommunity.markdown-and-latex.render-markdown-nvim" },
