@@ -10,10 +10,10 @@ def get_config_paths():
     """Resolves paths based on /sdcard/ configuration files."""
     try:
         # 1. Base vault path
-        vault_base = Path(Path("/sdcard/vault").read_text().strip())
+        vault_base = Path(Path("/data/local/tmp/archl/home/fire/Water/Fire").read_text().strip())
         
         # 2. Pinned relative path
-        pinned_rel = Path(Path("/sdcard/pinned").read_text().strip())
+        pinned_rel = Path(Path("/data/local/tmp/archl/home/fire/Water/Fire/pinned").read_text().strip())
         
         # Name of the folder (e.g., 'Chemistry')
         pinned_folder_name = pinned_rel.name

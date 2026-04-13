@@ -20,8 +20,8 @@ local M = {}
 -- Helpers
 -- ---------------------------------------------------------------------------
 
-local VAULT_CFG  = vim.fn.expand("~/Water/Fire/vault")
-local PINNED_CFG = vim.fn.expand("~/Water/Fire/pinned")
+local VAULT = vim.fn.expand("~/Water/Fire")
+local PINNED_CFG = vim.fn.expand( VAULT .. "/pinned")
 
 --- Read a file and return its trimmed contents, or nil + error message.
 local function read_file(path)
@@ -132,11 +132,7 @@ end
 
 function M.init_template()
   -- 1. Read vault root
-  local vault, err1 = read_file(VAULT_CFG)
-  if not vault then
-    vim.notify("vault: cannot read " .. VAULT_CFG .. ": " .. (err1 or "?"), vim.log.levels.ERROR)
-    return
-  end
+  local vault, err1 = VAULT
 
   -- 2. Read current pinned value as default for the prompt
   local current_pinned = read_file(PINNED_CFG) or ""
@@ -180,11 +176,7 @@ end
 
 function M.set_pinned()
   -- 1. Read vault root
-  local vault, err1 = read_file(VAULT_CFG)
-  if not vault then
-    vim.notify("vault: cannot read " .. VAULT_CFG .. ": " .. (err1 or "?"), vim.log.levels.ERROR)
-    return
-  end
+  local vault, err1 = VAULT
 
   -- 2. Enumerate subdirs via find, excluding .git and .obsidian
   local raw = vim.fn.systemlist(
@@ -241,11 +233,7 @@ end
 
 function M.open_pinned()
   -- 1. Read vault root and pinned relative path
-  local vault, err1 = read_file(VAULT_CFG)
-  if not vault then
-    vim.notify("vault: cannot read " .. VAULT_CFG .. ": " .. (err1 or "?"), vim.log.levels.ERROR)
-    return
-  end
+  local vault, err1 = VAULT
 
   local pinned_rel, err2 = read_file(PINNED_CFG)
   if not pinned_rel or pinned_rel == "" then
