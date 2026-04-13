@@ -72,8 +72,8 @@ return {
       },
     })
 
-    -- Mappings (see lua/lib/mappings.lua)
-    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("lib.mappings"))
+    -- Mappings (see config/mappings.lua)
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("mappings"))
 
     return opts
   end,
