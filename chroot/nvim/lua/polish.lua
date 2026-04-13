@@ -1,11 +1,8 @@
 -- polish.lua: runs after all plugins are loaded.
 -- Used only for final setup that cannot live inside a plugin spec.
 
--- Encryption support for .enc files
-require("lib.encryption").setup()
-
--- Jeerem date-countdown command
-require("lib.jeerem").setup()
+-- Add jeerem command abbreviation
+vim.cmd("cnoreabbrev jeerem Jeerem")
 
 -- Use termux-api for clipboard when in Termux (even via SSH)
 -- This avoids the 5-second OSC 52 timeout

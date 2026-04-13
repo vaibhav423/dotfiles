@@ -38,9 +38,4 @@ function M.insert()
   vim.api.nvim_buf_set_lines(0, 0, 1, false, { text })
 end
 
-function M.setup()
-  vim.api.nvim_create_user_command("Jeerem", M.insert, { desc = "Insert/overwrite reminder on first line" })
-  vim.cmd("cnoreabbrev jeerem Jeerem")
-end
-
 return M

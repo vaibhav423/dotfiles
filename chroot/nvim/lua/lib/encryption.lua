@@ -146,58 +146,5 @@ function M.encrypt_buffer()
   return true
 end
 
--- Setup function to register autocommands and commands
-function M.setup()
-  -- Create autocommands for .enc files
-  local augroup = vim.api.nvim_create_augroup("EncryptionPlugin", { clear = true })
-  
-  -- Auto-decrypt when opening .enc files
-  vim.api.nvim_create_autocmd("BufReadPost", {
-    group = augroup,
-    pattern = "*.enc",
-    callback = function()
-      -- Disable swap files for encrypted files
-      vim.opt_local.swapfile = false
-      vim.opt_local.backup = false
-      vim.opt_local.writebackup = false
-      vim.opt_local.undofile = false
-      
-      -- Decrypt the file
-      M.decrypt_buffer()
-    end,
-  })
-  
-  -- Auto-encrypt when writing .enc files
-  vim.api.nvim_create_autocmd("BufWriteCmd", {
-    group = augroup,
-    pattern = "*.enc",
-    callback = function()
-      M.encrypt_buffer()
-    end,
-  })
-  
-  -- Clear password cache when buffer is closed
-  vim.api.nvim_create_autocmd("BufDelete", {
-    group = augroup,
-    pattern = "*.enc",
-    callback = function()
-      local filepath = vim.api.nvim_buf_get_name(0)
-      password_cache[filepath] = nil
-    end,
-  })
-  
-  -- User commands
-  vim.api.nvim_create_user_command("EncryptBuffer", function()
-    M.encrypt_buffer()
-  end, { desc = "Encrypt current buffer to .enc file" })
-  
-  vim.api.nvim_create_user_command("DecryptBuffer", function()
-    M.decrypt_buffer()
-  end, { desc = "Decrypt current .enc file into buffer" })
-  
-  vim.api.nvim_create_user_command("ClearEncryptionPassword", function()
-    M.clear_password()
-  end, { desc = "Clear cached encryption password" })
-end
-
+-- End of module (commands and autocmds are registered in config/commands.lua and config/autocmds.lua)
 return M

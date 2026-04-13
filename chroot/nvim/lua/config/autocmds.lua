@@ -29,4 +29,44 @@ return {
           callback = function(args) require("lib.fold_toggle").clear_cache(args.buf) end,
         },
       },
+
+      -- Encryption support for .enc files
+      encryption_plugin = {
+        {
+          event = "BufReadPost",
+          pattern = "*.enc",
+          desc = "Auto-decrypt when opening .enc files",
+          callback = function()
+            -- Disable swap files for encrypted files
+            vim.opt_local.swapfile = false
+            vim.opt_local.backup = false
+            vim.opt_local.writebackup = false
+            vim.opt_local.undofile = false
+            
+            require("lib.encryption").decrypt_buffer()
+          end,
+        },
+        {
+          event = "BufWriteCmd",
+          pattern = "*.enc",
+          desc = "Auto-encrypt when writing .enc files",
+          callback = function()
+            require("lib.encryption").encrypt_buffer()
+          end,
+        },
+        {
+          event = "BufDelete",
+          pattern = "*.enc",
+          desc = "Clear password cache when buffer is closed",
+          callback = function()
+            -- We cannot just call M.clear_password() easily without it prompting if not cached,
+            -- but the original logic was:
+            -- local filepath = vim.api.nvim_buf_get_name(0)
+            -- password_cache[filepath] = nil
+            -- Since password_cache is local to lib/encryption, we need a method to clear it by filepath
+            -- or we just use M.clear_password() which does exactly that for the current buffer.
+            require("lib.encryption").clear_password()
+          end,
+        },
+      },
     }

@@ -7,13 +7,12 @@ Read it before making any change — most bugs come from putting things in the w
 
 ## The three rules that prevent most mistakes
 
-### 1. Mappings go in `config/mappings.lua` — never `vim.keymap.set` at module level
+### 1. Mappings go in `config/mappings.lua` or `lsp/mappings.lua` — never `vim.keymap.set` at module level
 
-All global keymaps belong in `lua/lib/mappings.lua`. The file returns a plain table
-that `astrocore.lua` merges into `opts.mappings` at startup:
+All global keymaps belong in `lua/config/mappings.lua`. LSP-specific keymaps (only active when a language server attaches) belong in `lua/lsp/mappings.lua`. Both files return a plain table that is merged into `opts.mappings` by `astrocore.lua` and `astrolsp.lua` respectively:
 
 ```lua
--- lua/lib/mappings.lua  ← edit this file to add keymaps
+-- lua/config/mappings.lua (global) OR lua/lsp/mappings.lua (LSP)
 return {
   n = { ["<Leader>xx"] = { function() ... end, desc = "..." } },
   i = { ... },
@@ -28,20 +27,19 @@ The only exceptions where `vim.keymap.set` is acceptable:
 
 Never put `vim.keymap.set` at the top level of any file in `plugins/`, `lib/`, or `polish.lua`.
 
-### 2. Autocmds go in `astrocore.lua` — never `vim.api.nvim_create_autocmd` at module level
+### 2. Autocmds go in `config/autocmds.lua` or `lsp/autocmds.lua` — never `vim.api.nvim_create_autocmd` at module level
 
-All autocmds belong in `config/astrocore.lua` under `opts.autocmds`:
+Global autocmds belong in `lua/config/autocmds.lua`. LSP-specific autocmds belong in `lua/lsp/autocmds.lua`. They are required by `astrocore.lua` and `astrolsp.lua` respectively into their `opts.autocmds`:
 
 ```lua
-opts = {
-  autocmds = {
-    my_group = {          -- group name (string key)
-      {
-        event = "BufReadPost",
-        pattern = "*.foo",
-        desc = "...",
-        callback = function(args) ... end,
-      },
+-- lua/config/autocmds.lua OR lua/lsp/autocmds.lua
+return {
+  my_group = {          -- group name (string key)
+    {
+      event = "BufReadPost",
+      pattern = "*.foo",
+      desc = "...",
+      callback = function(args) ... end,
     },
   },
 }
@@ -49,7 +47,7 @@ opts = {
 
 The only exception: autocmds tightly coupled to a specific plugin that aren't worth
 wiring through astrocore (e.g. the copilot per-filetype auto_trigger autocmd in
-`plugins/ai/copilot.lua`). These must still live inside the plugin's `config` function,
+`plugins/copilot.lua`). These must still live inside the plugin's `config` function,
 never at module level.
 
 ### 3. Vim options go in `astrocore.lua` — never `vim.opt` at module level
@@ -69,7 +67,7 @@ opts = {
 
 ### New global keymap
 
-Add to `lua/lib/mappings.lua` in the appropriate mode block (`n`, `i`, `v`, `t`):
+Add to `lua/config/mappings.lua` in the appropriate mode block (`n`, `i`, `v`, `t`):
 
 ```lua
 ["<Leader>xy"] = { function() require("lib.mymodule").do_thing() end, desc = "Do thing" },
@@ -79,7 +77,7 @@ Keep all `require()` calls inside the function body, never at the top of the map
 
 ### New autocmd
 
-Add to `config/astrocore.lua` → `opts.autocmds`:
+Add to `lua/config/autocmds.lua` (for global) or `lua/lsp/autocmds.lua` (for LSP-specific):
 
 ```lua
 my_feature = {
@@ -91,33 +89,9 @@ my_feature = {
 
 Add to `config/astrocore.lua` → `opts.options.opt` or `opts.options.g`.
 
-### New plugin
-
-1. Create a file in the appropriate `plugins/` subdirectory.
-2. Return a valid lazy spec table (or a list of specs).
-3. Add the new file to that subdirectory's `init.lua` — **this is required**.
-   Lazy only auto-loads a subdirectory if it has an `init.lua`; files in subdirs
-   without one are silently ignored.
-
-```lua
--- plugins/tools/init.lua  ← add a line here when you add a new file
-return {
-  { import = "plugins.tools.terminal" },
-  { import = "plugins.tools.treesitter" },
-  { import = "plugins.tools.mynewplugin" },  -- ← add this
-}
-```
-
-Pick the right subdirectory:
-- `core/` — overrides/extensions of AstroNvim's own plugins (astrocore, astrolsp, astroui, mason, treesitter)
-- `ai/` — AI completion or chat plugins
-- `writing/` — markdown, LaTeX, prose, text editing
-- `tools/` — terminal, runners, debuggers, git, file management
-
 ### New custom Lua module (not a plugin spec)
 
-Add to `lua/lib/`. Return a module table with a `setup()` function if it registers
-autocmds or user commands. Call `require("lib.mymodule").setup()` from `polish.lua`.
+Add to `lua/lib/`. Return a module table containing only pure functions (no `vim.api.nvim_create_autocmd` or `vim.keymap.set` inside).
 
 ```lua
 -- lua/lib/mymodule.lua
@@ -125,19 +99,13 @@ local M = {}
 
 function M.do_thing() ... end
 
-function M.setup()
-  vim.api.nvim_create_user_command("MyCmd", M.do_thing, { desc = "..." })
-end
-
 return M
 ```
 
-```lua
--- lua/polish.lua
-require("lib.mymodule").setup()
-```
-
-Do **not** call `M.setup()` at the bottom of the module file itself. Keep setup explicit.
+Then "wire it up" centrally:
+- **For a keymap:** Add it to `lua/config/mappings.lua` mapped to `function() require("lib.mymodule").do_thing() end`.
+- **For an autocmd:** Add it to `lua/config/autocmds.lua`.
+- **For a user command:** Add it to `lua/config/commands.lua`.
 
 ### New LSP server
 
@@ -298,9 +266,9 @@ These were deprecated in Neovim 0.10 and will be removed:
 
 - [ ] Create `lua/lib/mymodule.lua`, return `M`
 - [ ] Public API: `M.my_function()` for reusable logic
-- [ ] If registering autocmds/commands: put them in `M.setup()`, call from `polish.lua`
-- [ ] Do **not** call `M.setup()` at the bottom of the module file
-- [ ] If the module needs a keymap: add it to `lua/lib/mappings.lua`, `require` the module inside the lambda
+- [ ] Do **not** use `M.setup()` to register autocmds/commands
+- [ ] If the module needs a keymap: add it to `lua/config/mappings.lua`, `require` the module inside the lambda
+- [ ] If the module needs an autocmd/command: add it to `lua/config/autocmds.lua` or `lua/config/commands.lua`
 
 ## Adding a new plugin — checklist
 
@@ -313,69 +281,9 @@ These were deprecated in Neovim 0.10 and will be removed:
 
 ## Modifying an existing mapping — checklist
 
-- [ ] Find it in `lua/lib/mappings.lua` (global mappings)
-- [ ] If it's an LSP mapping (only active when an LSP attaches): it's in `astrolsp.lua` `opts.mappings`
+- [ ] Find it in `lua/config/mappings.lua` (global mappings)
+- [ ] If it's an LSP mapping (only active when an LSP attaches): it's in `lua/lsp/mappings.lua`
 - [ ] If it's a plugin-specific key (triggers load): it's in that plugin's `keys` table
 - [ ] Do not add a second mapping for the same key in a different file — last-writer wins and it's confusing
 
 ---
-
-## Startup / debugging tips
-
-**Check which plugin owns a mapping:**
-```
-:verbose map <leader>xx
-```
-
-**Check why a plugin loaded:**
-```
-:Lazy profile
-```
-
-**Reload a single plugin without restarting:**
-```
-:Lazy reload plugin-name
-```
-
-**Check LSP status on current buffer:**
-```
-:LspInfo
-```
-
-**Inspect what astrocore sees for options/mappings/autocmds:**
-```lua
-:lua print(vim.inspect(require("astrocore").config))
-```
-
-**Check for filetype mismatches:**
-```
-:lua print(vim.bo.filetype)
-```
-Should always be `"markdown"`, never `"md"`.
-
-
-sometimes Neovim caches compiled `.luac` files keyed by their original path. When you move,
-rename, or delete a file, the old cache entry is not automatically invalidated — Neovim
-may keep loading the stale bytecode and you'll get confusing `module not found` errors
-that don't match what's on disk.
-
-if u get that wipe the cache after any structural change (file moves, renames, deletions):
-```sh
-rm -rf ~/.cache/nvim/luac/
-```
-Neovim will recompile from source on the next startup. This is safe and fast.
-
-**Run the Lua linter (selene) locally:**
-```sh
-selene lua/
-```
-Config is in `selene.toml` at the repo root.
-
-**Format with stylua:**
-```sh
-stylua lua/
-```
-Config is in `.stylua.toml` — 2-space indent, 100-column width.
-
----
-

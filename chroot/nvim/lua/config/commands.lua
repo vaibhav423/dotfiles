@@ -34,4 +34,24 @@ return {
       function() require("lib.takephoto").OpenImages() end,
       desc = "open multiple imgs",
     },
+
+    EncryptBuffer = {
+      function() require("lib.encryption").encrypt_buffer() end,
+      desc = "Encrypt current buffer to .enc file",
+    },
+
+    DecryptBuffer = {
+      function() require("lib.encryption").decrypt_buffer() end,
+      desc = "Decrypt current .enc file into buffer",
+    },
+
+    ClearEncryptionPassword = {
+      function() require("lib.encryption").clear_password() end,
+      desc = "Clear cached encryption password",
+    },
+
+    Jeerem = {
+      function() require("lib.jeerem").insert() end,
+      desc = "Insert/overwrite reminder on first line",
+    },
 }
