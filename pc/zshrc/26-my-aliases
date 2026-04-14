@@ -109,7 +109,7 @@ alias ls='ls -t'
 alias inx='cd ~/Water/crap'
 
 # Text editor shortcuts
-alias vhis='nvim .zsh_history'
+alias vhis='nvim ~/.zsh_history'
 alias sshcon='sudo nvim /etc/ssh/ssh_config'
 
 # Edit and reload bashrc

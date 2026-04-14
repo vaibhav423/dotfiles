@@ -1,3 +1,4 @@
+if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
 -- Markdown render helpers: toggle the latex converter used by render-markdown.nvim.
 -- The converter state is stored in vim.g.markdown_latex_converter so it persists
 -- across plugin reloads within a session.
@@ -26,9 +27,7 @@ function M.toggle_converter()
 
   -- Reload the plugin via lazy.nvim (mimics :Lazy reload render-markdown.nvim)
   local lazy_ok, lazy = pcall(require, "lazy")
-  if lazy_ok then
-    lazy.reload({ plugins = { "render-markdown.nvim" } })
-  end
+  if lazy_ok then lazy.reload { plugins = { "render-markdown.nvim" } } end
 
   -- Re-edit all markdown buffers after a short delay to pick up the new converter
   vim.schedule(function()
@@ -37,10 +36,8 @@ function M.toggle_converter()
         -- Buffer is visible — reload each window and restore cursor
         for _, win in ipairs(buf_info.wins) do
           vim.api.nvim_win_call(win, function()
-            vim.cmd("edit!")
-            if buf_info.cursor_pos[win] then
-              pcall(vim.api.nvim_win_set_cursor, win, buf_info.cursor_pos[win])
-            end
+            vim.cmd "edit!"
+            if buf_info.cursor_pos[win] then pcall(vim.api.nvim_win_set_cursor, win, buf_info.cursor_pos[win]) end
           end)
         end
       else
