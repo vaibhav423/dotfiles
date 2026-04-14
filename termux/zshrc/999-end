@@ -12,3 +12,7 @@ eval "$(zoxide init zsh)"
 #if [ -z "$TMUX" ]; then
 #    tmux attach-session -t default || tmux new-session -s default
 #fi
+<<<<<<< HEAD
+=======
+
+>>>>>>> 74ed298794d19c7105f7c8b0a503219c8dbec8f6

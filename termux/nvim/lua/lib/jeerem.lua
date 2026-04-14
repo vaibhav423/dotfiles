@@ -19,7 +19,7 @@ function M.insert()
   today_tm.hour = 0; today_tm.min = 0; today_tm.sec = 0
   local today_mid = os.time(today_tm)
 
-  local target_time = os.time({ year = 2026, month = 4, day = 2, hour = 0, min = 0, sec = 0 })
+  local target_time = os.time({ year = 2026, month = 5, day = 17, hour = 0, min = 0, sec = 0 })
   local diff = target_time - today_mid
   local days = math.floor(math.abs(diff) / 86400)
 
@@ -36,11 +36,6 @@ function M.insert()
   end
 
   vim.api.nvim_buf_set_lines(0, 0, 1, false, { text })
-end
-
-function M.setup()
-  vim.api.nvim_create_user_command("Jeerem", M.insert, { desc = "Insert/overwrite reminder on first line" })
-  vim.cmd("cnoreabbrev jeerem Jeerem")
 end
 
 return M

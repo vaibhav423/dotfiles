@@ -2,7 +2,7 @@ echo "windowrule {
 name = cheat
 match:class = (cheat)
 float = true
-move = (monitor_w-window_w-100) 66
+move = (monitor_w-window_w+50) 66
 pin = true
 size = 300 400
 no_initial_focus = true
@@ -11,5 +11,5 @@ border_size = 0
 no_shadow = true
 no_blur = true
 opacity = $1 override $1 override
-}" > ~/Water/scripts/windowrule_cheat.conf
+}" > ~/Water/crap/scripts/windowrule_cheat.conf
 

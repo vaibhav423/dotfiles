@@ -16,8 +16,30 @@ local function token_to_name(token)
   return name:match("^%s*(.-)%s*$")
 end
 
--- Resolve a wikilink name to an absolute path.
-local function resolve_name(name, cwd, file_dir)
+-- Optimization: Build a file map of the vault once to avoid repeated recursive globs.
+local function get_file_map(cwd)
+  local map = {}
+  local files = {}
+  -- On Android/Termux, shell commands might be slower or limited.
+  -- We try fd, then rg, then fallback to glob.
+  if vim.fn.executable("fd") == 1 then
+    files = vim.fn.systemlist("fd -e md . " .. vim.fn.shellescape(cwd))
+  elseif vim.fn.executable("rg") == 1 then
+    files = vim.fn.systemlist("rg --files -g '*.md' " .. vim.fn.shellescape(cwd))
+  else
+    files = vim.fn.glob(cwd .. "/**/*.md", false, true)
+  end
+
+  for _, f in ipairs(files) do
+    local name = vim.fn.fnamemodify(f, ":t:r")
+    if not map[name] then map[name] = f end
+  end
+  return map
+end
+
+-- Resolve a wikilink name to an absolute path using the pre-built file map.
+local function resolve_name(name, cwd, file_dir, file_map)
+  -- 1. Try local/relative
   local candidates = {
     cwd .. "/" .. name .. ".md",
     file_dir .. "/" .. name .. ".md",
@@ -25,21 +47,22 @@ local function resolve_name(name, cwd, file_dir)
   for _, abs in ipairs(candidates) do
     if vim.fn.filereadable(abs) == 1 then return abs end
   end
-  local hits = vim.fn.glob(cwd .. "/**/" .. name .. ".md", false, true)
-  if hits and #hits > 0 then return hits[1] end
-  return nil
+  -- 2. Try map (fast global lookup)
+  return file_map[name]
 end
 
--- Collect all [[wikilinks]], fire all LSP definition requests in one go from the
--- source buffer, store resolved targets. Navigation becomes instant afterwards.
+-- Collect all [[wikilinks]], fire all LSP definition requests in one go.
 function M.collect()
   local cwd      = vim.fn.getcwd()
-  local file_dir = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":p:h")
   local src_buf  = vim.api.nvim_get_current_buf()
-  local src_win  = vim.api.nvim_get_current_win()
-  local lines    = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  local file_name = vim.api.nvim_buf_get_name(src_buf)
+  local file_dir = vim.fn.fnamemodify(file_name, ":p:h")
+  local lines    = vim.api.nvim_buf_get_lines(src_buf, 0, -1, false)
 
-  -- Build list of { abs, row, col } for each unique resolvable wikilink.
+  -- 1. Build file map once for the entire buffer.
+  local file_map = get_file_map(cwd)
+
+  -- 2. Build list of { abs, row, col } for each unique resolvable wikilink.
   local seen    = {}
   local pending = {}
   for lnum, line in ipairs(lines) do
@@ -47,12 +70,14 @@ function M.collect()
     while true do
       local ts, te, token = line:find("%[%[(.-)%]%]", search_from)
       if not ts then break end
-      local name = token_to_name(token)
-      if name and name ~= "" and not seen[token] then
+      if not seen[token] then
         seen[token] = true
-        local abs = resolve_name(name, cwd, file_dir)
-        if abs then
-          table.insert(pending, { abs = abs, row = lnum, col = ts - 1 })
+        local name = token_to_name(token)
+        if name and name ~= "" then
+          local abs = resolve_name(name, cwd, file_dir, file_map)
+          if abs then
+            table.insert(pending, { abs = abs, row = lnum, col = ts - 1, token = token })
+          end
         end
       end
       search_from = te + 1
@@ -60,7 +85,7 @@ function M.collect()
   end
 
   if #pending == 0 then
-    vim.notify("Wikilink: no resolvable [[wikilinks]] found in buffer", vim.log.levels.WARN)
+    vim.notify("Wikilink: no resolvable [[wikilinks]] found", vim.log.levels.WARN)
     return
   end
 
@@ -69,54 +94,71 @@ function M.collect()
   idx       = 0
   _prev_buf = nil
 
-  -- Fire one LSP definition request per entry from the source buffer.
-  -- Each callback stores the resolved target; when all are done notify the user.
-  local done    = 0
-  local total   = #pending
-  local saved_cursor = vim.api.nvim_win_get_cursor(src_win)
+  -- 3. Fire LSP definition requests for each entry.
+  -- We use client.request directly to avoid non-standard behavior of buf_request.
+  local total_links = #pending
+  local clients = vim.lsp.get_clients({ bufnr = src_buf, method = "textDocument/definition" })
+  local total_requests = #clients * total_links
+  local received_responses = 0
+
+  local function finalize()
+    local compact = {}
+    for i = 1, total_links do
+      if resolved[i] then table.insert(compact, resolved[i]) end
+    end
+    resolved = compact
+    if #resolved == 0 then
+      vim.notify("Wikilink: LSP could not resolve any links", vim.log.levels.WARN)
+    else
+      vim.notify(string.format("Wikilink: ready, %d/%d links resolved", #resolved, total_links), vim.log.levels.INFO)
+    end
+  end
+
+  if total_requests == 0 then
+    -- No LSP attached, use fast resolution results.
+    for i, entry in ipairs(pending) do
+      resolved[i] = { filename = entry.abs, lnum = 1, col = 0 }
+    end
+    finalize()
+    return
+  end
 
   for i, entry in ipairs(pending) do
-    -- Move cursor to inside the [[token]] for this entry.
-    vim.api.nvim_win_set_cursor(src_win, { entry.row, entry.col + 2 })
+    -- Set fallback from our fast resolution.
+    resolved[i] = { filename = entry.abs, lnum = 1, col = 0 }
 
-    vim.lsp.buf.definition({
-      on_list = function(result)
-        done = done + 1
-        if result and result.items and #result.items > 0 then
-          local item = result.items[1]
-          -- Insert in order (not arrival order) by keeping slot i.
-          resolved[i] = { filename = item.filename, lnum = item.lnum, col = math.max(0, item.col - 1) }
-        end
-        if done == total then
-          -- Restore cursor and compact resolved (remove gaps from failed lookups).
-          vim.api.nvim_win_set_cursor(src_win, saved_cursor)
-          local compact = {}
-          for _, r in ipairs(resolved) do
-            if r then table.insert(compact, r) end
-          end
-          resolved = compact
-          if #resolved == 0 then
-            vim.notify("Wikilink: LSP could not resolve any links", vim.log.levels.WARN)
-          else
-            vim.notify(string.format("Wikilink: ready, %d/%d links resolved (Alt-Right/Left to navigate)", #resolved, total), vim.log.levels.INFO)
+    local params = {
+      textDocument = vim.lsp.util.make_text_document_params(src_buf),
+      position = { line = entry.row - 1, character = entry.col + 2 }
+    }
+
+    for _, client in ipairs(clients) do
+      client.request('textDocument/definition', params, function(err, result)
+        received_responses = received_responses + 1
+        if result and not err then
+          local items = vim.lsp.util.locations_to_items(result, "utf-8")
+          if items and #items > 0 then
+            local item = items[1]
+            resolved[i] = { filename = item.filename, lnum = item.lnum, col = math.max(0, item.col - 1) }
           end
         end
-      end,
-    })
+        if received_responses == total_requests then
+          finalize()
+        end
+      end, src_buf)
+    end
   end
 end
 
 local function open_current()
   local r = resolved[idx]
+  if not r then return end
 
   vim.cmd("edit " .. vim.fn.fnameescape(r.filename))
   local new_buf = vim.api.nvim_get_current_buf()
   vim.api.nvim_win_set_cursor(0, { r.lnum, r.col })
   vim.cmd("normal! zz")
 
-  -- Delete the buffer that was displaced by this edit, provided it is:
-  -- not the one we just opened, not already gone, not visible anywhere,
-  -- not the source buffer, and listed (i.e. a real file buffer).
   if _prev_buf
     and _prev_buf ~= new_buf
     and vim.api.nvim_buf_is_valid(_prev_buf)

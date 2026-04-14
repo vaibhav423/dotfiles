@@ -1,0 +1,56 @@
+#!/bin/bash
+# Rewritten termux-open for Arch Chroot (No nsenter version)
+
+show_usage () {
+    echo "Usage: termux-open [options] path-or-url"
+    echo "Open a file or URL in an external app."
+    echo "  --send               if the file should be shared for sending"
+    echo "  --view               if the file should be shared for viewing (default)"
+    echo "  --chooser            if an app chooser should always be shown"
+    echo "  --content-type type  specify the content type to use"
+    exit 0
+}
+
+# 1. Parse Arguments using Arch's native getopt
+TEMP=$(getopt -n "termux-open" -o h --long send,view,chooser,content-type:,help -- "$@")
+if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+eval set -- "$TEMP"
+
+ACTION="android.intent.action.VIEW"
+EXTRAS=""
+
+while true; do
+    case "$1" in
+        --send) ACTION="android.intent.action.SEND"; shift;;
+        --view) ACTION="android.intent.action.VIEW"; shift;;
+        --chooser) EXTRAS="$EXTRAS --ez chooser true"; shift;;
+        --content-type) EXTRAS="$EXTRAS --es content-type $2"; shift 2;;
+        -h | --help) show_usage;;
+        --) shift; break ;;
+    esac
+done
+
+if [ $# != 1 ]; then show_usage; fi
+
+# 2. Handle File Paths
+TARGET="$1"
+if [ -f "$TARGET" ]; then
+    TARGET=$(realpath "$TARGET")
+fi
+
+# 3. The Execution (The Sudo/Environment Method)
+# We use sudo to become UID 0, which Android trusts for broadcasts.
+# We explicitly set the Android environment so 'am' doesn't crash.
+sudo ANDROID_DATA=/data \
+     ANDROID_ROOT=/system \
+     LD_LIBRARY_PATH=/system/lib64:/system/lib \
+     PATH=/system/bin:/system/xbin:$PATH \
+     /system/bin/am broadcast --user 0 \
+        -a "$ACTION" \
+        -n "com.termux/com.termux.app.TermuxOpenReceiver" \
+        $EXTRAS \
+        -d "$TARGET" > /dev/null
+
+if [ $? -ne 0 ]; then
+    echo "Error: Broadcast failed. Ensure /system is mounted and Termux is installed."
+fi

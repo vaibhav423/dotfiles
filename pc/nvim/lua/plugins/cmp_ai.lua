@@ -2,42 +2,57 @@ return {
   "Saghen/blink.cmp",
   optional = true,
   opts = function(_, opts)
-    local copilot = require "copilot.suggestion"
+    -- Enable cmdline auto_show
+    -- opts.completion.menu.auto_show covers insert mode (AstroNvim disables cmdline there)
+    -- opts.cmdline.completion.menu.auto_show covers the actual cmdline (blink default: cmdwin only)
+    -- if not opts.completion then opts.completion = {} end
+    -- if not opts.completion.menu then opts.completion.menu = {} end
+    -- opts.completion.menu.auto_show = true
+    -- if not opts.cmdline then opts.cmdline = {} end
+    -- if not opts.cmdline.completion then opts.cmdline.completion = {} end
+    -- if not opts.cmdline.completion.menu then opts.cmdline.completion.menu = {} end
+    -- opts.cmdline.completion.menu.auto_show = true
+
     if not opts.keymap then opts.keymap = {} end
-    opts.keymap["<S-Tab>"] = {
+    opts.keymap["<Tab>"] = {
       "snippet_forward",
       function()
         if vim.g.ai_accept then return vim.g.ai_accept() end
       end,
       "fallback",
     }
-    opts.keymap["<Tab>"] = { "snippet_backward", "fallback" }
-    opts.keymap["<C-;>"] = {
+    opts.keymap["<C-Left>"] = { "snippet_backward", "fallback" }
+    opts.keymap["<C-Right>"] = {
       function()
+        local copilot = require("copilot.suggestion")
         if copilot.is_visible() then copilot.accept_word() end
       end,
       "fallback",
     }
-    opts.keymap["<C-l>"] = {
+    opts.keymap["<C-Down>"] = {
       function()
+        local copilot = require("copilot.suggestion")
         if copilot.is_visible() then copilot.accept_line() end
       end,
       "fallback",
     }
-    opts.keymap["<Esc>"] = {
+    opts.keymap["<C-q>"] = {
       function()
+        local copilot = require("copilot.suggestion")
         if copilot.is_visible() then copilot.dismiss() end
       end,
       "fallback",
     }
     opts.keymap["<C-n>"] = {
       function()
+        local copilot = require("copilot.suggestion")
         if copilot.is_visible() then copilot.next() end
       end,
       "fallback",
     }
     opts.keymap["<C-p>"] = {
       function()
+        local copilot = require("copilot.suggestion")
         if copilot.is_visible() then copilot.prev() end
       end,
       "fallback",
