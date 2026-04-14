@@ -312,11 +312,11 @@ ubset() {
     #    su -c "mount --rbind /apex $chrootpath/apex"
     #    su -c "mount --bind /linkerconfig $chrootpath/linkerconfig"
         ## --
-        su -c "mkdir -p $chrootpath/tmp $chrootpath/termux $chrootpath/sdcard $chrootpath/dev/shm"
-        su -c "mount -t tmpfs -o size=256M tmpfs $chrootpath/dev/shm"
-        sudo bindfs -u 1001 -g 984 /data/data/com.termux/files "${chrootpath}/termux"
-        sudo bindfs -u 1001 -g 984 /sdcard $chrootpath/sdcard 
-        su -c "mount --bind /data/data/com.termux/files/usr/tmp $chrootpath/tmp"
+       # su -c "mkdir -p $chrootpath/tmp $chrootpath/termux $chrootpath/sdcard $chrootpath/dev/shm"
+       # su -c "mount -t tmpfs -o size=256M tmpfs $chrootpath/dev/shm"
+       # sudo bindfs -u 1001 -g 984 /data/data/com.termux/files "${chrootpath}/termux"
+       # sudo bindfs -u 1001 -g 984 /sdcard $chrootpath/sdcard 
+       # su -c "mount --bind /data/data/com.termux/files/usr/tmp $chrootpath/tmp"
         #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/usr/bin/nvim "${chrootpath}/usr/bin/nvim"
         #sudo bindfs -u 1001 -g 984 /data/data/com.termux/files/home/.config/nvim "${chrootpath}/data/data/com.termux/files/home/.config/nvim"
         echo "mount done"
