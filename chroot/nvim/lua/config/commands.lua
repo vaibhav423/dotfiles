@@ -31,8 +31,9 @@ return {
     },
 
     OpenImages = {
-      function() require("lib.takephoto").OpenImages() end,
+      function(opts) require("lib.takephoto").OpenImages(opts) end,
       desc = "open multiple imgs",
+      range = true,
     },
 
     EncryptBuffer = {

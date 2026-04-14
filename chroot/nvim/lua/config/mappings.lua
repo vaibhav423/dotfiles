@@ -88,7 +88,7 @@ return {
 
 
     -- LSP
-    ["<Leader>rl"] = { "<cmd>LspRestart<CR>", desc = "Restart LSP" },
+    ["<Leader>rl"] = { "<cmd>lsp restart<CR>", desc = "Restart LSP" },
 
     -- Code runner
     -- ["<Leader>rt"]  = { ":w<CR>:RunCode<CR>",              desc = "Run code (float)" },
