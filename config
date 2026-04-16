@@ -1,0 +1,66 @@
+Match all
+  Include ~/.ssh/codespaces
+
+Host ec2
+    HostName 34.41.214.219 
+    User fire
+    IdentityFile ~/.ssh/gcp_free
+
+Host ec3
+    HostName 34.26.103.12  
+    User fire
+    IdentityFile ~/.ssh/gcp_free 
+
+Host *.trycloudflare.com
+	HostName %h
+	User root
+	Port 22
+	ProxyCommand cloudflared access ssh --hostname %h
+	ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+Host ixdire
+    HostName fe80::4e23:38ff:fe75:dcdb%%wlan0
+    User ixdire
+    Port 22
+
+# 1. Try the Gateway First
+Match Host termux exec "nc -z -w 1 $(ip route show default | awk '/default/ {print $3}') 8022"
+    HostName %h
+    # This logic dynamically sets the IP to the gateway's IP
+    ProxyCommand nc $(ip route show default | awk '/default/ {print $3}') %p
+
+# 2. Fallback to IPv6
+Host termux
+    HostName fe80::3e56:2959:f13a:a1a9%%wlan0
+    Port 8022
+    User ixdire
+
+Match Host chroot exec "nc -z -w 1 $(ip route show default | awk '/default/ {print $3}') 22"
+    HostName %h
+    # This logic dynamically sets the IP to the gateway's IP
+    Port 22
+    User fire
+    ProxyCommand nc $(ip route show default | awk '/default/ {print $3}') %p
+
+# 2. Fallback to IPv6
+Host chroot
+    HostName fe80::3e56:2959:f13a:a1a9%%wlan0
+    Port 22
+    User fire
+
+
+Host purr purposeno968-ui
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/git_purr_ed25519_ssh
+
+Host vaibhav
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+
+Host ptk
+    HostName fe80::9f79:295c:1735:38b%%wlan0
+    User visionx
+
