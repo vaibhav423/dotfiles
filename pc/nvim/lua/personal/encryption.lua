@@ -6,9 +6,7 @@ local M = {}
 -- Session password cache (cleared on nvim exit)
 local password_cache = {}
 
--- Encryption settings
-local ENCRYPTION_CMD = "openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -pass pass:%s"
-local DECRYPTION_CMD = "openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -pass pass:%s"
+-- Encryption settings (commands built as arrays for vim.system)
 
 -- Prompt for password and cache it
 local function prompt_password(bufnr)
@@ -58,27 +56,20 @@ function M.decrypt_buffer()
     return false
   end
   
-  -- Escape password for shell (basic escaping, consider more robust solution for production)
-  local escaped_password = password:gsub("'", "'\\''")
-  
-  -- Decrypt using OpenSSL
-  local decrypt_cmd = string.format(DECRYPTION_CMD, escaped_password) .. " -in '" .. filepath .. "'"
-  local handle = io.popen(decrypt_cmd .. " 2>&1")
-  
-  if not handle then
-    vim.notify("Failed to run decryption command", vim.log.levels.ERROR)
-    return false
-  end
-  
-  local result = handle:read("*a")
-  local success = handle:close()
-  
-  if not success then
+  -- Decrypt using OpenSSL (vim.system avoids blocking the event loop)
+  local obj = vim.system({
+    "openssl", "enc", "-d", "-aes-256-cbc", "-pbkdf2",
+    "-iter", "100000", "-pass", "pass:" .. password, "-in", filepath,
+  }, { text = true }):wait()
+
+  if obj.code ~= 0 then
     vim.notify("Decryption failed. Wrong password or corrupted file.", vim.log.levels.ERROR)
     -- Clear the cached password since it's wrong
     password_cache[filepath] = nil
     return false
   end
+
+  local result = obj.stdout or ""
   
   -- Load decrypted content into buffer
   local lines = {}
@@ -95,8 +86,8 @@ function M.decrypt_buffer()
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
   
   -- Mark buffer as not modified (since we just loaded it)
-  vim.api.nvim_buf_set_option(bufnr, "modified", false)
-  
+  vim.bo[bufnr].modified = false
+
   vim.notify("File decrypted successfully", vim.log.levels.INFO)
   return true
 end
@@ -119,29 +110,20 @@ function M.encrypt_buffer()
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local content = table.concat(lines, "\n")
   
-  -- Escape password for shell
-  local escaped_password = password:gsub("'", "'\\''")
-  
-  -- Encrypt using OpenSSL
-  local encrypt_cmd = string.format(ENCRYPTION_CMD, escaped_password) .. " -out '" .. filepath .. "'"
-  local handle = io.popen(encrypt_cmd .. " 2>&1", "w")
-  
-  if not handle then
-    vim.notify("Failed to run encryption command", vim.log.levels.ERROR)
-    return false
-  end
-  
-  handle:write(content)
-  local success = handle:close()
-  
-  if not success then
-    vim.notify("Encryption failed", vim.log.levels.ERROR)
+  -- Encrypt using OpenSSL (vim.system avoids blocking the event loop)
+  local obj = vim.system({
+    "openssl", "enc", "-aes-256-cbc", "-pbkdf2",
+    "-iter", "100000", "-salt", "-pass", "pass:" .. password, "-out", filepath,
+  }, { stdin = content, text = true }):wait()
+
+  if obj.code ~= 0 then
+    vim.notify("Encryption failed: " .. (obj.stderr or ""), vim.log.levels.ERROR)
     return false
   end
   
   -- Mark buffer as not modified (we just saved it)
-  vim.api.nvim_buf_set_option(bufnr, "modified", false)
-  
+  vim.bo[bufnr].modified = false
+
   vim.notify("File encrypted and saved", vim.log.levels.INFO)
   return true
 end

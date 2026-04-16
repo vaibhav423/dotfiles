@@ -2,12 +2,11 @@ return {
   "zbirenbaum/copilot.lua",
   cmd = "Copilot",
   build = ":Copilot auth",
-  event = "BufReadPost",
+  ft = { "markdown", "zsh" },
   opts = {
     suggestion = {
       enabled = true,
-      -- default to disabled globally; we'll enable per-buffer for specific filetypes
-      auto_trigger = false,
+      auto_trigger = true, -- auto_trigger on since we only load for target filetypes
       keymap = {
         accept = false, -- handled by completion engine
         accept_word = false,
@@ -18,36 +17,9 @@ return {
       },
     },
     filetypes = {
-      ["*"] = true, -- enable plugin for all filetypes (but not auto_trigger)
+      ["*"] = true,
     },
   },
-  config = function(_, opts)
-    require("copilot").setup(opts)
-
-    -- Ensure Copilot's auto_trigger is enabled only for markdown & zsh buffers
-    vim.api.nvim_create_autocmd({ "BufEnter", "FileType" }, {
-      pattern = "*",
-      callback = function()
-        local ok, suggestion = pcall(require, "copilot.suggestion")
-        if not ok then
-          return
-        end
-        local ft = vim.bo.filetype
-        local should_enable = (ft == "markdown" or ft == "zsh")
-        -- buffer-local state set by copilot is stored in vim.b.copilot_suggestion_auto_trigger
-        local current_state = vim.b.copilot_suggestion_auto_trigger
-        if should_enable then
-          if current_state ~= true then
-            suggestion.toggle_auto_trigger()
-          end
-        else
-          if current_state == true then
-            suggestion.toggle_auto_trigger()
-          end
-        end
-      end,
-    })
-  end,
   specs = {
     {
       "AstroNvim/astrocore",

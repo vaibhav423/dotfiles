@@ -5,7 +5,7 @@ return {
   -- all compilation/LSP/viewer features are disabled
   {
     "lervag/vimtex",
-    lazy = false,
+    ft = { "tex", "latex", "markdown" },
     init = function()
       vim.g.vimtex_compiler_enabled = 0
       vim.g.vimtex_view_enabled = 0

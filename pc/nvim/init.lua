@@ -25,9 +25,25 @@ end
 
 require "lazy_setup"
 require "polish"
-vim.api.nvim_create_autocmd("VimEnter", {
-  callback = function()
-    -- This command runs after everything else has loaded
-    vim.opt.clipboard = ""
-  end,
-})
+-- Clipboard is not set globally to avoid slow clipboard provider detection at
+-- startup. Use "+ register explicitly, or uncomment below to enable lazily:
+-- vim.api.nvim_create_autocmd("VimEnter", {
+--   callback = function() vim.opt.clipboard = "unnamedplus" end,
+-- })
+
+
+-- local save_fold = vim.api.nvim_create_augroup("PersistentFolds", { clear = true })
+--
+-- -- Save folds when leaving a buffer
+-- vim.api.nvim_create_autocmd("BufWinLeave", {
+--   group = save_fold,
+--   pattern = "*.*",
+--   command = "silent! mkview",
+-- })
+--
+-- -- Restore folds when entering a buffer
+-- vim.api.nvim_create_autocmd("BufWinEnter", {
+--   group = save_fold,
+--   pattern = "*.*",
+--   command = "silent! loadview",
+-- })

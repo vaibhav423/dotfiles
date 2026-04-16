@@ -1,0 +1,1 @@
+../../../../pc/nvim/lua/personal/encryption.lua

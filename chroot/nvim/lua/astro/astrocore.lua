@@ -1,5 +1,5 @@
 -- AstroCore: central configuration for options, autocmds, and mappings.
--- Mappings live in lua/lib/mappings.lua — add new keymaps there.
+-- Mappings live in lua/personal/mappings.lua — add new keymaps there.
 -- Documentation: `:h astrocore`
 
 ---@type LazySpec
@@ -31,20 +31,20 @@ return {
         spell = false,
         signcolumn = "yes",
         wrap = false,
-        clipboard = "unnamedplus",
+        -- clipboard handled lazily; see init.lua VimEnter autocmd
       },
       g = {
         copilot_chat_prefix = "<Leader>a",
       },
     })
     -- commands
-    opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("config.commands"))
+    opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("core.commands"))
 
     -- Autocommands
-    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("config.autocmds"))
+    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("core.autocmds"))
 
-    -- Mappings (see config/mappings.lua)
-    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("config.mappings"))
+    -- Mappings (see core/mappings.lua)
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("core.mappings"))
 
     return opts
   end,
