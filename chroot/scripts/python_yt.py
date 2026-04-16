@@ -9,6 +9,8 @@ from pathlib import Path
 def get_config_paths():
     """Resolves paths based on /sdcard/ configuration files."""
     try:
+        # could be instead modified to accept path as argument , since hardcoding path doesnt seem good
+        # so instead wecould pass the  path from nvim
         # 1. Base vault path
         vault_base = Path(Path("/home/fire/Water/Fire/vault").read_text().strip()).expanduser()
         

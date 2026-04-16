@@ -6,7 +6,7 @@ return {
       desc = "Refresh codelens (buffer)",
       callback = function(args)
         if require("astrolsp").config.features.codelens then
-          vim.lsp.codelens.refresh { bufnr = args.buf }
+          vim.lsp.codelens.enable(true, { bufnr = bufnr })
         end
       end,
     },
