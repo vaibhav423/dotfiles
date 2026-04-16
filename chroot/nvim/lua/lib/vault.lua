@@ -20,7 +20,7 @@ local M = {}
 -- Helpers
 -- ---------------------------------------------------------------------------
 
-local VAULT = vim.fn.expand("~/Water/Fire")
+local VAULT = vim.fn.expand("/sdcard/Documents/Fire")
 local PINNED_CFG = vim.fn.expand( VAULT .. "/pinned")
 
 --- Read a file and return its trimmed contents, or nil + error message.
