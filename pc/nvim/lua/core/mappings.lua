@@ -64,10 +64,10 @@ return {
   -- Normal mode ---------------------------------------------------------------
   n = {
     -- Wikilink navigation
-    ["<M-s>"]     = { function() require("lib.wikilink").collect() end,  desc = "Save all [[wikilinks]] in buffer" },
-    ["<M-Right>"] = { function() require("lib.wikilink").next() end,     desc = "Next saved wikilink" },
-    ["<M-Left>"]  = { function() require("lib.wikilink").prev() end,     desc = "Previous saved wikilink" },
-    ["<M-f>"]     = { function() require("lib.wikilink").pick() end,     desc = "Fuzzy find saved wikilinks" },
+    ["<M-s>"]     = { function() require("personal.wikilink").collect() end,  desc = "Save all [[wikilinks]] in buffer" },
+    ["<M-Right>"] = { function() require("personal.wikilink").next() end,     desc = "Next saved wikilink" },
+    ["<M-Left>"]  = { function() require("personal.wikilink").prev() end,     desc = "Previous saved wikilink" },
+    ["<M-f>"]     = { function() require("personal.wikilink").pick() end,     desc = "Fuzzy find saved wikilinks" },
 
     -- Buffers
     ["<Tab>"]      = { function() require("astrocore.buffer").nav(vim.v.count1) end,  desc = "Next buffer" },
@@ -97,10 +97,6 @@ return {
     ["<Leader>rft"] = { ":RunFile tab<CR>",                desc = "Run file (tab)" },
     ["<Leader>rp"]  = { ":RunProject<CR>",                 desc = "Run project" },
 
-    -- tasker
-    ["<Leader>rt"] = { 
-      ":silent !am broadcast -a net.dinglisch.android.tasker.ACTION_TASK -e task_name youtube_img_url_mode_toggle<CR><CR>", desc = "Run Tasker task" 
-    },
     -- Copilot
     ["<Leader>tc"] = {
       function()
@@ -118,12 +114,12 @@ return {
     ["<Leader>jr"] = { "<cmd>Jeerem<CR>", desc = "Insert reminder on first line" },
 
     -- Vault
-    ["<Leader>vi"] = { function() require("lib.vault").init_template() end, desc = "Vault: init topic template" },
-    ["<Leader>vp"] = { function() require("lib.vault").set_pinned() end,    desc = "Vault: pick pinned directory" },
-    ["<Leader>vo"] = { function() require("lib.vault").open_pinned() end,   desc = "Vault: open pinned topic files" },
+    ["<Leader>vi"] = { function() require("personal.vault").init_template() end, desc = "Vault: init topic template" },
+    ["<Leader>vp"] = { function() require("personal.vault").set_pinned() end,    desc = "Vault: pick pinned directory" },
+    ["<Leader>vo"] = { function() require("personal.vault").open_pinned() end,   desc = "Vault: open pinned topic files" },
 
     -- YouTube frame capture (normal: auto-detect URL on current line)
-    ["<Leader>yf"] = { function() require("lib.ytframe").capture_normal() end, desc = "Capture YouTube frame (current line URL)" },
+    ["<Leader>yf"] = { function() require("personal.ytframe").capture_normal() end, desc = "Capture YouTube frame (current line URL)" },
 
     -- File finder (documents)
     ["<Leader>fd"] = {
@@ -158,55 +154,15 @@ return {
     ["\\"] = {false},
     ["te"] = { function() require("snacks").picker.buffers() end, desc = "Find buffers" },
 
-    -- Open gallery path in MixPlorer via Android intent
-    ["<Leader>gg"] = {
-      function()
-        local gallery_line = vim.fn.search("^#\\+\\s\\+\\cgallery\\s*$", "nw")
-        if gallery_line == 0 then
-          vim.notify("No # gallery heading found", vim.log.levels.WARN)
-          return
-        end
-
-        local next_heading = vim.fn.search("^#\\+\\s\\+", "nW", gallery_line + 1)
-        local end_line = (next_heading > 0) and (next_heading - 1) or -1
-        local lines = vim.api.nvim_buf_get_lines(0, gallery_line, end_line, false)
-
-        local rel_path = nil
-        for _, line in ipairs(lines) do
-          local p = line:match("^%s*path:%s*(.+)%s*$")
-          if p then
-            rel_path = p
-            break
-          end
-        end
-
-        if not rel_path then
-          vim.notify("No path: found under # gallery heading", vim.log.levels.WARN)
-          return
-        end
-
-        -- Trim potential \r or trailing spaces
-        rel_path = rel_path:gsub("[\r\n%s]+$", "")
-
-        local full_path = vim.fn.getcwd() .. "/" .. rel_path
-
-        local cmd = string.format(
-          'am start -a android.intent.action.VIEW -d "file://%s" -t "resource/folder" -f 0x14000000 com.mixplorer',
-          full_path
-        )
-        
-        vim.notify("Opening: " .. full_path)
-        vim.fn.jobstart(cmd)
-      end,
-      desc = "Open gallery path in MixPlorer",
-    },
 
     -- Delete image file under cursor and the current line
     ["<Leader>dd"] = {
       function()
         local cwd = vim.fn.getcwd()
-        local urls = require("vim.ui")._get_urls()
-        local rel_or_abs = urls and urls[1]
+        -- Extract path from markdown image link or fallback to <cfile>
+        local line = vim.api.nvim_get_current_line()
+        local rel_or_abs = line:match("!%[.-%]%((.-)%)") or vim.fn.expand("<cfile>")
+        if rel_or_abs == "" then rel_or_abs = nil end
         if not rel_or_abs or rel_or_abs == "" then
           vim.notify("DeletePhoto: no path found under cursor", vim.log.levels.WARN)
           return
@@ -236,17 +192,17 @@ return {
       desc = "Delete image file under cursor and current line",
     },
 
-    -- toggle key maps  
-    ["z1"] = { function() require("lib.fold_toggle").toggle(1) end, desc = "Toggle fold level 1" },
-    ["z2"] = { function() require("lib.fold_toggle").toggle(2) end, desc = "Toggle fold level 2" },
-    ["z3"] = { function() require("lib.fold_toggle").toggle(3) end, desc = "Toggle fold level 3" },
-    ["z4"] = { function() require("lib.fold_toggle").toggle(4) end, desc = "Toggle fold level 4" },
+    -- toggle key maps (guarded: fold_toggle may be disabled)
+    ["z1"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle then m.toggle(1) end end, desc = "Toggle fold level 1" },
+    ["z2"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle then m.toggle(2) end end, desc = "Toggle fold level 2" },
+    ["z3"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle then m.toggle(3) end end, desc = "Toggle fold level 3" },
+    ["z4"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle then m.toggle(4) end end, desc = "Toggle fold level 4" },
 
-    -- Fold level toggles (all windows in tabpage)
-    ["<Leader>z1"] = { function() require("lib.fold_toggle").toggle_all(1) end, desc = "Toggle fold level 1 (all windows)" },
-    ["<Leader>z2"] = { function() require("lib.fold_toggle").toggle_all(2) end, desc = "Toggle fold level 2 (all windows)" },
-    ["<Leader>z3"] = { function() require("lib.fold_toggle").toggle_all(3) end, desc = "Toggle fold level 3 (all windows)" },
-    ["<Leader>z4"] = { function() require("lib.fold_toggle").toggle_all(4) end, desc = "Toggle fold level 4 (all windows)" },
+    -- Fold level toggles (all windows in tabpage, guarded)
+    ["<Leader>z1"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(1) end end, desc = "Toggle fold level 1 (all windows)" },
+    ["<Leader>z2"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(2) end end, desc = "Toggle fold level 2 (all windows)" },
+    ["<Leader>z3"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(3) end end, desc = "Toggle fold level 3 (all windows)" },
+    ["<Leader>z4"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(4) end end, desc = "Toggle fold level 4 (all windows)" },
   },
     -- Visual mode ---------------------------------------------------------------
   v = {
@@ -261,7 +217,7 @@ return {
 
     -- YouTube frame capture: visually select lines containing URLs, press <Leader>yf
     ["<Leader>yf"] = {
-      ":<C-u>lua require('lib.ytframe').capture_visual()<CR>",
+      ":<C-u>lua require('personal.ytframe').capture_visual()<CR>",
       desc = "Capture YouTube frames from all URLs in selection",
     },
   },

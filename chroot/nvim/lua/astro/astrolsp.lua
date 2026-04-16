@@ -40,51 +40,47 @@ return {
     })
 
     opts.config = vim.tbl_deep_extend("force", opts.config or {}, {
-      ["markdown_oxide"] = {
-        cmd = { "/usr/bin/markdown-oxide" },
-        -- filetypes = { "markdown", "md", "mdx" },
-        -- root_dir = require("lspconfig.util").root_pattern(".git", ".obsidian", ".moxide.toml"),
-        capabilities = {
-          workspace = {
-            didChangeWatchedFiles = {
-              dynamicRegistration = true,
-            },
-          },
-        },
-        -- init_options = {
-        --   keyword_pattern = [[\(\k\| \|\/\|#\)\+]],
-        -- },
-      },
+      -- ["markdown_oxide"] = {
+      --   cmd = { "/usr/bin/markdown-oxide" },
+      --   -- filetypes = { "markdown", "md", "mdx" },
+      --   -- root_dir = require("lspconfig.util").root_pattern(".git", ".obsidian", ".moxide.toml"),
+      --   capabilities = {
+      --     workspace = {
+      --       didChangeWatchedFiles = {
+      --         dynamicRegistration = true,
+      --       },
+      --     },
+      --   },
+      --   -- init_options = {
+      --   --   keyword_pattern = [[\(\k\| \|\/\|#\)\+]],
+      --   -- },
+      -- },
       -- clangd = { capabilities = { offsetEncoding = "utf-8" } },
     })
 
     -- Configure buffer local auto commands to add when attaching a language server
-    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require "lsp.autocmds")
+    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require "lsp.lsp-autocmds")
 
     -- mappings to be set up on attaching of a language server
-    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require "lsp.mappings")
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require "lsp.lsp-mappings")
 
     -- A custom `on_attach` function to be run after the default `on_attach` function
     opts.on_attach = function(client, bufnr)
       -- Setup markdown-oxide helpers when the server attaches
-      if client.name == "markdown-oxide" or client.name == "markdown_oxide" then
-        -- create a buffer-local user command `:Daily`
-        vim.api.nvim_buf_create_user_command(bufnr, "Daily", function(cmd_opts)
-          local params = { command = "jump" }
-          if cmd_opts.args and cmd_opts.args ~= "" then
-            params.arguments = { cmd_opts.args }
-          end
-
-          client.request("workspace/executeCommand", params, function(err, _)
-            if err then
-              vim.notify("markdown-oxide: " .. vim.inspect(err), vim.log.levels.ERROR)
-            end
-          end, bufnr)
-        end, { desc = "Open markdown-oxide daily note", nargs = "*" })
-
-        -- buffer-local mapping to open today's daily note quickly
-        vim.keymap.set("n", "<Leader>od", "<cmd>Daily<cr>", { desc = "Open daily note", buffer = bufnr })
-      end
+      -- if client.name == "markdown-oxide" or client.name == "markdown_oxide" then
+      --   -- create a buffer-local user command `:Daily`
+      --   vim.api.nvim_buf_create_user_command(bufnr, "Daily", function(cmd_opts)
+      --     local params = { command = "jump" }
+      --     if cmd_opts.args and cmd_opts.args ~= "" then params.arguments = { cmd_opts.args } end
+      --
+      --     client.request("workspace/executeCommand", params, function(err, _)
+      --       if err then vim.notify("markdown-oxide: " .. vim.inspect(err), vim.log.levels.ERROR) end
+      --     end, bufnr)
+      --   end, { desc = "Open markdown-oxide daily note", nargs = "*" })
+      --
+      --   -- buffer-local mapping to open today's daily note quickly
+      --   vim.keymap.set("n", "<Leader>od", "<cmd>Daily<cr>", { desc = "Open daily note", buffer = bufnr })
+      -- end
     end
 
     return opts

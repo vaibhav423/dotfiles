@@ -38,13 +38,13 @@ return {
       },
     })
     -- commands
-    opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("config.commands"))
+    opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("core.commands"))
 
     -- Autocommands
-    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("config.autocmds"))
+    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("core.autocmds"))
 
-    -- Mappings (see config/mappings.lua)
-    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("config.mappings"))
+    -- Mappings (see core/mappings.lua)
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("core.mappings"))
 
     return opts
   end,

@@ -1,11 +1,12 @@
 return {
+
       -- Fold persistence (save/restore fold state per buffer)
       fold_persistence = {
         {
           event = { "BufWinLeave", "BufLeave" },
           pattern = "?*",
           desc = "Save fold state when leaving buffer",
-          callback = function(args) require("lib.fold_persist").save(args.buf) end,
+          callback = function(args) require("personal.fold_persist").save(args.buf) end,
         },
         {
           event = "BufReadPost",
@@ -17,18 +18,21 @@ return {
           event = { "BufWinEnter", "FileType" },
           pattern = "?*",
           desc = "Restore fold state after foldexpr is set up",
-          callback = function(args) require("lib.fold_persist").restore(args.buf) end,
+          callback = function(args) require("personal.fold_persist").restore(args.buf) end,
         },
       },
 
-      -- Clean up fold-toggle heading cache when a buffer is wiped
-      fold_toggle_cleanup = {
-        {
-          event = "BufWipeout",
-          desc = "Clear fold-toggle heading cache for wiped buffer",
-          callback = function(args) require("lib.fold_toggle").clear_cache(args.buf) end,
-        },
-      },
+      -- -- Clean up fold-toggle heading cache when a buffer is wiped
+      -- fold_toggle_cleanup = {
+      --   {
+      --     event = "BufWipeout",
+      --     desc = "Clear fold-toggle heading cache for wiped buffer",
+      --     callback = function(args)
+      --       local ok, m = pcall(require, "personal.fold_toggle")
+      --       if ok and m.clear_cache then m.clear_cache(args.buf) end
+      --     end,
+      --   },
+      -- },
 
       -- Encryption support for .enc files
       encryption_plugin = {
@@ -43,7 +47,7 @@ return {
             vim.opt_local.writebackup = false
             vim.opt_local.undofile = false
             
-            require("lib.encryption").decrypt_buffer()
+            require("personal.encryption").decrypt_buffer()
           end,
         },
         {
@@ -51,7 +55,7 @@ return {
           pattern = "*.enc",
           desc = "Auto-encrypt when writing .enc files",
           callback = function()
-            require("lib.encryption").encrypt_buffer()
+            require("personal.encryption").encrypt_buffer()
           end,
         },
         {
@@ -63,9 +67,9 @@ return {
             -- but the original logic was:
             -- local filepath = vim.api.nvim_buf_get_name(0)
             -- password_cache[filepath] = nil
-            -- Since password_cache is local to lib/encryption, we need a method to clear it by filepath
+            -- Since password_cache is local to personal/encryption, we need a method to clear it by filepath
             -- or we just use M.clear_password() which does exactly that for the current buffer.
-            require("lib.encryption").clear_password()
+            require("personal.encryption").clear_password()
           end,
         },
       },
