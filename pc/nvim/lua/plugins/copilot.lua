@@ -2,11 +2,11 @@ return {
   "zbirenbaum/copilot.lua",
   cmd = "Copilot",
   build = ":Copilot auth",
-  ft = { "markdown", "zsh" },
+  event = "InsertEnter",
   opts = {
     suggestion = {
       enabled = true,
-      auto_trigger = true, -- auto_trigger on since we only load for target filetypes
+      auto_trigger = true,
       keymap = {
         accept = false, -- handled by completion engine
         accept_word = false,
@@ -17,7 +17,9 @@ return {
       },
     },
     filetypes = {
-      ["*"] = true,
+      ["*"] = false,
+      markdown = true,
+      zsh = true,
     },
   },
   specs = {

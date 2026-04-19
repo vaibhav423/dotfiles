@@ -97,18 +97,22 @@ return {
     ["<Leader>rft"] = { ":RunFile tab<CR>",                desc = "Run file (tab)" },
     ["<Leader>rp"]  = { ":RunProject<CR>",                 desc = "Run project" },
 
-    -- Copilot
     ["<Leader>tc"] = {
-      function()
-        local ok, suggestion = pcall(require, "copilot.suggestion")
-        if not ok then
-          vim.notify("Copilot plugin not loaded", vim.log.levels.WARN)
-          return
-        end
-        suggestion.toggle_auto_trigger()
-      end,
-      desc = "Toggle Copilot auto-trigger",
+      "<Cmd>Copilot! toggle<CR>", desc = "Toggle Copilot for current buffer"
     },
+
+    -- Copilot
+    -- ["<Leader>tc"] = {
+    --   function()
+    --     local ok, suggestion = pcall(require, "copilot.suggestion")
+    --     if not ok then
+    --       vim.notify("Copilot plugin not loaded", vim.log.levels.WARN)
+    --       return
+    --     end
+    --     suggestion.toggle_auto_trigger()
+    --   end,
+    --   desc = "Toggle Copilot auto-trigger",
+    -- },
 
     -- Jeerem reminder
     ["<Leader>jr"] = { "<cmd>Jeerem<CR>", desc = "Insert reminder on first line" },

@@ -50,7 +50,7 @@ Host chroot
     User fire
 
 
-Host purr purposeno968-ui
+Host ice-cream-56-paisa
     HostName github.com
     User git
     IdentityFile ~/.ssh/git_purr_ed25519_ssh
@@ -59,6 +59,11 @@ Host vaibhav
     HostName github.com
     User git
     IdentityFile ~/.ssh/id_ed25519
+
+Host sst-vb
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_git-sst-vb
 
 Host ptk
     HostName fe80::9f79:295c:1735:38b%%wlan0
