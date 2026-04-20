@@ -11,12 +11,13 @@ def get_config_paths():
     try:
         # could be instead modified to accept path as argument , since hardcoding path doesnt seem good
         # so instead wecould pass the  path from nvim
-        # 1. Base vault path
-        vault_base = Path(Path("/home/fire/Water/Fire/vault").read_text().strip()).expanduser()
-        
-        # 2. Pinned relative path
-        pinned_rel = Path(Path("/home/fire/Water/Fire/pinned").read_text().strip())
-        
+        # # 1. Base vault path
+        # vault_base = Path(Path("/home/fire/Water/Fire/vault").read_text().strip()).expanduser()
+        #
+        # # 2. Pinned relative path
+        # pinned_rel = Path(Path("/home/fire/Water/Fire/pinned").read_text().strip())
+        vault_base = Path( "/sdcard/Documents/Fire/" ) 
+        pinned_rel = Path( Path(vault_base + "pinned").read_text().strip() )
         # Name of the folder (e.g., 'Chemistry')
         pinned_folder_name = pinned_rel.name
         
