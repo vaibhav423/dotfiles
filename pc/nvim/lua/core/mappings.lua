@@ -69,6 +69,9 @@ return {
     ["<M-Left>"]  = { function() require("personal.wikilink").prev() end,     desc = "Previous saved wikilink" },
     ["<M-f>"]     = { function() require("personal.wikilink").pick() end,     desc = "Fuzzy find saved wikilinks" },
 
+    --neo-tree
+    
+    ["<Leader>e"]      = { "<Cmd>Neotree toggle dir=./<CR>" ,  desc = "Next buffer" },
     -- Buffers
     ["<Tab>"]      = { function() require("astrocore.buffer").nav(vim.v.count1) end,  desc = "Next buffer" },
     -- t is nvim inbuilt key for till  , this new map blocks tt which should make cursour movie behind next t 

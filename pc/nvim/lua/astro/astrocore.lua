@@ -43,7 +43,8 @@ return {
     -- Autocommands
     opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("core.autocmds"))
 
-    -- Mappings (see core/mappings.lua)
+    -- Mappings 
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("core.mappings"))
     opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("core.mappings"))
 
     return opts
