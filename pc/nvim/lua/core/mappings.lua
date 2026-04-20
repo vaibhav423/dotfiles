@@ -96,14 +96,7 @@ return {
 
     -- Copilot
     ["<Leader>tc"] = {
-      function()
-        local ok, suggestion = pcall(require, "copilot.suggestion")
-        if not ok then
-          vim.notify("Copilot plugin not loaded", vim.log.levels.WARN)
-          return
-        end
-        suggestion.toggle_auto_trigger()
-      end,
+      "<cmd>Copilot! toggle<CR>",
       desc = "Toggle Copilot auto-trigger",
     },
 
