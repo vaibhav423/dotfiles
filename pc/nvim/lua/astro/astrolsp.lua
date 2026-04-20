@@ -35,6 +35,8 @@ return {
     })
 
     -- enable servers that you already have installed without mason
+    -- writing markdown_oxide alone in this is enough because lsp config already has a preset so u need not 
+    -- worry about writting it in config below
     opts.servers = vim.list_extend(opts.servers or {}, {
       "markdown_oxide",
     })
@@ -60,9 +62,11 @@ return {
 
     -- Configure buffer local auto commands to add when attaching a language server
     opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require "lsp.lsp-autocmds")
+    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require "lsp.unq-lsp-autocmds")
 
     -- mappings to be set up on attaching of a language server
     opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require "lsp.lsp-mappings")
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require "lsp.unq-lsp-mappings")
 
     -- A custom `on_attach` function to be run after the default `on_attach` function
     opts.on_attach = function(client, bufnr)

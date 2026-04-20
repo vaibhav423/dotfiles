@@ -1,5 +1,7 @@
 -- AstroCore: central configuration for options, autocmds, and mappings.
 -- Mappings live in lua/personal/mappings.lua — add new keymaps there.
+-- normally u dont need opts = function(-, opts) way for astrocore but since we need to merge table from different 
+-- file it is necessity
 -- Documentation: `:h astrocore`
 
 ---@type LazySpec
@@ -39,13 +41,15 @@ return {
     })
     -- commands
     opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("core.commands"))
+    opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("core.unq-commands"))
 
     -- Autocommands
     opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("core.autocmds"))
+    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("core.unq-autocmds"))
 
     -- Mappings 
     opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("core.mappings"))
-    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("core.mappings"))
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("core.unq-mappings"))
 
     return opts
   end,

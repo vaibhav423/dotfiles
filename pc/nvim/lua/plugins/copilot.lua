@@ -21,7 +21,7 @@ return {
       markdown = true,
       zsh = true,
     },
-  },
+  }, 
   specs = {
     {
       "AstroNvim/astrocore",
@@ -41,3 +41,4 @@ return {
     },
   },
 }
+

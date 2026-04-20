@@ -70,8 +70,8 @@ return {
     ["<M-f>"]     = { function() require("personal.wikilink").pick() end,     desc = "Fuzzy find saved wikilinks" },
 
     --neo-tree
-    
     ["<Leader>e"]      = { "<Cmd>Neotree toggle dir=./<CR>" ,  desc = "Next buffer" },
+
     -- Buffers
     ["<Tab>"]      = { function() require("astrocore.buffer").nav(vim.v.count1) end,  desc = "Next buffer" },
     -- t is nvim inbuilt key for till  , this new map blocks tt which should make cursour movie behind next t 
@@ -93,29 +93,19 @@ return {
     -- LSP
     ["<Leader>rl"] = { "<cmd>LspRestart<CR>", desc = "Restart LSP" },
 
-    -- Code runner
-    -- ["<Leader>rt"]  = { ":w<CR>:RunCode<CR>",              desc = "Run code (float)" },
-    ["<Leader>rb"]  = { ":w<CR>:RunFile better_term<CR>",  desc = "Run file in terminal" },
-    ["<Leader>rf"]  = { ":RunFile<CR>",                    desc = "Run file" },
-    ["<Leader>rft"] = { ":RunFile tab<CR>",                desc = "Run file (tab)" },
-    ["<Leader>rp"]  = { ":RunProject<CR>",                 desc = "Run project" },
-
-    ["<Leader>tc"] = {
-      "<Cmd>Copilot! toggle<CR>", desc = "Toggle Copilot for current buffer"
-    },
 
     -- Copilot
-    -- ["<Leader>tc"] = {
-    --   function()
-    --     local ok, suggestion = pcall(require, "copilot.suggestion")
-    --     if not ok then
-    --       vim.notify("Copilot plugin not loaded", vim.log.levels.WARN)
-    --       return
-    --     end
-    --     suggestion.toggle_auto_trigger()
-    --   end,
-    --   desc = "Toggle Copilot auto-trigger",
-    -- },
+    ["<Leader>tc"] = {
+      function()
+        local ok, suggestion = pcall(require, "copilot.suggestion")
+        if not ok then
+          vim.notify("Copilot plugin not loaded", vim.log.levels.WARN)
+          return
+        end
+        suggestion.toggle_auto_trigger()
+      end,
+      desc = "Toggle Copilot auto-trigger",
+    },
 
     -- Jeerem reminder
     ["<Leader>jr"] = { "<cmd>Jeerem<CR>", desc = "Insert reminder on first line" },
@@ -156,7 +146,7 @@ return {
       desc = "Copy current file path",
     },
 
-    -- find buffer
+        -- find buffer
     ["<Leader>fb"] = {false},
     ["\\"] = {false},
     ["te"] = { function() require("snacks").picker.buffers() end, desc = "Find buffers" },
@@ -216,11 +206,6 @@ return {
     -- Substitute only within the visual selection
     ["<C-r>"] = { [[:s/\%V\%V//g<Left><Left><Left><Left><Left><Left>]], desc = "Substitute inside selection" },
 
-    -- Copy images from visually selected lines to a temp dir and open in MixPlorer
-    ["<Leader>gg"] = {
-      ":<C-u>'<,'>OpenImages<CR>",
-      desc = "Copy selected images to tmp dir and open in MixPlorer",
-    },
 
     -- YouTube frame capture: visually select lines containing URLs, press <Leader>yf
     ["<Leader>yf"] = {
