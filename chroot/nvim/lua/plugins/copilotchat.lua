@@ -1,5 +1,6 @@
-
-if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
+-- https://astronvim.github.io/astrocommunity/#copilotchat-nvim
+-- https://github.com/CopilotC-Nvim/CopilotChat.nvim/blob/main/lua/CopilotChat/config.lua
+-- if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
 local prefix = "<Leader>a"
 local old_prefix = "<Leader>P"
 
@@ -8,7 +9,7 @@ return {
   {
     "CopilotC-Nvim/CopilotChat.nvim",
     opts = {
-      model = "gpt-5-mini",
+      model = "gemini-3.1-pro-preview",
     },
   },
 

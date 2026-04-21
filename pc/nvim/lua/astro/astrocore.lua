@@ -3,6 +3,7 @@
 -- normally u dont need opts = function(-, opts) way for astrocore but since we need to merge table from different 
 -- file it is necessity
 -- Documentation: `:h astrocore`
+-- https://github.com/AstroNvim/astrocore#%EF%B8%8F-configuration
 
 ---@type LazySpec
 return {
@@ -36,7 +37,7 @@ return {
         -- clipboard handled lazily; see init.lua VimEnter autocmd
       },
       g = {
-        copilot_chat_prefix = "<Leader>a",
+        -- copilot_chat_prefix = "<Leader>a",
       },
     })
     -- commands

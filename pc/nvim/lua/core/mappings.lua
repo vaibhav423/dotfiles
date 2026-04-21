@@ -88,6 +88,10 @@ return {
     ["<Leader>fC"] =  { function() require("snacks").picker.grep_word() end, desc = "Find word under cursor" },
 
     ["<Leader>fc"] = { function() require("snacks").picker.commands() end, desc = "Find commands" },
+    ["<Leader>ff"] = { function() require("snacks").picker.files({ hidden = vim.tbl_get((vim.uv or vim.loop).fs_stat ".git" or {}, "type") == "directory", follow = true }) end, desc = "Find Files" },
+    ["<Leader>fa"] = { function() require("snacks").picker.files({ dirs = { vim.fn.stdpath("config") }, follow = true }) end, desc = "Find AstroNvim config files" },
+
+
 
 
     -- LSP
