@@ -2,6 +2,8 @@
 -- We import this file in `lazy_setup.lua` before the `plugins/` folder.
 -- This guarantees that the specs are processed before any user plugins.
 -- link https://astronvim.github.io/astrocommunity/
+-- https://github.com/sudo-tee/opencode.nvim opencode
+-- https://github.com/nickjvandyke/opencode.nvim  opencode-tui
 ---@type LazySpec
 return {
   "AstroNvim/astrocommunity",
@@ -12,6 +14,8 @@ return {
   -- { import = "astrocommunity.editing-support.copilotchat-nvim" },
   { import = "astrocommunity.completion.cmp-latex-symbols" },
   { import = "astrocommunity.lsp.lspsaga-nvim" },
-  -- { import = "astrocommunity.completion.avante-nvim" },
-  { import = "astrocommunity.ai.codecompanion-nvim" },
+  { import = "astrocommunity.ai.avante-nvim" },
+  -- https://astronvim.github.io/astrocommunity/#copilotchat-nvim
+  { import = "astrocommunity.ai.copilotchat-nvim" },
+  -- { import = "astrocommunity.ai.codecompanion-nvim" },
 }

@@ -29,6 +29,7 @@ return {
             commands = {
               default = {
                 "gemini",
+
                 "--acp",
               },
             },
