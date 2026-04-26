@@ -17,7 +17,7 @@ def get_config_paths():
         # # 2. Pinned relative path
         # pinned_rel = Path(Path("/home/fire/Water/Fire/pinned").read_text().strip())
         vault_base = Path( "/sdcard/Documents/Fire/" ) 
-        pinned_rel = Path( Path(vault_base + "pinned").read_text().strip() )
+        pinned_rel = Path( (vault_base / "pinned").read_text().strip() )
         # Name of the folder (e.g., 'Chemistry')
         pinned_folder_name = pinned_rel.name
         

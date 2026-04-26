@@ -34,31 +34,31 @@ return {
   -- Insert mode ---------------------------------------------------------------
   i = {
     -- Exit insert mode and save if modified
-    ["<Esc>"] = {
-      function()
-        local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
-        if escape_excluded() or vim.bo.readonly or not vim.bo.modifiable then
-          vim.api.nvim_feedkeys(esc, "n", true)
-          return
-        end
-        vim.api.nvim_feedkeys(esc, "n", true)
-        save_if_modified()
-      end,
-      desc = "Exit insert and save",
-    },
+    -- ["<Esc>"] = {
+    --   function()
+    --     local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
+    --     if escape_excluded() or vim.bo.readonly or not vim.bo.modifiable then
+    --       vim.api.nvim_feedkeys(esc, "n", true)
+    --       return
+    --     end
+    --     vim.api.nvim_feedkeys(esc, "n", true)
+    --     save_if_modified()
+    --   end,
+    --   desc = "Exit insert and save",
+    -- },
   },
 
   -- Terminal mode -------------------------------------------------------------
   t = {
     -- Exit terminal mode and save if modified
-    ["<Esc>"] = {
-      function()
-        local seq = vim.api.nvim_replace_termcodes("<C-\\><C-n>", true, false, true)
-        vim.api.nvim_feedkeys(seq, "n", true)
-        save_if_modified()
-      end,
-      desc = "Exit terminal mode and save",
-    },
+    -- ["<Esc>"] = {
+    --   function()
+    --     local seq = vim.api.nvim_replace_termcodes("<C-\\><C-n>", true, false, true)
+    --     vim.api.nvim_feedkeys(seq, "n", true)
+    --     save_if_modified()
+    --   end,
+    --   desc = "Exit terminal mode and save",
+    -- },
   },
 
   -- Normal mode ---------------------------------------------------------------

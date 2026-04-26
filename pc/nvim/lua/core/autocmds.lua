@@ -34,6 +34,28 @@ return {
       --   },
       -- },
 
+      -- Auto-reload markdown files changed externally
+      markdown_auto_sync = {
+        {
+          event = { "CursorHold", "CursorHoldI", "FocusGained", "BufEnter" },
+          pattern = { "*.md", "*.markdown", "*.mdown", "*.mkd", "*.mkdn" },
+          desc = "Check if markdown file changed on disk",
+          callback = function()
+            if vim.fn.mode() ~= 'c' then
+              vim.cmd("checktime")
+            end
+          end,
+        },
+        {
+          event = "FileChangedShell",
+          pattern = { "*.md", "*.markdown", "*.mdown", "*.mkd", "*.mkdn" },
+          desc = "Silently reload markdown files changed externally",
+          callback = function()
+            vim.v.fcs_choice = "reload"
+          end,
+        },
+      },
+
       -- Encryption support for .enc files
       encryption_plugin = {
         {

@@ -1,5 +1,5 @@
 return {
-  i = {
+  n = {
     -- tasker
     ["<Leader>rt"] = { 
       ":silent !am broadcast -a net.dinglisch.android.tasker.ACTION_TASK -e task_name youtube_img_url_mode_toggle<CR><CR>", desc = "Run Tasker task" 
