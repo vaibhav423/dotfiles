@@ -1,1 +1,0 @@
-../../../../../scripts/reorder_photos.py

@@ -1,1 +1,0 @@
-../../../../pc/nvim/lua/plugins/copilot.lua

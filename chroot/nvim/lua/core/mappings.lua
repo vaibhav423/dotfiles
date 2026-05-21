@@ -1,1 +1,0 @@
-../../../../pc/nvim/lua/core/mappings.lua

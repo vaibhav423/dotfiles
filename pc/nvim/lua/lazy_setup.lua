@@ -10,9 +10,11 @@ require("lazy").setup({
       update_notifications = true, -- Enable/disable notification about running `:Lazy update` twice to update pinned plugins
     },
   },
+  { import = "common.community" },
   { import = "community" },
+  { import = "common.plugins" },
   { import = "plugins" },
-  {import = "astro"}
+  { import = "common.astro" }
 } --[[@as LazySpec]], {
   -- Configure any other `lazy.nvim` configuration options here
   install = { colorscheme = { "astrotheme", "habamax" } },

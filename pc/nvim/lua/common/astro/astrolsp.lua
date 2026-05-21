@@ -61,12 +61,14 @@ return {
     })
 
     -- Configure buffer local auto commands to add when attaching a language server
-    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require "lsp.lsp-autocmds")
-    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require "lsp.unq-lsp-autocmds")
+    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require "common.lsp.lsp-autocmds")
+    local ok_lsp_autocmd, unq_lsp_autocmd = pcall(require, "lsp.unq-lsp-autocmds")
+    if ok_lsp_autocmd then opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, unq_lsp_autocmd) end
 
     -- mappings to be set up on attaching of a language server
-    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require "lsp.lsp-mappings")
-    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require "lsp.unq-lsp-mappings")
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require "common.lsp.lsp-mappings")
+    local ok_lsp_map, unq_lsp_map = pcall(require, "lsp.unq-lsp-mappings")
+    if ok_lsp_map then opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, unq_lsp_map) end
 
     -- A custom `on_attach` function to be run after the default `on_attach` function
     opts.on_attach = function(client, bufnr)

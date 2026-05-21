@@ -1,1 +1,0 @@
-../../../../pc/nvim/lua/plugins/resession.lua

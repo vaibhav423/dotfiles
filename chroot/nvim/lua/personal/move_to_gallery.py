@@ -1,1 +1,0 @@
-/home/fire/Water/crap/scripts/move_to_gallery.py

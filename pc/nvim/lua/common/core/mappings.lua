@@ -64,10 +64,10 @@ return {
   -- Normal mode ---------------------------------------------------------------
   n = {
     -- Wikilink navigation
-    ["<M-s>"]     = { function() require("personal.wikilink").collect() end,  desc = "Save all [[wikilinks]] in buffer" },
-    ["<M-Right>"] = { function() require("personal.wikilink").next() end,     desc = "Next saved wikilink" },
-    ["<M-Left>"]  = { function() require("personal.wikilink").prev() end,     desc = "Previous saved wikilink" },
-    ["<M-f>"]     = { function() require("personal.wikilink").pick() end,     desc = "Fuzzy find saved wikilinks" },
+    ["<M-s>"]     = { function() require("common.personal.wikilink").collect() end,  desc = "Save all [[wikilinks]] in buffer" },
+    ["<M-Right>"] = { function() require("common.personal.wikilink").next() end,     desc = "Next saved wikilink" },
+    ["<M-Left>"]  = { function() require("common.personal.wikilink").prev() end,     desc = "Previous saved wikilink" },
+    ["<M-f>"]     = { function() require("common.personal.wikilink").pick() end,     desc = "Fuzzy find saved wikilinks" },
 
     --neo-tree
     ["<Leader>e"]      = { "<Cmd>Neotree toggle dir=./<CR>" ,  desc = "Next buffer" },
@@ -108,12 +108,12 @@ return {
     ["<Leader>jr"] = { "<cmd>Jeerem<CR>", desc = "Insert reminder on first line" },
 
     -- Vault
-    ["<Leader>vi"] = { function() require("personal.vault").init_template() end, desc = "Vault: init topic template" },
-    ["<Leader>vp"] = { function() require("personal.vault").set_pinned() end,    desc = "Vault: pick pinned directory" },
-    ["<Leader>vo"] = { function() require("personal.vault").open_pinned() end,   desc = "Vault: open pinned topic files" },
+    ["<Leader>vi"] = { function() require("common.personal.vault").init_template() end, desc = "Vault: init topic template" },
+    ["<Leader>vp"] = { function() require("common.personal.vault").set_pinned() end,    desc = "Vault: pick pinned directory" },
+    ["<Leader>vo"] = { function() require("common.personal.vault").open_pinned() end,   desc = "Vault: open pinned topic files" },
 
     -- YouTube frame capture (normal: auto-detect URL on current line)
-    ["<Leader>yf"] = { function() require("personal.ytframe").capture_normal() end, desc = "Capture YouTube frame (current line URL)" },
+    ["<Leader>yf"] = { function() require("common.personal.ytframe").capture_normal() end, desc = "Capture YouTube frame (current line URL)" },
 
     -- File finder (documents)
     ["<Leader>fd"] = {
@@ -187,16 +187,16 @@ return {
     },
 
     -- toggle key maps (guarded: fold_toggle may be disabled)
-    ["z1"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle then m.toggle(1) end end, desc = "Toggle fold level 1" },
-    ["z2"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle then m.toggle(2) end end, desc = "Toggle fold level 2" },
-    ["z3"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle then m.toggle(3) end end, desc = "Toggle fold level 3" },
-    ["z4"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle then m.toggle(4) end end, desc = "Toggle fold level 4" },
+    ["z1"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle then m.toggle(1) end end, desc = "Toggle fold level 1" },
+    ["z2"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle then m.toggle(2) end end, desc = "Toggle fold level 2" },
+    ["z3"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle then m.toggle(3) end end, desc = "Toggle fold level 3" },
+    ["z4"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle then m.toggle(4) end end, desc = "Toggle fold level 4" },
 
     -- Fold level toggles (all windows in tabpage, guarded)
-    ["<Leader>z1"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(1) end end, desc = "Toggle fold level 1 (all windows)" },
-    ["<Leader>z2"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(2) end end, desc = "Toggle fold level 2 (all windows)" },
-    ["<Leader>z3"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(3) end end, desc = "Toggle fold level 3 (all windows)" },
-    ["<Leader>z4"] = { function() local ok, m = pcall(require, "personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(4) end end, desc = "Toggle fold level 4 (all windows)" },
+    ["<Leader>z1"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(1) end end, desc = "Toggle fold level 1 (all windows)" },
+    ["<Leader>z2"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(2) end end, desc = "Toggle fold level 2 (all windows)" },
+    ["<Leader>z3"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(3) end end, desc = "Toggle fold level 3 (all windows)" },
+    ["<Leader>z4"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(4) end end, desc = "Toggle fold level 4 (all windows)" },
   },
     -- Visual mode ---------------------------------------------------------------
   v = {
@@ -206,7 +206,7 @@ return {
 
     -- YouTube frame capture: visually select lines containing URLs, press <Leader>yf
     ["<Leader>yf"] = {
-      ":<C-u>lua require('personal.ytframe').capture_visual()<CR>",
+      ":<C-u>lua require('common.personal.ytframe').capture_visual()<CR>",
       desc = "Capture YouTube frames from all URLs in selection",
     },
   },

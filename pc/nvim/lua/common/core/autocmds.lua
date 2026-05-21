@@ -6,7 +6,7 @@ return {
           event = { "BufWinLeave", "BufLeave" },
           pattern = "?*",
           desc = "Save fold state when leaving buffer",
-          callback = function(args) require("personal.fold_persist").save(args.buf) end,
+          callback = function(args) require("common.personal.fold_persist").save(args.buf) end,
         },
         {
           event = "BufReadPost",
@@ -18,7 +18,7 @@ return {
           event = { "BufWinEnter", "FileType" },
           pattern = "?*",
           desc = "Restore fold state after foldexpr is set up",
-          callback = function(args) require("personal.fold_persist").restore(args.buf) end,
+          callback = function(args) require("common.personal.fold_persist").restore(args.buf) end,
         },
       },
 
@@ -28,7 +28,7 @@ return {
       --     event = "BufWipeout",
       --     desc = "Clear fold-toggle heading cache for wiped buffer",
       --     callback = function(args)
-      --       local ok, m = pcall(require, "personal.fold_toggle")
+      --       local ok, m = pcall(require, "common.personal.fold_toggle")
       --       if ok and m.clear_cache then m.clear_cache(args.buf) end
       --     end,
       --   },
@@ -69,7 +69,7 @@ return {
             vim.opt_local.writebackup = false
             vim.opt_local.undofile = false
             
-            require("personal.encryption").decrypt_buffer()
+            require("common.personal.encryption").decrypt_buffer()
           end,
         },
         {
@@ -77,7 +77,7 @@ return {
           pattern = "*.enc",
           desc = "Auto-encrypt when writing .enc files",
           callback = function()
-            require("personal.encryption").encrypt_buffer()
+            require("common.personal.encryption").encrypt_buffer()
           end,
         },
         {
@@ -89,9 +89,9 @@ return {
             -- but the original logic was:
             -- local filepath = vim.api.nvim_buf_get_name(0)
             -- password_cache[filepath] = nil
-            -- Since password_cache is local to personal/encryption, we need a method to clear it by filepath
+            -- Since password_cache is local to common.personal/encryption, we need a method to clear it by filepath
             -- or we just use M.clear_password() which does exactly that for the current buffer.
-            require("personal.encryption").clear_password()
+            require("common.personal.encryption").clear_password()
           end,
         },
       },

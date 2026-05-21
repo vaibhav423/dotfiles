@@ -41,16 +41,19 @@ return {
       },
     })
     -- commands
-    opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("core.commands"))
-    opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("core.unq-commands"))
+    opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, require("common.core.commands"))
+    local ok_cmd, unq_cmd = pcall(require, "core.unq-commands")
+    if ok_cmd then opts.commands = vim.tbl_deep_extend("force", opts.commands or {}, unq_cmd) end
 
     -- Autocommands
-    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("core.autocmds"))
-    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("core.unq-autocmds"))
+    opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, require("common.core.autocmds"))
+    local ok_autocmd, unq_autocmd = pcall(require, "core.unq-autocmds")
+    if ok_autocmd then opts.autocmds = vim.tbl_deep_extend("force", opts.autocmds or {}, unq_autocmd) end
 
     -- Mappings 
-    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("core.mappings"))
-    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("core.unq-mappings"))
+    opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, require("common.core.mappings"))
+    local ok_map, unq_map = pcall(require, "core.unq-mappings")
+    if ok_map then opts.mappings = vim.tbl_deep_extend("force", opts.mappings or {}, unq_map) end
 
     return opts
   end,
