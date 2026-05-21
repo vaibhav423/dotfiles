@@ -19,8 +19,8 @@ local M = {}
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------
-
-local VAULT = vim.fn.expand("/sdcard/Documents/Fire")
+local vars = require(personal.variables)
+local VAULT = vars.vaultdir
 local PINNED_CFG = vim.fn.expand( VAULT .. "/pinned")
 
 --- Read a file and return its trimmed contents, or nil + error message.
