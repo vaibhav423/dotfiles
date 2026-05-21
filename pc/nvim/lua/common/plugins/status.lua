@@ -11,12 +11,12 @@ return {
             callback = function() end,
           },
         },
-        git_branch = {
-          on_click = {
-            name = "foo",
-            callback = function() end,
-          },
-        },
+        -- git_branch = {
+        --   on_click = {
+        --     name = "foo",
+        --     callback = function() end,
+        --   },
+        -- },
       },
     },
   },
