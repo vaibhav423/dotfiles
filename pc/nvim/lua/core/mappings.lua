@@ -95,7 +95,7 @@ return {
 
 
     -- LSP
-    ["<Leader>rl"] = { "<cmd>LspRestart<CR>", desc = "Restart LSP" },
+    ["<Leader>rl"] = { "<cmd>lsp restart<CR>", desc = "Restart LSP" },
 
 
     -- Copilot
@@ -118,7 +118,7 @@ return {
     -- File finder (documents)
     ["<Leader>fd"] = {
       function()
-        require("snacks").picker.files({ dirs = { "/sdcard/Documents" } })
+        require("snacks").picker.files({ dirs = { "~/Water/ques" } })
       end,
       desc = "Find documents files",
     },

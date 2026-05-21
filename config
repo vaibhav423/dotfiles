@@ -19,11 +19,17 @@ Host *.trycloudflare.com
 	ServerAliveInterval 60
     ServerAliveCountMax 3
 
+#--------------------------PC-ixdire------------------------------
+Match host ixdire exec "ip link show wlan2 | grep -q 'state UP'"
+    HostName fe80::4e23:38ff:fe75:dcdb%%wlan2
+    User ixdire
+    Port 22
+# 2. Fallback: If the above didn't match, this one will be used.
 Host ixdire
     HostName fe80::4e23:38ff:fe75:dcdb%%wlan0
     User ixdire
     Port 22
-
+# ---------------------------TERMUX---------------------------------------
 # 1. Try the Gateway First
 Match Host termux exec "nc -z -w 1 $(ip route show default | awk '/default/ {print $3}') 8022"
     HostName %h
@@ -35,7 +41,8 @@ Host termux
     HostName fe80::3e56:2959:f13a:a1a9%%wlan0
     Port 8022
     User ixdire
-
+    
+#------------------------------CHROOT--------------------------------------
 Match Host chroot exec "nc -z -w 1 $(ip route show default | awk '/default/ {print $3}') 22"
     HostName %h
     # This logic dynamically sets the IP to the gateway's IP

@@ -28,7 +28,9 @@ def process_markdown(md_file_path, base_dir):
     
     # Step 1: Rename to temporary files to avoid naming collisions
     # (e.g., renaming 2.png to 1.png when 1.png already exists)
-    for i, img_path in enumerate(image_paths, 1):
+    for i, raw_img_path in enumerate(image_paths, 1):
+        img_path = raw_img_path.strip()
+        
         # Resolve absolute path of the image
         if os.path.isabs(img_path):
             abs_img_path = img_path
@@ -37,7 +39,7 @@ def process_markdown(md_file_path, base_dir):
             
         if not os.path.exists(abs_img_path):
             print(f"Warning: Image not found at {abs_img_path}, skipping.")
-            temp_paths.append((img_path, None, None, None, None))
+            temp_paths.append((raw_img_path, None, None, None, None))
             continue
             
         ext = os.path.splitext(abs_img_path)[1]
@@ -53,7 +55,7 @@ def process_markdown(md_file_path, base_dir):
         temp_md_path = os.path.join(img_md_dir, temp_name).replace("\\", "/")
         
         # Use a safe replace that only targets the exact markdown syntax
-        old_md_link = f"]({img_path})"
+        old_md_link = f"]({raw_img_path})"
         new_md_link = f"]({temp_md_path})"
         new_content = new_content.replace(old_md_link, new_md_link, 1)
         

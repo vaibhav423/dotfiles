@@ -11,8 +11,9 @@ return {
     },
 
     OpenImages = {
-      function() require("personal.takephoto").OpenImages() end,
+      function(args) require("personal.takephoto").OpenImages(args) end,
       desc = "open multiple imgs",
+      range = true,
     },
 
 }

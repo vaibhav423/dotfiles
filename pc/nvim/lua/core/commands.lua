@@ -41,4 +41,36 @@ return {
       function() require("personal.jeerem").insert() end,
       desc = "Insert/overwrite reminder on first line",
     },
+
+    MoveImages = {
+      function()
+        local filepath = vim.fn.expand('%:p')
+        if filepath ~= "" then
+            local script_path = vim.fn.stdpath("config") .. "/lua/personal/move_to_gallery.py"
+            local cmd = string.format('python3 "%s" "%s"', script_path, filepath)
+            local output = vim.fn.system(cmd)
+            print(output)
+            vim.cmd('e!')
+        else
+            print("No file in current buffer")
+        end
+      end,
+      desc = "Move markdown images to gallery path",
+    },
+
+    ReorderImages = {
+      function()
+        local filepath = vim.fn.expand('%:p')
+        if filepath ~= "" then
+            local script_path = vim.fn.stdpath("config") .. "/lua/personal/reorder_photos.py"
+            local cmd = string.format('python3 "%s" "%s"', script_path, filepath)
+            local output = vim.fn.system(cmd)
+            print(output)
+            vim.cmd('e!')
+        else
+            print("No file in current buffer")
+        end
+      end,
+      desc = "Reorder markdown images using python script",
+    },
 }

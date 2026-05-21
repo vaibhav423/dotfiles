@@ -219,4 +219,22 @@ function M.OpenImages(args)
   vim.notify(string.format("OpenImages: copied %d file(s) → %s", #abs_paths, tmp_dir), vim.log.levels.INFO)
 end
 
+function M.open_gallery()
+  local rel_dir = find_section_path("gallery")
+  if not rel_dir then
+    vim.notify("No path: found under # gallery heading", vim.log.levels.WARN)
+    return
+  end
+
+  local full_path = vim.fn.getcwd() .. "/" .. rel_dir:gsub("[\r\n%s]+$", "")
+
+  local cmd = string.format(
+    'am start -a android.intent.action.VIEW -d "file://%s" -t "resource/folder" -f 0x14000000 com.mixplorer',
+    full_path
+  )
+
+  vim.notify("Opening: " .. full_path)
+  vim.fn.jobstart(cmd)
+end
+
 return M

@@ -51,8 +51,8 @@ local function write_file2(path, text)
 end
 --- Create directory (and parents). Returns true or nil + error.
 local function mkdir(path)
-  local ok = vim.fn.mkdir(path, "p")
-  if ok == 0 then return nil, "mkdir failed: " .. path end
+  vim.fn.system({ "mkdir", "-p", path })
+  if vim.v.shell_error ~= 0 then return nil, "mkdir failed: " .. path end
   return true
 end
 
@@ -93,15 +93,9 @@ local function create_topic_files(vault, value)
     "# gallery",
     "```img-gallery",
     "path: Assets/" .. topic_name,
-    "type: vertical",
-    "mobile: 3",
-    "columns: 3",
-    "gutter: 2",
-    "radius: 20",
     "```",
     "# general",
     "[[" .. topic_name .. "-Questions]]",
-    "# images",
     "",
   }, "\n")
   write_md(full_pinned .. "/" .. topic_name .. ".md", topic_md)
@@ -111,11 +105,6 @@ local function create_topic_files(vault, value)
     "# gallery",
     "```img-gallery",
     "path: Assets/" .. topic_name .. "/questions",
-    "type: vertical",
-    "mobile: 3",
-    "columns: 3",
-    "gutter: 2",
-    "radius: 20",
     "```",
     "# solve-tips",
     "# Question",
@@ -178,14 +167,13 @@ function M.set_pinned()
   -- 1. Read vault root
   local vault, err1 = VAULT
 
-  -- 2. Enumerate subdirs via find, excluding .git and .obsidian
+-- 2. Enumerate subdirs via find, excluding .git, .obsidian, and Assets
   local raw = vim.fn.systemlist(
     "cd " .. vim.fn.shellescape(vault)
     .. " && find . -mindepth 1 -type d"
-    .. " \\( -name '.git' -o -name '.obsidian' \\) -prune"
+    .. " \\( -name '.git' -o -name '.obsidian' -o -name 'Assets' \\) -prune"
     .. " -o -type d -printf '%P\\n'"
   )
-
   -- Filter out empty lines that come from the -prune side of -o
   local dirs = {}
   for _, line in ipairs(raw) do
@@ -291,10 +279,9 @@ function M.open_pinned()
 
   -- 6. Open both files as buffers (no splits)
   vim.cmd("edit " .. vim.fn.fnameescape(topic_file))
-  vim.cmd("badd " .. vim.fn.fnameescape(questions_file))
+  -- vim.cmd("badd " .. vim.fn.fnameescape(questions_file))
 
   -- vim.notify("vault: opened " .. topic_name, vim.log.levels.INFO)
 end
 
 return M
-
