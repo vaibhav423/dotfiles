@@ -19,7 +19,7 @@ local M = {}
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------
-local vars = require(personal.variables)
+local vars = require("personal.variables")
 local VAULT = vars.vaultdir
 local PINNED_CFG = vim.fn.expand( VAULT .. "/pinned")
 
