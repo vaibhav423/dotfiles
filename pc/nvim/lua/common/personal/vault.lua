@@ -284,4 +284,29 @@ function M.open_pinned()
   -- vim.notify("vault: opened " .. topic_name, vim.log.levels.INFO)
 end
 
+-- ---------------------------------------------------------------------------
+-- M.set_moxide_root
+-- ---------------------------------------------------------------------------
+
+function M.set_moxide_root()
+  local target = VAULT
+  local yq_expr = string.format('.new_file_folder_path = "%s"', target)
+  local moxide_cfg = vim.fn.expand("~/.config/moxide/settings.toml")
+  local cmd = string.format(
+    "tomlq -it %s %s",
+    vim.fn.shellescape(yq_expr),
+    vim.fn.shellescape(moxide_cfg)
+  )
+  local output = vim.fn.system(cmd)
+  if vim.v.shell_error ~= 0 then
+    vim.notify(
+      "vault: failed to update moxide path to " .. target .. "\nError: " .. vim.trim(output),
+      vim.log.levels.ERROR
+    )
+    return
+  end
+  write_file2(PINNED_CFG, "")
+  vim.notify("vault: moxide root set to " .. target .. ", pinned cleared", vim.log.levels.INFO)
+end
+
 return M

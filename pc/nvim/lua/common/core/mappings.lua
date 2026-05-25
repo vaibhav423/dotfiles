@@ -111,6 +111,8 @@ return {
     ["<Leader>vi"] = { function() require("common.personal.vault").init_template() end, desc = "Vault: init topic template" },
     ["<Leader>vp"] = { function() require("common.personal.vault").set_pinned() end,    desc = "Vault: pick pinned directory" },
     ["<Leader>vo"] = { function() require("common.personal.vault").open_pinned() end,   desc = "Vault: open pinned topic files" },
+    ["<Leader>vr"] = { function() require("common.personal.vault").set_moxide_root() end, desc = "Vault: set moxide root to vault" },
+
 
     -- YouTube frame capture (normal: auto-detect URL on current line)
     ["<Leader>yf"] = { function() require("common.personal.ytframe").capture_normal() end, desc = "Capture YouTube frame (current line URL)" },
@@ -209,6 +211,10 @@ return {
       ":<C-u>lua require('common.personal.ytframe').capture_visual()<CR>",
       desc = "Capture YouTube frames from all URLs in selection",
     },
+
+    -- Selection encryption
+    ["<Leader>xe"] = { ":<C-u>lua require('common.personal.encryption').encrypt_selection()<CR>", desc = "Encrypt selection" },
+    ["<Leader>xd"] = { ":<C-u>lua require('common.personal.encryption').decrypt_selection()<CR>", desc = "Decrypt selection" },
   },
 
 }
