@@ -48,11 +48,11 @@ if ! grep -q "$CHROOT_PATH/proc" /proc/mounts; then
     mount -t tmpfs -o size=256M tmpfs "$CHROOT_PATH/dev/shm"
     
     # Termux tmp mapping
-    chmod -R 777 "$TERMUX_PREFIX/usr/tmp"
-    mount --bind "$TERMUX_PREFIX/usr/tmp" "$CHROOT_PATH/tmp"
+    #chmod -R 777 "$TERMUX_PREFIX/usr/tmp"
+    #mount --bind "$TERMUX_PREFIX/usr/tmp" "$CHROOT_PATH/tmp"
     
     # Data mapping via bindfs
-    LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
+    #LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
     
     echo "Core mounts completed at $(date)."
 else
@@ -76,29 +76,35 @@ fi
 # 4. BACKGROUND THE FBE STORAGE MOUNTS
 # This subshell runs in the background and waits for the device to be unlocked
 (
-    echo "Waiting for /storage/emulated/0 (FBE Decryption) in background..."
-    # 5 minutes max wait time (150 * 2 seconds) to catch device unlock
+        echo "Waiting for FBE Decryption (Checking CE storage directly)..."
     max_wait=150 
-    while ! grep -q "/storage/emulated/0" /proc/mounts && [ $max_wait -gt 0 ]; do
+    
+    # Check if the bindfs binary is readable. If it is, CE storage is decrypted.
+    while [ ! -f "$BINDFS" ] && [ $max_wait -gt 0 ]; do
         sleep 2
         max_wait=$((max_wait - 1))
     done
     
-    if grep -q "/storage/emulated/0" /proc/mounts; then
+    if [ -f "$BINDFS" ]; then
         echo "Decryption detected. Settling for 5 seconds..."
         sleep 5
         
-        # Mount sdcard
+        # 4a. Termux Dependent Mounts
+        echo "Setting up Termux & bindfs mounts..."
+        chmod -R 777 "$TERMUX_PREFIX/usr/tmp"
+        mount --bind "$TERMUX_PREFIX/usr/tmp" "$CHROOT_PATH/tmp"
+        LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
+
+        # 4b. User Storage Mounts (Using su -mm to bridge APatch namespaces)
+        echo "Setting up user storage mounts..."
         su -mm -c "mount --bind /data/media/0 $CHROOT_PATH/sdcard"
-        
-        # Mount specific fire directory
         su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire /data/media/0/Documents/Fire"
         
-        echo "FBE Storage mounts completed successfully at $(date)."
+        echo "FBE mounts completed successfully at $(date)."
     else
-        echo "Timed out waiting for FBE decryption at $(date). User storage not mounted."
+        echo "Timed out waiting for FBE decryption at $(date)."
     fi
+
 ) &
 
 echo "Main boot script finished successfully at $(date). Storage mounts are running in the background."
-
