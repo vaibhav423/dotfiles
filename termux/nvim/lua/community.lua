@@ -13,5 +13,5 @@ return {
   { import = "astrocommunity.completion.cmp-latex-symbols" },
   { import = "astrocommunity.lsp.lspsaga-nvim" },
   -- { import = "astrocommunity.completion.avante-nvim" },
-  { import = "astrocommunity.ai.codecompanion-nvim" },
+  -- { import = "astrocommunity.ai.codecompanion-nvim" },
 }

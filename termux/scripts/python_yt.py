@@ -7,15 +7,17 @@ import subprocess
 from pathlib import Path
 
 def get_config_paths():
-    """Resolves paths based on /sdcard/ configuration files."""
+    """Resolves paths based on Termux/Linux configuration files."""
     try:
-        # 1. Base vault path
-        vault_base = Path(Path("~/Water/Fire/vault").read_text().strip())
+        # Resolve the base vault path (Expand ~ if present in the config file)
+        vault_raw = Path("/data/local/tmp/archl/home/fire/Water/Fire/vault").read_text().strip()
+        vault_base = Path(vault_raw).expanduser()
         
-        # 2. Pinned relative path
-        pinned_rel = Path(Path("~/Water/Fire/pinned").read_text().strip())
+        # Resolve the pinned relative path
+        pinned_raw = Path("/data/local/tmp/archl/home/fire/Water/Fire/pinned").read_text().strip()
+        pinned_rel = Path(pinned_raw)
         
-        # Name of the folder (e.g., 'Chemistry')
+        # Name of the folder (e.g., 'electrostatics')
         pinned_folder_name = pinned_rel.name
         
         # Image Dir: {vault}/Assets/{folder_name_of_pinned}
@@ -23,7 +25,14 @@ def get_config_paths():
         image_dir.mkdir(parents=True, exist_ok=True)
         
         # Markdown File: {vault}/{pinned_rel}/{folder_name_of_pinned}.md
-        md_file = vault_base / pinned_rel / f"{pinned_folder_name}.md"
+        # If pinned_rel is already an absolute path starting with ~, expand it
+        if str(pinned_rel).startswith('~'):
+            md_file = pinned_rel.expanduser()
+        else:
+            md_file = vault_base / pinned_rel / f"{pinned_folder_name}.md"
+            
+        # Ensure the directory for the markdown file exists
+        md_file.parent.mkdir(parents=True, exist_ok=True)
         
         return image_dir, md_file, pinned_folder_name
     except Exception as e:
@@ -45,17 +54,17 @@ def parse_seconds(url):
         return h * 3600 + m * 60 + s
     
     try:
-        return int(t_str)
+        # Clean non-numeric chars like 's' from '371s'
+        clean_t = re.sub(r'[^0-9]', '', t_str)
+        return int(clean_t)
     except ValueError:
         return None
 
 def fetch_yt_data(url):
-    """Uses JSON to get stream URL and chapters in one go."""
+    """Uses yt-dlp to get stream URL and chapters."""
     clean_url = re.sub(r'[?&]t=[^&]*', '', url)
     print(f"Fetching metadata for: {clean_url}")
     
-    # -j = dump-json
-    # -f bestvideo = get the best video-only stream
     cmd = ["yt-dlp", "-j", "-f", "bestvideo", clean_url]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -72,15 +81,15 @@ def fetch_yt_data(url):
 
 def get_chapter_title(chapters, seconds):
     """Finds the chapter title for the given timestamp."""
-    if not seconds or not chapters:
-        return ""
+    if seconds is None or not chapters:
+        return "Screenshot"
     
     for ch in chapters:
         start = ch.get('start_time', 0)
         end = ch.get('end_time', float('inf'))
         if start <= seconds < end:
             return ch.get('title', "")
-    return ""
+    return "Screenshot"
 
 def main():
     if len(sys.argv) < 2:
@@ -104,16 +113,14 @@ def main():
     filename = f"{int(time.time())}.jpg"
     abs_image_path = image_dir / filename
     
-    # Construct FFmpeg command
     ffmpeg_cmd = ["ffmpeg", "-y", "-loglevel", "error"]
-    if seconds:
-        # Format seconds to HH:MM:SS for FFmpeg seeking
+    if seconds is not None:
         ts_formatted = time.strftime('%H:%M:%S', time.gmtime(seconds))
         ffmpeg_cmd += ["-ss", ts_formatted]
     
     ffmpeg_cmd += ["-i", stream_url, "-frames:v", "1", "-q:v", "2", str(abs_image_path)]
     
-    print(f"Capturing frame to: {filename}")
+    print(f"Capturing frame at {seconds}s to: {filename}")
     subprocess.run(ffmpeg_cmd)
 
     if not abs_image_path.exists():
@@ -121,14 +128,17 @@ def main():
         return
 
     # 3. Update Markdown
-    # Relative path for the markdown link: Assets/{pinned_folder}/{filename}
+    # Assuming relative path for Obsidian/Markdown: Assets/{pinned_folder}/{filename}
     rel_image_path = f"Assets/{pinned_name}/{filename}"
+
     md_line = f"![{chapter_title}]({rel_image_path}) [link]({target_url})\n"
     
-    with open(md_file, "a") as f:
-        f.write(md_line)
-    
-    print(f"Success: Added entry to {md_file.name}")
+    try:
+        with open(md_file, "a") as f:
+            f.write(md_line)
+        print(f"Success: Added entry to {md_file}")
+    except Exception as e:
+        print(f"Error writing to file: {e}")
 
 if __name__ == "__main__":
     main()
