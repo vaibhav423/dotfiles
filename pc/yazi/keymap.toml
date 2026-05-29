@@ -1,16 +1,19 @@
 
-"$schema" = "https://yazi-rs.github.io/schemas/keymap.json"
+# "$schema" = "https://yazi-rs.github.io/schemas/keymap.json"
 [mgr]
 
 prepend_keymap = [
     # goto
-	{ on = [ "g", "f" ],       run = "cd ~/Water/Fire/", desc = "go to fire" },
+	{ on = [ "g", "f" ],       run = "cd /sdcard/Documents/Fire/", desc = "go to fire" },
 	{ on = [ "g", "w" ],       run = "cd ~/Water",       desc = "go to water" },
 	{ on = [ "g", "i" ],       run = "cd ~/Water/crap",       desc = "go to crap" },
 	{ on = [ "g", "y" ],       run = "cd ~/.config/yazi",       desc = "go to yazi" },
-	{ on = [ "g", "n" ],       run = "cd ~/.config/nvim",       desc = "go to nvim" },
+	{ on = [ "g", "D" ],       run = "cd ~/Downloads",       desc = "go to crap" },
 	{ on = [ "g", "d" ],       run = "cd ~/Water/crap/dotfiles/",       desc = "go to nvim" },
 	{ on = [ "g", "F" ],       run = "follow",           desc = "Follow hovered symlink" },
+	{ on = [ "g", "n" ],       run = "cd ~/.config/nvim",       desc = "go to nvim" },
+	{ on = [ "g", "s" ],       run = "cd /sdcard",       desc = "go to sdcard" },
+	{ on = [ "g", "t" ],       run = "cd /termux/home/",       desc = "go to termux" },
 
 	# Operation
 	{ on = "<S-Enter>", run = "shell --block -- nvim %s",               desc = "Open selected files interactively" },
