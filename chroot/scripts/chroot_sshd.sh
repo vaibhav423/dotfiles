@@ -1,4 +1,3 @@
-#!/system/bin/sh
 # Chroot SSHD boot script for Magisk - Fast Boot & FBE Aware
 # Location: /data/adb/service.d/chroot_sshd.sh
 
@@ -21,6 +20,7 @@ while [ "$(getprop sys.boot_completed)" != "1" ]; do
     sleep 3
 done
 echo "System boot completed at $(date)."
+sleep 10
 
 # Apply SELinux policies early so the environment is fully prepped
 echo "Applying SELinux policies..."
@@ -46,14 +46,7 @@ if ! grep -q "$CHROOT_PATH/proc" /proc/mounts; then
     # Pseudo-terminals and shared memory
     mount -t devpts devpts "$CHROOT_PATH/dev/pts"
     mount -t tmpfs -o size=256M tmpfs "$CHROOT_PATH/dev/shm"
-    
-    # Termux tmp mapping
-    #chmod -R 777 "$TERMUX_PREFIX/usr/tmp"
-    #mount --bind "$TERMUX_PREFIX/usr/tmp" "$CHROOT_PATH/tmp"
-    
-    # Data mapping via bindfs
-    #LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
-    
+
     echo "Core mounts completed at $(date)."
 else
     echo "Core mounts already active."
@@ -78,28 +71,27 @@ fi
 (
         echo "Waiting for FBE Decryption (Checking CE storage directly)..."
     max_wait=150 
-    
+
     # Check if the bindfs binary is readable. If it is, CE storage is decrypted.
     while [ ! -f "$BINDFS" ] && [ $max_wait -gt 0 ]; do
         sleep 2
         max_wait=$((max_wait - 1))
     done
-    
+
     if [ -f "$BINDFS" ]; then
         echo "Decryption detected. Settling for 5 seconds..."
         sleep 5
-        
-        # 4a. Termux Dependent Mounts
-        echo "Setting up Termux & bindfs mounts..."
+
+        echo "Setting up Termux ,fire & bindfs mounts..."
+
         chmod -R 777 "$TERMUX_PREFIX/usr/tmp"
         mount --bind "$TERMUX_PREFIX/usr/tmp" "$CHROOT_PATH/tmp"
         LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
 
-        # 4b. User Storage Mounts (Using su -mm to bridge APatch namespaces)
-        echo "Setting up user storage mounts..."
         su -mm -c "mount --bind /data/media/0 $CHROOT_PATH/sdcard"
-        su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire /data/media/0/Documents/Fire"
-        
+        su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire /sdcard/Documents/Fire"
+        su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire $CHROOT_PATH/sdcard/Documents/Fire"
+
         echo "FBE mounts completed successfully at $(date)."
     else
         echo "Timed out waiting for FBE decryption at $(date)."
