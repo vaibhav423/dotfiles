@@ -1,4 +1,4 @@
-
+'''depreceated jee'''
 import sys
 import re
 import time

@@ -2,17 +2,17 @@ return {
 
 
     VaultInit = {
-      function() require("common.personal.vault").init_template() end,
+      function() require("common.personal.vault_jee").init_template() end,
       desc = "Initialise vault topic template and pin directory",
     },
 
     VaultPin = {
-      function() require("common.personal.vault").set_pinned() end,
+      function() require("common.personal.vault_jee").set_pinned() end,
       desc = "Pick and save a vault directory as pinned",
     },
 
     VaultOpen = {
-      function() require("common.personal.vault").open_pinned() end,
+      function() require("common.personal.vault_jee").open_pinned() end,
       desc = "Open pinned topic files in splits",
     },
 

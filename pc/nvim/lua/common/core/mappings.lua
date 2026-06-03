@@ -107,11 +107,13 @@ return {
     -- Jeerem reminder
     ["<Leader>jr"] = { "<cmd>Jeerem<CR>", desc = "Insert reminder on first line" },
 
-    -- Vault
-    ["<Leader>vi"] = { function() require("common.personal.vault").init_template() end, desc = "Vault: init topic template" },
-    ["<Leader>vp"] = { function() require("common.personal.vault").set_pinned() end,    desc = "Vault: pick pinned directory" },
-    ["<Leader>vo"] = { function() require("common.personal.vault").open_pinned() end,   desc = "Vault: open pinned topic files" },
-    ["<Leader>vr"] = { function() require("common.personal.vault").set_moxide_root() end, desc = "Vault: set moxide root to vault" },
+    -- depreceated-vault-mappings
+    ["<Leader>ji"] = { function() require("common.personal.vault_jee").init_template() end, desc = "Vault: init topic template" },
+    ["<Leader>jp"] = { function() require("common.personal.vault_jee").set_pinned() end,    desc = "Vault: pick pinned directory" },
+    ["<Leader>jo"] = { function() require("common.personal.vault_jee").open_pinned() end,   desc = "Vault: open pinned topic files" },
+    ["<Leader>jR"] = { function() require("common.personal.vault_jee").set_moxide_root() end, desc = "Vault: set moxide root to vault" },
+    ["<Leader>vp"] = { function() require("common.personal.vault").pick_pinned() end, desc = "Vault: pin current file" },
+    ["<Leader>vo"] = { function() require("common.personal.vault").open_pinned() end, desc = "Vault: open pinned file" },
 
 
     -- YouTube frame capture (normal: auto-detect URL on current line)
@@ -146,7 +148,7 @@ return {
     },
 
         -- find buffer
-    ["<Leader>fb"] = {false},
+    -- ["<Leader>fb"] = {false},
     ["\\"] = {false},
     ["te"] = { function() require("snacks").picker.buffers() end, desc = "Find buffers" },
 

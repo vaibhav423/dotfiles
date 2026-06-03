@@ -107,6 +107,7 @@ alias cds='cd ~/Water/scripts/'
 # File and directory operations
 alias ls='ls -t'
 alias inx='cd ~/Water/crap'
+alias ins='cd ~/Water/crap/scripts'
 
 # Text editor shortcuts
 alias vhis='nvim ~/.zsh_history'
