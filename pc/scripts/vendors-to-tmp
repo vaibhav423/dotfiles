@@ -1,2 +1,0 @@
-sudo nmap -p 80 --open --min-rate 5000 -T4 -n 192.168.0.0/19 | grep -E "Nmap scan report|MAC Address" 
-
