@@ -26,14 +26,5 @@ if not pcall(require, "lazy") then
   vim.cmd.quit()
 end
 
--- vim.api.nvim_create_autocmd("FileType", {
---   desc = "Fix astrocore treesitter race condition",
---   pattern = "*",
---   callback = function()
---     if package.loaded["nvim-treesitter"] then
---       pcall(function() require("astrocore.treesitter").installed(true) end)
---     end
---   end,
--- })
 require "lazy_setup"
 require "polish"
