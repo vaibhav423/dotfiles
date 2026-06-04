@@ -46,7 +46,8 @@ return {
       function()
         local filepath = vim.fn.expand('%:p')
         if filepath ~= "" then
-            local script_path = vim.fn.stdpath("config") .. "/lua/common.personal/move_to_gallery.py"
+            local script_path = vim.fn.stdpath("config") .. "/lua/common/personal/move_to_gallery.py"
+            print(script_path)
             local cmd = string.format('python3 "%s" "%s"', script_path, filepath)
             local output = vim.fn.system(cmd)
             print(output)
@@ -62,7 +63,7 @@ return {
       function()
         local filepath = vim.fn.expand('%:p')
         if filepath ~= "" then
-            local script_path = vim.fn.stdpath("config") .. "/lua/common.personal/reorder_photos.py"
+            local script_path = vim.fn.stdpath("config") .. "/lua/common/personal/reorder_photos.py"
             local cmd = string.format('python3 "%s" "%s"', script_path, filepath)
             local output = vim.fn.system(cmd)
             print(output)

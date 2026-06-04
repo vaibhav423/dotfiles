@@ -69,7 +69,7 @@
   },
 
   "custom/reddot": {
-    "exec": "if [ -f /tmp/waybar-red-dot-state ]; then echo \"<span foreground='red'>●</span>\"; else echo \"\"; fi",
+    "exec": "if [ -f /tmp/yt-processing ]; then echo \"<span foreground='red'>●</span>\"; elif [ -f /tmp/yt-watcher-active ]; then echo \"<span foreground='#89b4fa'>●</span>\"; else echo \"\"; fi",
     "interval": "once",
     "signal": 8,
     "tooltip": false
