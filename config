@@ -31,7 +31,7 @@ Host ixdire
     Port 22
 # ---------------------------TERMUX---------------------------------------
 # 1. Try the Gateway First
-Match Host termux exec "nc -z -w 1 $(ip route show default | awk '/default/ {print $3}') 8022"
+Match Host termux exec "gw=$(ip route show default | awk '/default/ {print $3}'); [ -n \"$gw\" ] && nc -z -w 1 $gw 8022 2>/dev/null"
     HostName %h
     # This logic dynamically sets the IP to the gateway's IP
     ProxyCommand nc $(ip route show default | awk '/default/ {print $3}') %p
@@ -43,7 +43,7 @@ Host termux
     User ixdire
     
 #------------------------------CHROOT--------------------------------------
-Match Host chroot exec "nc -z -w 1 $(ip route show default | awk '/default/ {print $3}') 22"
+Match Host chroot exec "gw=$(ip route show default | awk '/default/ {print $3}'); [ -n \"$gw\" ] && nc -z -w 1 $gw 22 2>/dev/null"
     HostName %h
     # This logic dynamically sets the IP to the gateway's IP
     Port 22

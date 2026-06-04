@@ -14,12 +14,12 @@
 # Add Go binaries to PATH
 export PATH=$PATH:$HOME/go/bin
 # Add to ~/.bashrc
-android() {
+asu() {
     # We use sudo to become root, which Android allows to talk to 'am'
     sudo ANDROID_DATA=/data \
          ANDROID_ROOT=/system \
          PATH=/system/bin:/system/xbin:$PATH \
-         LD_LIBRARY_PATH=/system/lib64:/system/lib \
+         LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
          /system/bin/sh -c "$*"
 }
 #
@@ -39,6 +39,7 @@ alias cdf='cd ~/Water/Fire'
 # File and directory operations
 alias ls='ls -t'
 alias inx='cd ~/Water/crap'
+alias ins='cd ~/Water/crap/scripts'
 alias n='nvim'
 # Text editor shortcuts
 alias vhis='nvim ~/.zsh_history'

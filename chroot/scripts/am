@@ -1,14 +1,16 @@
 #!/bin/bash
-export ANDROID_DATA=/data
-export ANDROID_ROOT=/system
-export LD_LIBRARY_PATH=/system/lib64:/system/lib
-export PATH=/system/bin:/system/xbin:$PATH
+args=("$@")
+for ((i=0; i<${#args[@]}; i++)); do
+    if [[ "${args[i]}" == "socket_input" || "${args[i]}" == "socket_output" ]]; then
+        socket_name="${args[i+1]}"
+        if [ -S "/tmp/$socket_name" ]; then
+            chmod 777 "/tmp/$socket_name" 2>/dev/null
+        fi
+    fi
+done
 
-if [ -t 1 ]; then
-    # Run with sudo -E to retain environment but gain root
-    sudo -E /system/bin/am "$@"
-else
-    # Use script with sudo -E for headless/pipe environments
-    CMD_STR=$(printf "%q " "$@")
-    script -q -c "sudo -E /system/bin/am $CMD_STR" /dev/null
-fi
+ANDROID_DATA=/data \
+ANDROID_ROOT=/system \
+PATH=/system/bin:/system/xbin:$PATH \
+LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
+/system/bin/am "$@"

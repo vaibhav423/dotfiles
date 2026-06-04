@@ -24,8 +24,9 @@ sleep 10
 
 # Apply SELinux policies early so the environment is fully prepped
 echo "Applying SELinux policies..."
-su -c "magiskpolicy --live 'allow untrusted_app_all shell_data_file dir { read write open getattr add_name create remove_name search }'"
-su -c "magiskpolicy --live 'allow untrusted_app_all shell_data_file file { read write open getattr create unlink append }'"
+su -c "/data/adb/ap/bin/magiskpolicy --live 'allow untrusted_app_all shell_data_file dir { read write open getattr add_name create remove_name search }'" || true
+su -c "/data/adb/ap/bin/magiskpolicy --live 'allow untrusted_app_all shell_data_file file { read write open getattr create unlink append }'" || true
+su -c "/data/adb/ap/bin/magiskpolicy --live 'allow untrusted_app_all magisk unix_stream_socket { connectto read write getattr }'" || true
 
 # 2. IMMEDIATE CORE MOUNTS
 if ! grep -q "$CHROOT_PATH/proc" /proc/mounts; then
@@ -39,6 +40,12 @@ if ! grep -q "$CHROOT_PATH/proc" /proc/mounts; then
     mount --bind /system "$CHROOT_PATH/system"
     mount --rbind /apex "$CHROOT_PATH/apex"
     mount --bind /linkerconfig "$CHROOT_PATH/linkerconfig"
+
+    # Android Partitions
+    [ -d /vendor ] && { mkdir -p "$CHROOT_PATH/vendor"; mount --bind /vendor "$CHROOT_PATH/vendor"; }
+    [ -d /product ] && { mkdir -p "$CHROOT_PATH/product"; mount --bind /product "$CHROOT_PATH/product"; }
+    [ -d /odm ] && { mkdir -p "$CHROOT_PATH/odm"; mount --bind /odm "$CHROOT_PATH/odm"; }
+    [ -d /system_ext ] && { mkdir -p "$CHROOT_PATH/system_ext"; mount --bind /system_ext "$CHROOT_PATH/system_ext"; }
     
     # Create necessary directories
     mkdir -p "$CHROOT_PATH/termux-tmp" "$CHROOT_PATH/tmp" "$CHROOT_PATH/termux" "$CHROOT_PATH/sdcard" "$CHROOT_PATH/dev/shm" "$CHROOT_PATH/data/adb"
@@ -86,7 +93,7 @@ fi
 
         chmod -R 777 "$TERMUX_PREFIX/usr/tmp"
         mount --bind "$TERMUX_PREFIX/usr/tmp" "$CHROOT_PATH/tmp"
-        LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
+        LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -o suid -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
 
         su -mm -c "mount --bind /data/media/0 $CHROOT_PATH/sdcard"
         su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire /sdcard/Documents/Fire"
