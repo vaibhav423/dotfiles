@@ -1,3 +1,8 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
 # Logs
 logs
 *.log
@@ -137,3 +142,10 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# User patterns
+main*
+
+# OS files
+.DS_Store
+Thumbs.db

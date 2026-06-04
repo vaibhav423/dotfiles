@@ -2,17 +2,17 @@ return {
 
 
     VaultInit = {
-      function() require("common.personal.vault").init_template() end,
+      function() require("common.personal.vault_jee").init_template() end,
       desc = "Initialise vault topic template and pin directory",
     },
 
     VaultPin = {
-      function() require("common.personal.vault").set_pinned() end,
+      function() require("common.personal.vault_jee").set_pinned() end,
       desc = "Pick and save a vault directory as pinned",
     },
 
     VaultOpen = {
-      function() require("common.personal.vault").open_pinned() end,
+      function() require("common.personal.vault_jee").open_pinned() end,
       desc = "Open pinned topic files in splits",
     },
 
@@ -46,7 +46,8 @@ return {
       function()
         local filepath = vim.fn.expand('%:p')
         if filepath ~= "" then
-            local script_path = vim.fn.stdpath("config") .. "/lua/common.personal/move_to_gallery.py"
+            local script_path = vim.fn.stdpath("config") .. "/lua/common/personal/move_to_gallery.py"
+            print(script_path)
             local cmd = string.format('python3 "%s" "%s"', script_path, filepath)
             local output = vim.fn.system(cmd)
             print(output)
@@ -62,7 +63,7 @@ return {
       function()
         local filepath = vim.fn.expand('%:p')
         if filepath ~= "" then
-            local script_path = vim.fn.stdpath("config") .. "/lua/common.personal/reorder_photos.py"
+            local script_path = vim.fn.stdpath("config") .. "/lua/common/personal/reorder_photos.py"
             local cmd = string.format('python3 "%s" "%s"', script_path, filepath)
             local output = vim.fn.system(cmd)
             print(output)
