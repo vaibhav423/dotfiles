@@ -1,0 +1,1 @@
+sudo ANDROID_DATA=/data ANDROID_ROOT=/system PATH=/system/bin:/system/xbin:$PATH LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib /system/bin/sh -c "$*"

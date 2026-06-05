@@ -14,14 +14,14 @@
 # Add Go binaries to PATH
 export PATH=$PATH:$HOME/go/bin
 # Add to ~/.bashrc
-asu() {
-    # We use sudo to become root, which Android allows to talk to 'am'
-    sudo ANDROID_DATA=/data \
-         ANDROID_ROOT=/system \
-         PATH=/system/bin:/system/xbin:$PATH \
-         LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
-         /system/bin/sh -c "$*"
-}
+# asu() {
+#     # We use sudo to become root, which Android allows to talk to 'am'
+#     sudo ANDROID_DATA=/data \
+#          ANDROID_ROOT=/system \
+#          PATH=/system/bin:/system/xbin:$PATH \
+#          LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
+#          /system/bin/sh -c "$*"
+# }
 #
 # android() {
 #          ANDROID_DATA=/data \
