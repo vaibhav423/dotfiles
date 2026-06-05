@@ -20,11 +20,11 @@ return {
           function() require("opencode").toggle() end,
           desc = "Toggle embedded",
         }
-        maps.n[prefix .. "a"] = {
+        maps.n[prefix .. "q"] = {
           function() require("opencode").ask("@this: ", { submit = true }) end,
           desc = "Ask about this",
         }
-        maps.n[prefix .. "+"] = {
+        maps.n[prefix .. "a"] = {
           function() require("opencode").prompt("@buffer", { append = true }) end,
           desc = "Add buffer to prompt",
         }
