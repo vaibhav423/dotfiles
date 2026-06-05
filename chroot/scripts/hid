@@ -1,0 +1,15 @@
+#!/system/bin/sh
+
+DEVICE="/dev/hidg0"
+
+# HID report for lowercase 'a' is 0x04
+PRESS="\x00\x00\x04\x00\x00\x00\x00\x00"
+RELEASE="\x00\x00\x00\x00\x00\x00\x00\x00"
+
+# Spam 100 times
+i=0
+while [ $i -lt 100 ]; do
+  echo -ne "$PRESS" > "$DEVICE"
+  echo -ne "$RELEASE" > "$DEVICE"
+  i=$((i + 1))
+done

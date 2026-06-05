@@ -1,0 +1,69 @@
+
+# --- User Configuration ---
+# Set the full path to your bootable disk image on the phone.
+IMAGE_FILE="/data/local/tmp/foo.img"
+
+# --- Script Configuration (auto-detected from your 'ls' output) ---
+GADGET_NAME="g1"
+CONFIG_ID="b.1"
+GADGET_PATH="/config/usb_gadget/$GADGET_NAME"
+CONFIG_PATH="$GADGET_PATH/configs/$CONFIG_ID"
+
+# --- Main Script Logic ---
+
+echo "--- Android USB Boot Device Enabler ---"
+
+# 1. Verify the bootable image file exists.
+if [ ! -f "$IMAGE_FILE" ]; then
+    echo "[ERROR] Image file not found at '$IMAGE_FILE'"
+    echo "Please push the file to your device using: adb push your_image.iso $IMAGE_FILE"
+    exit 1
+fi
+
+# 2. Find the name of the USB Device Controller (UDC).
+# This is the hardware driver we need to bind to.
+UDC=$(ls /sys/class/udc | head -n 1)
+if [ -z "$UDC" ]; then
+    echo "[ERROR] No USB Device Controller (UDC) found in /sys/class/udc."
+    echo "This device may not be able to enable this mode."
+    exit 1
+fi
+echo "Found UDC: $UDC"
+
+# 3. Unbind the gadget from the UDC to allow safe reconfiguration.
+echo "Unbinding current USB gadget..."
+echo "" > "$GADGET_PATH/UDC"
+sleep 1 # A brief pause to ensure the device has unbound.
+
+# 4. Clean up any old function symlinks from the configuration.
+echo "Clearing old configuration links..."
+# This loop is robust and removes any symlink, regardless of its name.
+for f in $(ls "$CONFIG_PATH"); do
+    [ -L "$CONFIG_PATH/$f" ] && rm "$CONFIG_PATH/$f"
+done
+
+# 5. Configure the mass_storage function.
+echo "Configuring mass_storage to use: $IMAGE_FILE"
+# Point the logical unit (LUN 0) to our image file.
+echo "$IMAGE_FILE" > "$GADGET_PATH/functions/mass_storage.0/lun.0/file"
+# Set the LUN to read-only to protect the image from the host PC.
+echo 1 > "$GADGET_PATH/functions/mass_storage.0/lun.0/ro"
+# Optional: Make it appear as a CD-ROM. Some BIOSes prefer this.
+# To enable, uncomment the next line:
+# echo 1 > "$GADGET_PATH/functions/mass_storage.0/lun.0/cdrom"
+
+# 6. Link the newly configured mass_storage function into our active configuration.
+echo "Linking mass_storage function into the configuration..."
+ln -s "$GADGET_PATH/functions/mass_storage.0" "$CONFIG_PATH/"
+
+# 7. Bind the gadget to the UDC, making the new configuration live.
+echo "Binding new gadget configuration to UDC..."
+echo "$UDC" > "$GADGET_PATH/UDC"
+
+echo ""
+echo "--- SUCCESS ---"
+echo "Your phone should now appear as a bootable USB drive to your PC."
+echo "You can select it from your PC's BIOS/UEFI boot menu."
+echo ""
+echo "To restore normal USB functions, either change the USB mode in Android's"
+echo "notification panel or simply reboot your phone."
