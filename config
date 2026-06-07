@@ -6,6 +6,10 @@ Host *
 Match all
   Include ~/.ssh/codespaces
 
+Host github.com
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
 Host ec2
     HostName 34.41.214.219 
     User fire
