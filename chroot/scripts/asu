@@ -5,6 +5,38 @@
 # created by Android su rather than by directly execing /system/bin/sh.
 # On this setup, su is only reliably reachable once we are already inside
 # the Android shell environment.
+
+CHROOT_HOST_ROOT=${ASU_CHROOT_ROOT:-/data/local/tmp/archl}
+ASU_PWD=$PWD
+
+# Android su sees the real Android rootfs, not chroot-relative paths like
+# /home/fire/... . Prefer the host-side chroot path when it exists so
+# relative commands such as ./script.sh still work.
+if [ -e "$CHROOT_HOST_ROOT$ASU_PWD" ]; then
+  ASU_PWD="$CHROOT_HOST_ROOT$ASU_PWD"
+fi
+
+if [ $# -eq 0 ]; then
+  exec sudo \
+    ANDROID_DATA=/data \
+    ANDROID_ROOT=/system \
+    PATH=/system/bin:/system/xbin:"$PATH":/data/adb/ap/bin \
+    LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
+    ASU_PWD="$ASU_PWD" \
+    /system/bin/sh -c 'exec su 0 -c "cd \"\$ASU_PWD\" 2>/dev/null || true; exec /system/bin/sh"'
+fi
+
+if [ "$1" = "-c" ] && [ $# -ge 2 ]; then
+  exec sudo \
+    ANDROID_DATA=/data \
+    ANDROID_ROOT=/system \
+    PATH=/system/bin:/system/xbin:"$PATH":/data/adb/ap/bin \
+    LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
+    ASU_PWD="$ASU_PWD" \
+    ASU_CMD="$2" \
+    /system/bin/sh -c 'exec su 0 -c "cd \"\$ASU_PWD\" 2>/dev/null || true; exec /system/bin/sh -c \"\$ASU_CMD\""'
+fi
+
 exec sudo \
   ANDROID_DATA=/data \
   ANDROID_ROOT=/system \

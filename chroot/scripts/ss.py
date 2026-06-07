@@ -31,10 +31,10 @@ class CaptivePortalHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     server_address = ("0.0.0.0", 8080)
-    print("Starting Captive Portal on http://0.0.0.0:8080")
+    print("Starting Captive Portal on http://0.0.0.0:8080", flush=True)
     try:
         httpd = HTTPServer(server_address, CaptivePortalHandler)
         httpd.serve_forever()
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}", flush=True)
         sys.exit(1)

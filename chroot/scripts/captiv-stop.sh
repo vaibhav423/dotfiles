@@ -4,10 +4,11 @@ proxy_port=8080
 interface=wlan2
 dns_port=1053
 http_port=80
+pid_file=${CAPTIV_PID_FILE:-/data/local/tmp/captiv-dnsmasq.pid}
 
 # Kill dnsmasq
-kill $(cat /tmp/dnsmasq.pid 2>/dev/null) 2>/dev/null
-rm /tmp/dnsmasq.pid 2>/dev/null
+kill $(cat "$pid_file" 2>/dev/null) 2>/dev/null
+rm "$pid_file" 2>/dev/null
 netstat -tlnp 2>/dev/null | grep ":$dns_port " | awk '{print $7}' | cut -d/ -f1 | xargs -r kill -9 2>/dev/null
 
 # Kill proxy process
