@@ -1,6 +1,13 @@
-sudo \
+#!/bin/sh
+
+# Enter Android root through the real su path. Some commands, notably
+# certain iptables filter updates, succeed only when the root shell is
+# created by Android su rather than by directly execing /system/bin/sh.
+# On this setup, su is only reliably reachable once we are already inside
+# the Android shell environment.
+exec sudo \
   ANDROID_DATA=/data \
   ANDROID_ROOT=/system \
-  PATH=/system/bin:/system/xbin:$PATH \
+  PATH=/system/bin:/system/xbin:"$PATH":/data/adb/ap/bin \
   LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
-  /system/bin/sh "$*"
+  /system/bin/sh -c 'exec su 0 "$@"' sh "$@"

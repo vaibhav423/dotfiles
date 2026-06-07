@@ -20,7 +20,6 @@ while [ "$(getprop sys.boot_completed)" != "1" ]; do
     sleep 3
 done
 echo "System boot completed at $(date)."
-sleep 10
 
 # Apply SELinux policies early so the environment is fully prepped
 echo "Applying SELinux policies..."
@@ -48,7 +47,7 @@ if ! grep -q "$CHROOT_PATH/proc" /proc/mounts; then
     [ -d /system_ext ] && { mkdir -p "$CHROOT_PATH/system_ext"; mount --bind /system_ext "$CHROOT_PATH/system_ext"; }
     
     # Create necessary directories
-    mkdir -p "$CHROOT_PATH/termux-tmp" "$CHROOT_PATH/tmp" "$CHROOT_PATH/termux" "$CHROOT_PATH/sdcard" "$CHROOT_PATH/dev/shm" "$CHROOT_PATH/data/adb"
+    mkdir -p "$CHROOT_PATH/termux-tmp" "$CHROOT_PATH/tmp"  "$CHROOT_PATH/sdcard" "$CHROOT_PATH/dev/shm" "$CHROOT_PATH/data/adb"
     
     # Pseudo-terminals and shared memory
     mount -t devpts devpts "$CHROOT_PATH/dev/pts"
@@ -92,12 +91,19 @@ fi
         echo "Setting up Termux ,fire & bindfs mounts..."
 
         chmod -R 777 "$TERMUX_PREFIX/usr/tmp"
-        mount --bind "$TERMUX_PREFIX/usr/tmp" "$CHROOT_PATH/tmp"
+        mount --bind "$TERMUX_PREFIX/usr/tmp" "$CHROOT_PATH/termux-tmp"
+
+        # Arch X11 clients look for local sockets at /tmp/.X11-unix, while
+        # Termux:X11 creates them under the Termux tmp directory.
+        mkdir -p "$TERMUX_PREFIX/usr/tmp/.X11-unix" "$CHROOT_PATH/tmp/.X11-unix"
+        mount --bind "$TERMUX_PREFIX/usr/tmp/.X11-unix" "$CHROOT_PATH/tmp/.X11-unix"
         LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -o suid -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
 
-        su -mm -c "mount --bind /data/media/0 $CHROOT_PATH/sdcard"
+        su -mm -c "mount --bind /sdcard $CHROOT_PATH/sdcard"
         su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire /sdcard/Documents/Fire"
-        su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire $CHROOT_PATH/sdcard/Documents/Fire"
+        #su -mm -c "mount --bind /data/media/0 $CHROOT_PATH/sdcard"
+        #mount --bind /data/media/0 $CHROOT_PATH/sdcard
+        #su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire $CHROOT_PATH/sdcard/Documents/Fire"
 
         echo "FBE mounts completed successfully at $(date)."
     else
@@ -105,5 +111,6 @@ fi
     fi
 
 ) &
-
+echo "-----------------------------------------------------------------------------------------------"
 echo "Main boot script finished successfully at $(date). Storage mounts are running in the background."
+echo "-----------------------------------------------------------------------------------------------"
