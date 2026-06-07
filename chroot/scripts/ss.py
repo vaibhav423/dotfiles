@@ -3,15 +3,18 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import sys
 
 
+MONKEY = open("/tmp/monkey.jpg", "rb").read()
+
+
 class CaptivePortalHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self.send_response(200)
-        self.send_header("Content-type", "text/html")
+        self.send_header("Content-type", "image/jpeg")
         self.end_headers()
 
     def do_GET(self):
         self.do_HEAD()
-        self.wfile.write(b"hi")
+        self.wfile.write(MONKEY)
 
     def do_POST(self):
         self.do_GET()
