@@ -1,3 +1,6 @@
+"""
+if needed to use cookies specify them in args
+"""
 #!/usr/bin/env python3
 import sys
 import re
