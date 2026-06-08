@@ -53,7 +53,7 @@
         "memory",
         "temperature",
         "group/hardware",
-"tray",
+        "tray",
         "custom/notification",
        // "custom/exit",
        // "custom/ml4w-welcome",
