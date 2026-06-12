@@ -55,6 +55,9 @@ return {
     -- change default notifications mapping from fn to fN
     ["<Leader>fN"] = { function() require("snacks").picker.notifications() end, desc = "Find notifications" },
 
+    -- Notesh: share buffer content
+    ["<Leader>ms"] = { function() require("common.personal.notesh").create_note() end, desc = "Share buffer via notesh.ink" },
+
     -- Copy file path
     ["<Leader>fp"] = {
       function()
