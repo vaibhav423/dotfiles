@@ -13,7 +13,7 @@ return {
   { import = "astrocommunity.markdown-and-latex.render-markdown-nvim" },
   -- { import = "astrocommunity.editing-support.copilotchat-nvim" },
   { import = "astrocommunity.completion.cmp-latex-symbols" },
-  { import = "astrocommunity.lsp.lspsaga-nvim" },
+  -- { import = "astrocommunity.lsp.lspsaga-nvim" },
   -- https://astronvim.github.io/astrocommunity/#avante-nvim
   -- { import = "astrocommunity.ai.avante-nvim" },
   -- https://astronvim.github.io/astrocommunity/#copilotchat-nvim

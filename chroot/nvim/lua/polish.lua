@@ -4,12 +4,38 @@
 -- Add jeerem command abbreviation
 vim.cmd("cnoreabbrev jeerem Jeerem")
 
--- Use termux-api for clipboard when in Termux (even via SSH)
--- This avoids the 5-second OSC 52 timeout
+local droid = vim.fn.executable("droid") == 1
 local termux_api_dir = "/usr/local/bin/"
 local has_termux_api = vim.fn.executable(termux_api_dir .. "termux-clipboard-get") == 1
 
-if has_termux_api then
+if droid then
+  vim.g.clipboard = {
+    name = "droid",
+    copy = {
+      ["+"] = function(lines, regtype)
+        local text = table.concat(lines, "\n")
+        local b64 = vim.base64.encode(text)
+        vim.fn.system({ "droid", "clipboard-set", b64 })
+      end,
+      ["*"] = function(lines, regtype)
+        local text = table.concat(lines, "\n")
+        local b64 = vim.base64.encode(text)
+        vim.fn.system({ "droid", "clipboard-set", b64 })
+      end,
+    },
+    paste = {
+      ["+"] = function()
+        local output = vim.fn.system({ "droid", "clipboard", "get" })
+        return vim.split(output:gsub("\n$", ""), "\n")
+      end,
+      ["*"] = function()
+        local output = vim.fn.system({ "droid", "clipboard", "get" })
+        return vim.split(output:gsub("\n$", ""), "\n")
+      end,
+    },
+    cache_enabled = 0,
+  }
+elseif has_termux_api then
   vim.g.clipboard = {
     name = "termux-api",
     copy = {
@@ -23,7 +49,6 @@ if has_termux_api then
     cache_enabled = 0,
   }
 elseif vim.env.SSH_TTY then
-  -- Use OSC 52 for remote clipboard support (Native in Neovim 0.10+)
   vim.g.clipboard = {
     name = 'osc52',
     copy = {
@@ -36,8 +61,6 @@ elseif vim.env.SSH_TTY then
     },
   }
 else
-  -- Fallback: Let Neovim autodetect (handles local Linux, macOS, or Windows)
-  -- This ensures '+' and '*' registers work normally on local machines.
   vim.opt.clipboard:append("unnamedplus")
 end
 
