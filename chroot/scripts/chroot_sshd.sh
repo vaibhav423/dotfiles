@@ -104,11 +104,9 @@ fi
         # Mount /data into chroot using chroot's own bindfs - never dies with Termux
         #LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -o suid -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
 
-        #"$ARCH_LINKER" --library-path "$LIB_PATH" "$BINDFS" -o suid -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
+        "$ARCH_LINKER" --library-path "$LIB_PATH" "$BINDFS" -o suid -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
 
-        #LD_LIBRARY_PATH="$LIB_PATH" "$BINDFS" -o suid -u $UID_FIRE -g $GID_FIRE /data "$CHROOT_PATH/data"
-
-        mount --bind /data "$CHROOT_PATH/data"
+        #mount --bind /data "$CHROOT_PATH/data"
         su -mm -c "mount --bind /sdcard $CHROOT_PATH/sdcard"
         su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire /sdcard/Documents/Fire"
 

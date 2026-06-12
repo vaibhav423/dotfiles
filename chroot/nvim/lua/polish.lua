@@ -5,10 +5,12 @@
 vim.cmd("cnoreabbrev jeerem Jeerem")
 
 local droid = vim.fn.executable("droid") == 1
-local termux_api_dir = "/usr/local/bin/"
-local has_termux_api = vim.fn.executable(termux_api_dir .. "termux-clipboard-get") == 1
+local ssh_conn = vim.env.SSH_CONNECTION or ""
+local is_localhost_ssh = ssh_conn:match("^127%.0%.0%.1") or ssh_conn:match("^::1")
 
-if droid then
+if not vim.env.SSH_TTY then
+  vim.opt.clipboard:append("unnamedplus")
+elseif droid and is_localhost_ssh then
   vim.g.clipboard = {
     name = "droid",
     copy = {
@@ -35,20 +37,7 @@ if droid then
     },
     cache_enabled = 0,
   }
-elseif has_termux_api then
-  vim.g.clipboard = {
-    name = "termux-api",
-    copy = {
-      ["+"] = { termux_api_dir .. "termux-clipboard-set" },
-      ["*"] = { termux_api_dir .. "termux-clipboard-set" },
-    },
-    paste = {
-      ["+"] = { termux_api_dir .. "termux-clipboard-get" },
-      ["*"] = { termux_api_dir .. "termux-clipboard-get" },
-    },
-    cache_enabled = 0,
-  }
-elseif vim.env.SSH_TTY then
+else
   vim.g.clipboard = {
     name = 'osc52',
     copy = {
@@ -60,8 +49,6 @@ elseif vim.env.SSH_TTY then
       ['*'] = require('vim.ui.clipboard.osc52').paste('*'),
     },
   }
-else
-  vim.opt.clipboard:append("unnamedplus")
 end
 
 
