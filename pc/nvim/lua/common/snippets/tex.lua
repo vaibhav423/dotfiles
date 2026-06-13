@@ -1,6 +1,7 @@
 -- Snippets for the `tex` filetype.
 -- from_lua loader: filename = filetype, return value must be a flat list.
-local ls = require("luasnip")
+local ok, ls = pcall(require, "luasnip")
+if not ok then return {} end
 local s = ls.s
 local t = ls.t
 local i = ls.i

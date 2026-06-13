@@ -56,6 +56,7 @@
   "snacks.nvim": { "branch": "main", "commit": "882c996cf28183f4d63640de0b4c02ec886d01f2" },
   "todo-comments.nvim": { "branch": "main", "commit": "31e3c38ce9b29781e4422fc0322eb0a21f4e8668" },
   "toggleterm.nvim": { "branch": "main", "commit": "9a88eae817ef395952e08650b3283726786fb5fb" },
+  "venn.nvim": { "branch": "main", "commit": "b09c2f36ddf70b498281845109bedcf08a7e0de0" },
   "vimtex": { "branch": "master", "commit": "24e229914182ff301496a3e2c4214b28c4928d3f" },
   "which-key.nvim": { "branch": "main", "commit": "3aab2147e74890957785941f0c1ad87d0a44c15a" }
 }

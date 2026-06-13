@@ -10,6 +10,8 @@ return {
   -- { import = "astrocommunity.pack.lua" },
   -- { import = "astrocommunity.ai.opencode-nvim" },
   -- import/override with your plugins folder
+  -- https://github.com/MeanderingProgrammer/render-markdown.nvim
+  -- https://github.com/AstroNvim/astrocommunity/tree/main/lua/astrocommunity/markdown-and-latex/render-markdown-nvim/init.lua
   { import = "astrocommunity.markdown-and-latex.render-markdown-nvim" },
   { import = "astrocommunity.recipes.ai" },
   -- https://nvimdev.github.io/lspsaga/

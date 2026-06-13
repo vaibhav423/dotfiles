@@ -1,5 +1,17 @@
 return {
 
+      -- Disable snacks indent for markdown files
+      snacks_indent_markdown = {
+        {
+          event = "FileType",
+          pattern = "markdown",
+          desc = "Disable indent lines for markdown",
+          callback = function()
+            vim.b.snacks_indent = false
+          end,
+        },
+      },
+
       -- Fold persistence (save/restore fold state per buffer)
       fold_persistence = {
         {
