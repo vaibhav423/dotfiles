@@ -50,12 +50,24 @@ return {
       return nil
     end
 
+    -- Prefer items whose label starts with the typed input (prefix match wins ties)
+    local function prefix_sort(a, b)
+      local cursor = vim.api.nvim_win_get_cursor(0)
+      local line   = vim.api.nvim_buf_get_lines(0, cursor[1] - 1, cursor[1], false)[1] or ""
+      local input  = line:sub(1, cursor[2]):match("[^%s]+$") or ""
+      if input == "" then return nil end
+      local a_pre = (a.filterText or a.label):sub(1, #input) == input
+      local b_pre = (b.filterText or b.label):sub(1, #input) == input
+      if a_pre ~= b_pre then return a_pre end
+      return nil
+    end
+
     opts.fuzzy = opts.fuzzy or {}
-    opts.fuzzy.sorts         = { wikilink_sort, "score", "sort_text" }
+    opts.fuzzy.sorts         = { wikilink_sort, "score", prefix_sort, "sort_text" }
     opts.fuzzy.use_proximity = false
 
     -- Keep snippet score offset for non-wikilink contexts.
     if not opts.snippets then opts.snippets = {} end
-    opts.snippets.score_offset = 5
+    opts.snippets.score_offset = 15
   end,
 }

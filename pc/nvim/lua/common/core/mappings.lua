@@ -21,6 +21,8 @@ return {
     --neo-tree
     ["<Leader>e"]      = { "<Cmd>Neotree toggle dir=./<CR>" ,  desc = "Next buffer" },
 
+    ["<Leader>o"] = {false} ,
+    ["<Leader>oc"] = { "<Cmd>Calendar<CR>", desc = "open calendar" },
     -- Buffers
     ["<Tab>"]      = { function() require("astrocore.buffer").nav(vim.v.count1) end,  desc = "Next buffer" },
     -- t is nvim inbuilt key for till  , this new map blocks tt which should make cursour movie behind next t 
@@ -30,7 +32,16 @@ return {
     ["<Leader>fC"] =  { function() require("snacks").picker.grep_word() end, desc = "Find word under cursor" },
 
     ["<Leader>fc"] = { function() require("snacks").picker.commands() end, desc = "Find commands" },
-    ["<Leader>ff"] = { function() require("snacks").picker.files({ hidden = vim.tbl_get((vim.uv or vim.loop).fs_stat ".git" or {}, "type") == "directory", follow = true }) end, desc = "Find Files" },
+    ["<Leader>ff"] = {
+      function()
+        require("snacks").picker.files({
+          hidden = vim.tbl_get((vim.uv or vim.loop).fs_stat ".git" or {}, "type") == "directory",
+          follow = true,
+          exclude = { "*.png", "*.jpg", "*.jpeg" , ".gitignore", ".env" , ".copilot-index/" }
+        })
+      end,
+      desc = "Find Files"
+    },
     ["<Leader>fa"] = { function() require("snacks").picker.files({ dirs = { vim.fn.stdpath("config") }, follow = true }) end, desc = "Find AstroNvim config files" },
 
     -- LSP
@@ -88,6 +99,8 @@ return {
     ["<Leader>z2"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(2) end end, desc = "Toggle fold level 2 (all windows)" },
     ["<Leader>z3"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(3) end end, desc = "Toggle fold level 3 (all windows)" },
     ["<Leader>z4"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(4) end end, desc = "Toggle fold level 4 (all windows)" },
+    -- calendar
+      
   },
     -- Visual mode ---------------------------------------------------------------
   v = {

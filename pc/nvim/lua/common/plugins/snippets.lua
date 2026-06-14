@@ -13,13 +13,12 @@ return {
       -- Load user snippets via the from_lua loader
       local ok_loader, loader = pcall(require, "luasnip.loaders.from_lua")
       if ok_loader and loader then
+        -- 1. Plugin/runtimepath snippets (lowest priority)
         loader.lazy_load()
-        pcall(function()
-          loader.load({ paths = {
-            vim.fn.stdpath("config") .. "/lua/snippets",
-            vim.fn.stdpath("config") .. "/lua/common/snippets",
-          } })
-        end)
+        -- 2. User snippets from lua/snippets
+        pcall(loader.load, { paths = vim.fn.stdpath("config") .. "/lua/snippets" })
+        -- 3. User snippets from lua/common/snippets (highest priority)
+        pcall(loader.load, { paths = vim.fn.stdpath("config") .. "/lua/common/snippets" })
       end
     end,
   },

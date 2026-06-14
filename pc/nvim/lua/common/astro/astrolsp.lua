@@ -73,20 +73,20 @@ return {
     -- A custom `on_attach` function to be run after the default `on_attach` function
     opts.on_attach = function(client, bufnr)
       -- Setup markdown-oxide helpers when the server attaches
-      -- if client.name == "markdown-oxide" or client.name == "markdown_oxide" then
-      --   -- create a buffer-local user command `:Daily`
-      --   vim.api.nvim_buf_create_user_command(bufnr, "Daily", function(cmd_opts)
-      --     local params = { command = "jump" }
-      --     if cmd_opts.args and cmd_opts.args ~= "" then params.arguments = { cmd_opts.args } end
-      --
-      --     client.request("workspace/executeCommand", params, function(err, _)
-      --       if err then vim.notify("markdown-oxide: " .. vim.inspect(err), vim.log.levels.ERROR) end
-      --     end, bufnr)
-      --   end, { desc = "Open markdown-oxide daily note", nargs = "*" })
-      --
-      --   -- buffer-local mapping to open today's daily note quickly
-      --   vim.keymap.set("n", "<Leader>od", "<cmd>Daily<cr>", { desc = "Open daily note", buffer = bufnr })
-      -- end
+      if client.name == "markdown-oxide" or client.name == "markdown_oxide" then
+        -- create a buffer-local user command `:Daily`
+        vim.api.nvim_buf_create_user_command(bufnr, "Daily", function(cmd_opts)
+          local params = { command = "jump" }
+          if cmd_opts.args and cmd_opts.args ~= "" then params.arguments = { cmd_opts.args } end
+
+          client.request("workspace/executeCommand", params, function(err, _)
+            if err then vim.notify("markdown-oxide: " .. vim.inspect(err), vim.log.levels.ERROR) end
+          end, bufnr)
+        end, { desc = "Open markdown-oxide daily note", nargs = "*" })
+
+        -- buffer-local mapping to open today's daily note quickly
+        vim.keymap.set("n", "<Leader>od", "<cmd>Daily<cr>", { desc = "Open daily note", buffer = bufnr })
+      end
     end
 
     return opts
