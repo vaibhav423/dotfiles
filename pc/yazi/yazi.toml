@@ -4,6 +4,15 @@ sort_reverse 	 = false
 [opener]
 
 edit = [
-  { run = 'kitty -e nvim "$@" > /dev/null 2>&1 &', block = true, desc = "Neovim" },
+  { run = 'setsid kitty -e nvim "$@" > /dev/null 2>&1 &', block = true, desc = "Neovim" },
   { run = 'nvim "$@"', block = true, desc = "Neovim-in-curr" },
+]
+
+pdf-open = [
+{ run = "setsid zathura %s1" , desc = "pdf-open" , for = "linux"}
+]
+[open]
+
+prepend_rules = [
+  { url = "*.pdf" , use = [ "pdf-open"] } 
 ]

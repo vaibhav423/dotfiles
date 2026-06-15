@@ -22,6 +22,7 @@ plugins=(
     copyfile
     copybuffer
     dirhistory
+    ollama
 )
 
 # Set-up oh-my-zsh
