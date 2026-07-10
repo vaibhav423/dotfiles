@@ -23,7 +23,7 @@ if [ $# -eq 0 ]; then
     PATH=/system/bin:/system/xbin:"$PATH":/data/adb/ap/bin \
     LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
     ASU_PWD="$ASU_PWD" \
-    /system/bin/sh -c 'exec su 0 -c "cd \"\$ASU_PWD\" 2>/dev/null || true; exec /system/bin/sh"'
+    /system/bin/sh -c 'exec su -c "cd \"\$ASU_PWD\" 2>/dev/null || true; exec /system/bin/sh"'
 fi
 
 if [ "$1" = "-c" ] && [ $# -ge 2 ]; then
@@ -34,7 +34,7 @@ if [ "$1" = "-c" ] && [ $# -ge 2 ]; then
     LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
     ASU_PWD="$ASU_PWD" \
     ASU_CMD="$2" \
-    /system/bin/sh -c 'exec su 0 -c "cd \"\$ASU_PWD\" 2>/dev/null || true; exec /system/bin/sh -c \"\$ASU_CMD\""'
+    /system/bin/sh -c 'exec su -c "cd \"\$ASU_PWD\" 2>/dev/null || true; exec /system/bin/sh -c \"\$ASU_CMD\""'
 fi
 
 exec sudo \
@@ -42,4 +42,4 @@ exec sudo \
   ANDROID_ROOT=/system \
   PATH=/system/bin:/system/xbin:"$PATH":/data/adb/ap/bin \
   LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
-  /system/bin/sh -c 'exec su 0 "$@"' sh "$@"
+    /system/bin/sh -c 'exec su "$@"' sh "$@"
