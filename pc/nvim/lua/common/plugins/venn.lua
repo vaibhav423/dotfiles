@@ -1,3 +1,4 @@
+  -- helps me draw boxes line easily , also helpful drawing ascii
   -- https://github.com/AstroNvim/astrocommunity/tree/main/lua/astrocommunity/note-taking/venn-nvim/init.lua
   -- https://github.com/jbyuki/venn.nvim
   -- https://github.com/jbyuki/venn.nvim/issues/27
