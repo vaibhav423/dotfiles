@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-# A simple panic button script to terminate sendk.py if it is running
+STOP_FILE="${1:-/tmp/sendk.stop}"
 
-echo "Stopping sendk.py forcefully..."
-pkill -9 -f sendk.py
+touch "$STOP_FILE"
+rm -f /tmp/sendk.pause
+pkill -15 -f "sendk.py" 2>/dev/null
 
-if [ $? -eq 0 ]; then
-    echo "sendk.py has been stopped."
-else
-    echo "sendk.py was not running."
-fi
+echo "Stop signal sent to sendk.py"

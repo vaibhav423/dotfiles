@@ -1,0 +1,14 @@
+[
+  {
+    "title": "yazi",
+    "exec": "kitty -e opencode -s  ses_101ee4f91ffeVAGY8lEOrgidvj"
+  },
+  {
+    "title": "scaler-cli-dev",
+    "exec": "kitty -e opencode -s ses_11a33b432ffeatGUheLNn3FIGn"
+  },
+  {
+    "title": "scaler-cli-solver",
+    "exec": "kitty -e opencode -s ses_340f5038bffeedNYKJsT0o5K0T  "
+  }
+]

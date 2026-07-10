@@ -18,6 +18,9 @@ prepend_keymap = [
 	{ on = "<S-Enter>", run = "shell --block -- nvim %s", desc = "Open selected files interactively" },
 	{on  = "<C-n>" , run = 'shell -- dragon-drop -x -i -T "$0"' , desc = "drag and drop"},
 
+	# Operation
+	{ on = "K", run = "shell -- nohup kitty --directory %d > /dev/null 2>&1 & ya emit quit", desc = "Open kitty here and quit" },
+
 	# yamb bookmarks
 	{ on = [ "u", "a" ], run = "plugin yamb -- save", desc = "Add bookmark" },
 	{ on = [ "u", "g" ], run = "plugin yamb -- jump_by_key", desc = "Jump bookmark by key" },

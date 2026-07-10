@@ -1,0 +1,14 @@
+[
+  {
+    "title": "script-browser",
+    "exec": "~/Water/crap/scripts/rofi/rofi-json-browser"
+  },
+  {
+    "title": "script-edit",
+    "exec": "~/Water/crap/scripts/rofi/rofi-json-edit"
+  },
+  {
+    "title": "add-json",
+    "exec": "kitty -e nvim ~/Water/crap/scripts/rofi"
+  }
+]
