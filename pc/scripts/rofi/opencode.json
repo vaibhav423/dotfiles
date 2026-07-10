@@ -10,5 +10,9 @@
   {
     "title": "scaler-cli-solver",
     "exec": "kitty -e opencode -s ses_340f5038bffeedNYKJsT0o5K0T  "
+  },
+  {
+    "title": "hindi-build",
+    "exec": "kitty -e opencode -s ses_0bf82aa99ffeRuobW8aFAvVNLh"
   }
 ]

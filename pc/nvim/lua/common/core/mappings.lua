@@ -17,6 +17,19 @@ return {
     ["<M-Right>"] = { function() require("common.personal.wikilink").next() end,     desc = "Next saved wikilink" },
     ["<M-Left>"]  = { function() require("common.personal.wikilink").prev() end,     desc = "Previous saved wikilink" },
     ["<M-f>"]     = { function() require("common.personal.wikilink").pick() end,     desc = "Fuzzy find saved wikilinks" },
+    ["<M-g>"]     = {
+      function()
+        vim.lsp.buf.code_action({
+          filter = function(action) return action.title:match("[Cc]reate") end,
+          apply = true,
+        })
+        vim.defer_fn(function()
+          vim.cmd("lsp restart")
+          vim.defer_fn(function() vim.lsp.buf.definition() end, 400)
+        end, 300)
+      end,
+      desc = "Create wikilink, restart LSP, go to definition",
+    },
 
     --neo-tree
     ["<Leader>e"]      = { "<Cmd>Neotree toggle dir=./<CR>" ,  desc = "Next buffer" },
@@ -58,6 +71,7 @@ return {
     ["<Leader>jp"] = { function() require("common.personal.vault_jee").set_pinned() end,    desc = "Vault: pick pinned directory" },
     ["<Leader>jo"] = { function() require("common.personal.vault_jee").open_pinned() end,   desc = "Vault: open pinned topic files" },
     ["<Leader>jR"] = { function() require("common.personal.vault_jee").set_moxide_root() end, desc = "Vault: set moxide root to vault" },
+    --- vault mappings
     ["<Leader>vp"] = { function() require("common.personal.vault").pick_pinned() end, desc = "Vault: pin current file" },
     ["<Leader>vo"] = { function() require("common.personal.vault").open_pinned() end, desc = "Vault: open pinned file" },
     ["<Leader>yf"] = { function() require("common.personal.ytframe").capture_normal() end, desc = "Capture YouTube frame (current line URL)" },
