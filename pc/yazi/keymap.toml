@@ -3,7 +3,8 @@
 
 prepend_keymap = [
   # goto
-	{ on = [ "g", "f" ],       run = "cd /sdcard/Documents/Fire/", desc = "go to fire" },
+	{ on = [ "g", "f" ],       run = "cd /sdcard/Documents/Fire/", desc = "go to fire" , for = "android"},
+	{ on = [ "g", "f" ],       run = "cd ~/Water/Fire/", desc = "go to fire" , for = "linux"},
 	{ on = [ "g", "w" ],       run = "cd ~/Water",       desc = "go to water" },
 	{ on = [ "g", "i" ],       run = "cd ~/Water/crap",       desc = "go to crap" },
 	{ on = [ "g", "y" ],       run = "cd ~/.config/yazi",       desc = "go to yazi" },

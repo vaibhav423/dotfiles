@@ -9,6 +9,9 @@
 # create python virtualenv and activate with given name 
 # do not create if already exists
 
+uh(){
+    unset HISTFILE
+}
 androadb(){
 ssh chroot  'asu -c "setprop service.adb.tcp.port 5555" && asu -c "stop adbd" && asu -c "start adbd" ' 
 }

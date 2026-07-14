@@ -17,6 +17,17 @@ end
 
 return {
   "zbirenbaum/copilot.lua",
+  cond = function()
+    vim.fn.system("getent hosts api.github.com >/dev/null 2>&1")
+    return vim.v.shell_error == 0
+  end,
+  opts = {
+    filetypes = {
+      markdown = true,
+      zsh = true,
+      ["*"] = false,
+    },
+  },
   specs = {
     { import = "astrocommunity.completion.copilot-lua" },
     {
