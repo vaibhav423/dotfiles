@@ -1,1 +1,0 @@
-../../pc/nvim/plugins.md

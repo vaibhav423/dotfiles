@@ -1,1 +1,0 @@
-../../pc/nvim/tips.md
