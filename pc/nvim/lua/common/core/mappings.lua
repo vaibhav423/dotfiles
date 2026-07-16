@@ -50,7 +50,7 @@ return {
         require("snacks").picker.files({
           hidden = vim.tbl_get((vim.uv or vim.loop).fs_stat ".git" or {}, "type") == "directory",
           follow = true,
-          exclude = { "*.png", "*.jpg", "*.jpeg" , ".gitignore", ".env" , ".copilot-index/" }
+          exclude = { "*.png", "*.jpg", "*.jpeg" , ".gitignore", ".env" , ".copilot-index" }
         })
       end,
       desc = "Find Files"
