@@ -1,4 +1,4 @@
-
+if true then return {} end
 local prefix = "<Leader>a"
 return {
   "yetone/avante.nvim",
