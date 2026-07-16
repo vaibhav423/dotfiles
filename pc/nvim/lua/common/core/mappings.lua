@@ -113,6 +113,10 @@ return {
     ["<Leader>z2"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(2) end end, desc = "Toggle fold level 2 (all windows)" },
     ["<Leader>z3"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(3) end end, desc = "Toggle fold level 3 (all windows)" },
     ["<Leader>z4"] = { function() local ok, m = pcall(require, "common.personal.fold_toggle"); if ok and m.toggle_all then m.toggle_all(4) end end, desc = "Toggle fold level 4 (all windows)" },
+    -- Code Runner
+    ["<Leader>or"] = { function() require("common.personal.code_runner").run() end, desc = "Run code file in buffer" },
+    ["<Leader>oi"] = { function() require("common.personal.code_runner").toggle_layout() end, desc = "Toggle Code I/O Layout" },
+
     -- calendar
       
   },

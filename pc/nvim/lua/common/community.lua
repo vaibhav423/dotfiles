@@ -16,4 +16,10 @@ return {
   { import = "astrocommunity.recipes.ai" },
   -- https://nvimdev.github.io/lspsaga/
   { import = "astrocommunity.lsp.lspsaga-nvim" },
+  -- https://github.com/kawre/leetcode.nvim
+  -- https://github.com/AstroNvim/astrocommunity/tree/main/lua/astrocommunity/game/leetcode-nvim/init.lua
+  { import = "astrocommunity.game.leetcode-nvim" },
+  -- https://github.com/AstroNvim/astrocommunity/blob/main/lua/astrocommunity/code-runner/compiler-nvim/init.lua
+  -- https://github.com/Zeioth/compiler.nvim/
+  -- { import = "astrocommunity.code-runner.compiler-nvim" },
 }
