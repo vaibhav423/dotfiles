@@ -32,6 +32,11 @@ M.runners = {
   javascript = function(file, _)
     return string.format("node '%s'", file)
   end,
+  java = function(file, _)
+    -- For Java 11+, you can directly run the source file without explicit compilation.
+    -- If they have an older version or need .class files, it would be: "javac '%s' && java -cp '%s' '%s'"
+    return string.format("java '%s'", file)
+  end,
   rust = function(file, out_file)
     return string.format("rustc '%s' -o '%s' && '%s'", file, out_file, out_file)
   end,
@@ -46,6 +51,7 @@ M.extension_map = {
   cc = "cpp",
   cxx = "cpp",
   rs = "rust",
+  java = "java",
 }
 
 -- Helper to find a window displaying a specific file
