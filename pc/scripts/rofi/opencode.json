@@ -14,5 +14,9 @@
   {
     "title": "hindi-build",
     "exec": "kitty -e opencode -s ses_0bf82aa99ffeRuobW8aFAvVNLh"
+  },
+  {
+    "title": "sess-analyze",
+    "exec": "kitty -e opencode -s ses_077b2005bffeGvRRFCzGGKAdAM"
   }
 ]
