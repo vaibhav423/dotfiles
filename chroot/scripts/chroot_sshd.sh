@@ -43,6 +43,8 @@ if ! grep -q "$CHROOT_PATH/proc" /proc/mounts; then
     mount --bind /system "$CHROOT_PATH/system"
     mount --rbind /apex "$CHROOT_PATH/apex"
     mount --bind /linkerconfig "$CHROOT_PATH/linkerconfig"
+    # su -mm -c "mount --bind /sdcard $CHROOT_PATH/sdcard"
+    # su -mm -c "mount --bind $CHROOT_PATH/home/fire/Water/Fire /sdcard/Documents/Fire"
 
     # Android Partitions
     [ -d /vendor ] && { mkdir -p "$CHROOT_PATH/vendor"; mount --bind /vendor "$CHROOT_PATH/vendor"; }
