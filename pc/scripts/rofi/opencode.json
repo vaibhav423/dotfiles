@@ -18,5 +18,9 @@
   {
     "title": "sess-analyze",
     "exec": "kitty -e opencode -s ses_077b2005bffeGvRRFCzGGKAdAM"
+  },
+  {
+    "title": "tridactyl-edit",
+    "exec": "kitty -e opencode -s ses_053ee9f69ffeM5u5aVY6TKgMuH"
   }
 ]

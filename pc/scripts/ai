@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
-
-# Copyright 2025 by Milind Mishra 'thatbeautifuldream' in Github
-# Modifications by Miguel Pérez Colino 'mmmmmmpc' in GitHub
-# Published under GNU GPLv3 License
-# 
-# It requires the tools "curl" and "jq" to function as well as
-# Internet access and a Google Gemini API Key to access it
-
-# Load .env file if it exists
-if [[ -f ~/.env ]]; then
-    source ~/.env
-elif [[ -f .env ]]; then
-    source .env
-fi
+#
+# Load env files
+for env_file in "$HOME/.secrets" "$HOME/.env" ".env"; do
+    if [[ -f "$env_file" ]]; then
+        source "$env_file"
+    fi
+done
 
 # Check if GEMINI_API_KEY is set
 if [[ -z "$GEMINI_API_KEY" ]]; then
@@ -20,61 +13,34 @@ if [[ -z "$GEMINI_API_KEY" ]]; then
     exit 1
 fi
 
-AVAILABLE_MODELS=(
-    "gemini-2.5-flash-lite"
-    "gemini-2.5-flash"
-    "gemini-2.5-pro"
-    "gemini-2.0-flash"
-    "gemini-2.0-flash-001"
-    "gemini-2.0-flash-lite-001"
-    "gemini-2.0-flash-lite"
-    "gemini-2.5-flash-preview-tts"
-    "gemini-2.5-pro-preview-tts"
-    "gemma-3-1b-it"
-    "gemma-3-4b-it"
-    "gemma-3-12b-it"
-    "gemma-3-27b-it"
-    "gemma-3n-e4b-it"
-    "gemma-3n-e2b-it"
-    "gemini-flash-latest"
-    "gemini-flash-lite-latest"
-    "gemini-pro-latest"
-    "gemini-2.5-flash-image"
-    "gemini-2.5-flash-lite-preview-09-2025"
-    "gemini-3-pro-preview"
-    "gemini-3-flash-preview"
-    "gemini-3.1-pro-preview"
-    "gemini-3.1-pro-preview-customtools"
-    "gemini-3.1-flash-lite-preview"
-    "gemini-3-pro-image-preview"
-    "nano-banana-pro-preview"
-    "gemini-3.1-flash-image-preview"
-    "gemini-robotics-er-1.5-preview"
-    "gemini-2.5-computer-use-preview-10-2025"
-    "deep-research-pro-preview-12-2025"
-    "gemini-embedding-001"
-    "gemini-embedding-2-preview"
-    "aqa"
-    "imagen-4.0-generate-001"
-    "imagen-4.0-ultra-generate-001"
-    "imagen-4.0-fast-generate-001"
-    "veo-2.0-generate-001"
-    "veo-3.0-generate-001"
-    "veo-3.0-fast-generate-001"
-    "veo-3.1-generate-preview"
-    "veo-3.1-fast-generate-preview"
-    "gemini-2.5-flash-native-audio-latest"
-    "gemini-2.5-flash-native-audio-preview-09-2025"
-    "gemini-2.5-flash-native-audio-preview-12-2025"
-)
-DEFAULT_MODEL="${AVAILABLE_MODELS[0]}"
+MODEL_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/gemini-models.txt"
+LAST_MODEL_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/gemini-last-model.txt"
+DEFAULT_MODEL="gemini-3.5-flash-lite"
+QUICK_MODEL="gemini-3.5-flash-lite"
+THINKING_MODEL="gemini-3.6-flash"
+
+function refresh_models() {
+    curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KEY" \
+        | jq -r '.models[].name | sub("^models/"; "")' \
+        > "$MODEL_CACHE"
+    echo "Model cache refreshed at $MODEL_CACHE"
+}
+
+function load_models() {
+    if [[ ! -f "$MODEL_CACHE" ]]; then
+        refresh_models >&2
+    fi
+    mapfile -t AVAILABLE_MODELS < "$MODEL_CACHE"
+}
 
 function print_help() {
-    echo "Usage: ai [-q] [-t] [--select-model] [--list-models] [prompt]"
-    echo "  -q                       Use model gemini-2.5-flash-lite"
-    echo "  -t                       Use model gemini-3-flash-preview"
+    echo "Usage: ai [-q] [-t] [-l] [--select-model] [--list-models] [--refresh-models] [prompt]"
+    echo "  -q                       Use quick model ($QUICK_MODEL)"
+    echo "  -t                       Use thinking model ($THINKING_MODEL)"
+    echo "  -l                       Use last selected model from --select-model"
     echo "  --list-models            Show all available Gemini models"
     echo "  --select-model           Select a model from the list"
+    echo "  --refresh-models         Force refresh the local model cache"
     echo "  --help                   Show this help message"
     echo "  prompt                   The prompt to send to Gemini"
 }
@@ -109,19 +75,33 @@ function ai() {
                 return 0
                 ;;
             --list-models)
+                load_models
                 list_models
+                return 0
+                ;;
+            --refresh-models)
+                refresh_models
                 return 0
                 ;;
             --select-model)
                 select_model=1
                 shift
                 ;;
+            -l)
+                if [[ -f "$LAST_MODEL_CACHE" ]]; then
+                    model_name=$(<"$LAST_MODEL_CACHE")
+                else
+                    echo "No last model saved yet. Use --select-model first." >&2
+                    return 1
+                fi
+                shift
+                ;;
             -q)
-                model_name="gemini-2.5-flash-lite"
+                model_name="$QUICK_MODEL"
                 shift
                 ;;
             -t)
-                model_name="gemini-3-flash-preview"
+                model_name="$THINKING_MODEL"
                 shift
                 ;;
             *)
@@ -130,6 +110,8 @@ function ai() {
                 ;;
         esac
     done
+
+    load_models
 
     if [[ $select_model -eq 1 ]]; then
         if command -v fzf >/dev/null 2>&1; then
@@ -149,6 +131,7 @@ function ai() {
                 fi
             done
         fi
+        echo "$model_name" > "$LAST_MODEL_CACHE"
     fi
 
     if [[ ${#prompt_args[@]} -eq 0 ]]; then
@@ -244,6 +227,8 @@ function ai() {
         --request POST \
         "https://generativelanguage.googleapis.com/v1beta/models/${model_name}:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY" |
         sed -u 's/^data: //' |
-        jq -r 'select(.candidates) | .candidates[].content.parts[].text' | (command -v glow >/dev/null 2>&1 && glow  || cat)
+        jq -r -j 'select(.candidates) | .candidates[].content.parts[].text' 
+    # glow breaks the streaming response / creates unecessary wraps
+        # jq -r -j 'select(.candidates) | .candidates[].content.parts[].text' | (command -v glow >/dev/null 2>&1 && glow || cat)
 }
 ai "$@"

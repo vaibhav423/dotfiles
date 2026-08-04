@@ -31,8 +31,11 @@ unbind m
 bindurl www.google.com gi composite focusinput -l ; text.end_of_line
 bindurl ^https://web.whatsapp.com f hint -c [tabindex]:not(.two)>div,a
 bindurl ^https://web.whatsapp.com F hint -bc [tabindex]:not(.two)>div,a
+" unbind url increment
+unbind <C-a>
 
 " Aliases
+alias copytabs jsb browser.tabs.query({}).then(tabs => { const urls = tabs.map(t => t.url).join('\n'); tri.excmds.clipboard('yank', urls); })
 alias vbd tabopen
 alias vbg tabopen
 alias vxg tabopen
