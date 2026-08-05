@@ -1,5 +1,20 @@
 -- config/mappings.lua: all global keymaps for astrocore.
 -- Add new mappings here. astrocore.lua merges this into opts.mappings.
+
+local warn_hidden = true
+local function toggle_warnings()
+  warn_hidden = not warn_hidden
+  local sev = vim.diagnostic.severity
+  local no_warn = warn_hidden and { sev.ERROR, sev.INFO, sev.HINT }
+    or { sev.ERROR, sev.WARN, sev.INFO, sev.HINT }
+  vim.diagnostic.config {
+    virtual_text = { severity = no_warn },
+    underline = { severity = no_warn },
+    signs = { severity = no_warn },
+  }
+  vim.notify("Diagnostic warnings: " .. (warn_hidden and "hidden" or "shown"), vim.log.levels.INFO)
+end
+
 return {
 
   -- Insert mode ---------------------------------------------------------------
@@ -116,6 +131,9 @@ return {
     -- Code Runner
     ["<Leader>or"] = { function() require("common.personal.code_runner").run() end, desc = "Run code file in buffer" },
     ["<Leader>oi"] = { function() require("common.personal.code_runner").toggle_layout() end, desc = "Toggle Code I/O Layout" },
+
+    -- Toggle diagnostic warnings (hide/show yellow warnings)
+    ["<Leader>uw"] = { toggle_warnings, desc = "Toggle hiding diagnostic warnings" },
 
     -- calendar
       

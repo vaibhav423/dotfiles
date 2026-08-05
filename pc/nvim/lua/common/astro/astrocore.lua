@@ -20,10 +20,19 @@ return {
       notifications = true,
     })
 
+    -- opts.diagnostics = vim.tbl_deep_extend("force", opts.diagnostics or {}, {
+    --   virtual_text = true,
+    --   underline = true,
+    --
+    -- })
+
     -- vim.diagnostic.config() values when diagnostics are enabled
+    local sev = vim.diagnostic.severity
+    local no_warn = { sev.ERROR, sev.INFO, sev.HINT }
     opts.diagnostics = vim.tbl_deep_extend("force", opts.diagnostics or {}, {
-      virtual_text = true,
-      underline = true,
+      virtual_text = { severity = no_warn },
+      underline = { severity = no_warn },
+      signs = { severity = no_warn },
     })
 
     -- Vim options
