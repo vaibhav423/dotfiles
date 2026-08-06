@@ -139,9 +139,9 @@ hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("cd ~/Water/Fire/ && " .. ter
 hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("cd ~/Water/Fire && " .. term .. " nvim ~/Water/Fire/Archive/scratch.md"), { description = "Notes" })
 hl.bind(mainMod .. " + ALT + B", hl.dsp.exec_cmd(term .. " nvim '/home/ixdire/.config/hypr/conf/keybindings/custom.lua'"), { description = "Open keybinding file" })
 hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.exec_cmd(term .. " --app-id dotfiles-floating nvim ~/Water/crap/scripts/git.log"), { description = "Git log" })
--- gemini: bind = mainMod, F2, exec, /home/ixdire/.config/ml4w/settings/ai.sh
+hl.bind(mainMod .. " + F2", hl.dsp.exec_cmd("firefox --name=ai-browser -P hminimal2 --new-instance gemini.google.com"), { description = "Notes" })
 -- phone: bind = mainMod ALT, P, exec, ~/.config/ml4w/scripts/phone.sh >> ~/log
-hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("cd ~/Water/Fire && ~/Water/crap/scripts/notify \"~/Water/crap/scripts/git.sh 2>&1 | tee ~/Water/crap/scripts/git.log\""), { description = "Git vault sync" })
+hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("cd ~/Water/Fire && ~/Water/crap/scripts/notify.sh \"~/Water/crap/scripts/git.sh 2>&1 | tee ~/Water/crap/scripts/git.log\""), { description = "Git vault sync" })
 hl.bind(mainMod .. " + ALT + F4", hl.dsp.exec_cmd("systemctl poweroff"), { description = "Shutdown" })
 hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("/home/ixdire/Water/crap/dotfiles/pc/scripts/hidewin.sh"), { description = "Hidewin" })
 hl.bind(mainMod .. " + U", hl.dsp.exec_cmd("/home/ixdire/Water/crap/dotfiles/pc/scripts/unhidewin.sh"), { description = "Unhidewin" })

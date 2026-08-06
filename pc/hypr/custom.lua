@@ -1,8 +1,8 @@
 -- ## AUTOSTART ##
 -- ai
-hl.on("hyprland.start", function ()
-    hl.exec_cmd("/usr/bin/firefox --name=ai-browser -P hminimal2 --new-instance gemini.google.com --new-window gemini.google.com --new-window gemini.google.com")
-end)
+-- hl.on("hyprland.start", function ()
+--     hl.exec_cmd("/usr/bin/firefox --name=ai-browser -P hminimal2 --new-instance gemini.google.com --new-window gemini.google.com --new-window gemini.google.com")
+-- end)
 
 -- ## WINDOW-RULES ##
 
@@ -46,7 +46,7 @@ hl.window_rule({
 -- Notifi
 hl.window_rule({
     name = "noti",
-    match = { class = "(noti)" },
+    match = { class = "noti" },
     float = true,
     move = "(monitor_w-window_w-16+600) 66",
     pin = true,
