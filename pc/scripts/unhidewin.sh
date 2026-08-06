@@ -50,4 +50,4 @@ fi
 tac "$STATE_FILE" | sed "0,/^${CURRENT_WS}:${WIN_ADDR//\//\\/}\$/{//d}" | tac > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
 
 # Move the window back to the current workspace
-hyprctl dispatch movetoworkspace "${CURRENT_WS},address:${WIN_ADDR}"
+hyprctl dispatch "hl.dsp.window.move({ workspace = ${CURRENT_WS}, window = \"address:${WIN_ADDR}\" })"

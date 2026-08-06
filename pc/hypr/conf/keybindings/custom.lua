@@ -110,6 +110,7 @@ hl.bind("CTRL + ALT + T", hl.dsp.exec_cmd("~/.config/ml4w/themes/themes.sh"), { 
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }), { description = "Switch to next workspace" })
 hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }), { description = "Switch to previous workspace" })
 
+
 -- Move/resize windows with mainMod + LMB/RMB and dragging
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true, description = "Move window with the mouse" })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true, description = "Resize window with the mouse" })
@@ -131,7 +132,7 @@ hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true,
 -- # my adds
 
 hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-json ~/Water/crap/scripts/rofi/general.json"), { description = "General rofi" })
-hl.bind(mainMod .. " + ALT + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-json ~/Water/crap/scripts/rofi/opencode.json"), { description = "General rofi" })
+hl.bind(mainMod .. " + CTRL + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-json ~/Water/crap/scripts/rofi/opencode.json"), { description = "General rofi" })
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(term .. " nchat"), { description = "Whatsapp" })
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(term .. " opencode"), { description = "Opencode" })
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("cd ~/Water/Fire/ && " .. term .. " nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
@@ -146,7 +147,7 @@ hl.bind(mainMod .. " + ALT + F4", hl.dsp.exec_cmd("systemctl poweroff"), { descr
 hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("/home/ixdire/Water/crap/dotfiles/pc/scripts/hidewin.sh"), { description = "Hidewin" })
 hl.bind(mainMod .. " + U", hl.dsp.exec_cmd("/home/ixdire/Water/crap/dotfiles/pc/scripts/unhidewin.sh"), { description = "Unhidewin" })
 hl.bind(mainMod .. " + SHIFT + ALT + S", hl.dsp.window.move({ workspace = "special" }), { description = "Move window to special workspace" })
-hl.bind(mainMod .. " + ALT + C", hl.dsp.exec_cmd("hyprctl dispatch togglespecialworkspace"), { description = "Toggle special workspace" })
+hl.bind(mainMod .. " + ALT + C", hl.dsp.workspace.toggle_special(), { description = "Toggle special workspace" })
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("nmcli connection up fire"), { description = "Wifi connect" })
 hl.bind(mainMod .. " + CTRL + A", hl.dsp.exec_cmd("/home/ixdire/Water/crap/dotfiles/pc/scripts/bttogg.sh"), { description = "Bluetooth toggle" })
 hl.bind(mainMod .. " + ALT + F2", hl.dsp.exec_cmd("/home/ixdire/.config/ml4w/settings/aigpt.sh"), { description = "Chatgpt" })
@@ -163,3 +164,6 @@ hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("/home/ixdire/Water/crap/scripts/resu
 hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("grim ~/grim/$(date +'%Y-%m-%d-%H%M%S.png')"), { description = "Screenshot to grim" })
 hl.bind(mainMod .. " + ALT + P", hl.dsp.exec_cmd("grim - | wl-copy"), { description = "Full screenshot to clipboard" })
 -- region photo to clipboard: bind = mainMod SHIFT, P, exec, grim -g "$(slurp)" - | wl-copy
+-- Alt+Tab to cycle through windows on the current workspace
+hl.bind("ALT + Tab", hl.dsp.window.cycle_next({ next = true }), { repeating = true, description = "Next window" })
+hl.bind("ALT + SHIFT + Tab", hl.dsp.window.cycle_next({ next = false }), { repeating = true, description = "Previous window" })

@@ -28,5 +28,5 @@ if [ -z "$SRC_WS" ] || [ "$SRC_WS" = "null" ]; then
 fi
 # Record the mapping before moving
 echo "${SRC_WS}:${WIN_ADDR}" >> "$STATE_FILE"
-# Move the window to the special hidden workspace (silent = don't switch to it)
-hyprctl dispatch movetoworkspacesilent "special:hidden,address:${WIN_ADDR}"
+# Move the window to the special hidden workspace (follow = false = don't switch to it)
+hyprctl dispatch "hl.dsp.window.move({ workspace = \"special:hidden\", follow = false, window = \"address:${WIN_ADDR}\" })"

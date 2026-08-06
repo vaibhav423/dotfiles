@@ -133,7 +133,7 @@ return {
     ["<Leader>oi"] = { function() require("common.personal.code_runner").toggle_layout() end, desc = "Toggle Code I/O Layout" },
 
     -- Toggle diagnostic warnings (hide/show yellow warnings)
-    ["<Leader>uw"] = { toggle_warnings, desc = "Toggle hiding diagnostic warnings" },
+    ["<Leader>dw"] = { toggle_warnings, desc = "Toggle hiding diagnostic warnings" },
 
     -- calendar
       

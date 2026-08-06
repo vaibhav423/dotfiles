@@ -34,10 +34,11 @@ function load_models() {
 }
 
 function print_help() {
-    echo "Usage: ai [-q] [-t] [-l] [--select-model] [--list-models] [--refresh-models] [prompt]"
-    echo "  -q                       Use quick model ($QUICK_MODEL)"
-    echo "  -t                       Use thinking model ($THINKING_MODEL)"
+    echo "Usage: ai [-q] [-t] [-l] [-d] [--select-model] [--list-models] [--refresh-models] [prompt]"
+    echo "  -q, --quick              Use quick model ($QUICK_MODEL)"
+    echo "  -t, --thinking           Use thinking model ($THINKING_MODEL)"
     echo "  -l                       Use last selected model from --select-model"
+    echo "  -d, --debug              Show debug info (model and request details)"
     echo "  --list-models            Show all available Gemini models"
     echo "  --select-model           Select a model from the list"
     echo "  --refresh-models         Force refresh the local model cache"
@@ -67,6 +68,7 @@ function ai() {
     local model_name="$DEFAULT_MODEL"
     local prompt_args=()
     local select_model=0
+    local debug=0
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -102,6 +104,10 @@ function ai() {
                 ;;
             -t)
                 model_name="$THINKING_MODEL"
+                shift
+                ;;
+            -d|--debug)
+                debug=1
                 shift
                 ;;
             *)
@@ -209,7 +215,8 @@ function ai() {
     fi
     echo $model_name | glow
 
-    jq -n \
+    local request_body
+    request_body=$(jq -n \
         --arg content "${prompt_args[*]}" \
         '{
           "contents": [
@@ -221,14 +228,20 @@ function ai() {
               ]
             }
           ]
-        }' | curl --silent --no-buffer \
+        }')
+
+    if [[ $debug -eq 1 ]]; then
+        echo "Model: $model_name"
+        echo "Request body: $request_body" >&2
+    fi
+
+    echo "$request_body" | curl --silent --no-buffer \
         --header 'Content-Type: application/json' \
         --data @- \
         --request POST \
         "https://generativelanguage.googleapis.com/v1beta/models/${model_name}:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY" |
         sed -u 's/^data: //' |
-        jq -r -j 'select(.candidates) | .candidates[].content.parts[].text' 
-    # glow breaks the streaming response / creates unecessary wraps
+        jq -r -j 'select(.candidates) | .candidates[].content.parts[].text'
         # jq -r -j 'select(.candidates) | .candidates[].content.parts[].text' | (command -v glow >/dev/null 2>&1 && glow || cat)
 }
 ai "$@"

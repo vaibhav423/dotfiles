@@ -1,26 +1,30 @@
 [
   {
     "title": "yazi",
-    "exec": "kitty -e opencode -s  ses_101ee4f91ffeVAGY8lEOrgidvj"
+    "exec": "foot opencode -s  ses_101ee4f91ffeVAGY8lEOrgidvj"
   },
   {
     "title": "scaler-cli-dev",
-    "exec": "kitty -e opencode -s ses_11a33b432ffeatGUheLNn3FIGn"
+    "exec": "foot opencode -s ses_11a33b432ffeatGUheLNn3FIGn"
   },
   {
     "title": "scaler-cli-solver",
-    "exec": "kitty -e opencode -s ses_340f5038bffeedNYKJsT0o5K0T  "
+    "exec": "foot opencode -s ses_340f5038bffeedNYKJsT0o5K0T  "
   },
   {
     "title": "hindi-build",
-    "exec": "kitty -e opencode -s ses_0bf82aa99ffeRuobW8aFAvVNLh"
+    "exec": "foot opencode -s ses_0bf82aa99ffeRuobW8aFAvVNLh"
   },
   {
     "title": "sess-analyze",
-    "exec": "kitty -e opencode -s ses_077b2005bffeGvRRFCzGGKAdAM"
+    "exec": "foot opencode -s ses_077b2005bffeGvRRFCzGGKAdAM"
   },
   {
     "title": "tridactyl-edit",
-    "exec": "kitty -e opencode -s ses_053ee9f69ffeM5u5aVY6TKgMuH"
+    "exec": "foot opencode -s ses_053ee9f69ffeM5u5aVY6TKgMuH"
+  },
+  {
+    "title": "hyprland",
+    "exec":" foot opencode -s ses_02a24982bffe1LSKne017IgyxE"
   }
 ]
