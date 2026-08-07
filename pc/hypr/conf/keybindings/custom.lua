@@ -2,11 +2,12 @@
 local mainMod = "SUPER" -- Sets "Windows" key as main modifier
 
 local term = "foot" -- Terminal emulator
+local tmux = term .. " tmux new-session" -- Open tmux session
 
 
 -- Applications
 -- hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd("~/.config/ml4w/settings/terminal.sh"), { description = "Open the terminal" })
-hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(term), { description = "Open the terminal" })
+hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(term .. " tmux"), { description = "Open the terminal" })
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/ml4w/settings/browser.sh"), { description = "Open the browser" })
 -- hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("~/.config/ml4w/settings/filemanager"), { description = "Open the filemanager" })
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(term .. " yazi"), { description = "Open the filemanager" })
@@ -135,10 +136,10 @@ hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-
 hl.bind(mainMod .. " + CTRL + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-json ~/Water/crap/scripts/rofi/opencode.json"), { description = "General rofi" })
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(term .. " nchat"), { description = "Whatsapp" })
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(term .. " opencode"), { description = "Opencode" })
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("cd ~/Water/Fire/ && " .. term .. " nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
-hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("cd ~/Water/Fire/ && " .. term .. " nvim"), { description = "Open nvim" })
-hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("cd ~/Water/Fire && " .. term .. " nvim ~/Water/Fire/Archive/scratch.md"), { description = "Notes" })
-hl.bind(mainMod .. " + ALT + B", hl.dsp.exec_cmd(term .. " nvim '/home/ixdire/.config/hypr/conf/keybindings/custom.lua'"), { description = "Open keybinding file" })
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
+hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim"), { description = "Open nvim" })
+hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire nvim ~/Water/Fire/Archive/scratch.md"), { description = "Notes" })
+hl.bind(mainMod .. " + ALT + B", hl.dsp.exec_cmd(tmux .. " nvim '/home/ixdire/.config/hypr/conf/keybindings/custom.lua'"), { description = "Open keybinding file" })
 hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.exec_cmd(term .. " --app-id dotfiles-floating nvim ~/Water/crap/scripts/git.log"), { description = "Git log" })
 hl.bind(mainMod .. " + F2", hl.dsp.exec_cmd("firefox --name=ai-browser -P hminimal2 --new-instance gemini.google.com"), { description = "Notes" })
 -- phone: bind = mainMod ALT, P, exec, ~/.config/ml4w/scripts/phone.sh >> ~/log

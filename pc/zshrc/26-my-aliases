@@ -9,6 +9,10 @@
 # create python virtualenv and activate with given name 
 # do not create if already exists
 
+#newstuf
+alias ftn='fd --type f --hidden --exclude .git | fzf-tmux -p --reverse | xargs nvim'
+
+alias aig='ai --glow'
 uh(){
     unset HISTFILE
 }

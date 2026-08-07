@@ -34,11 +34,12 @@ function load_models() {
 }
 
 function print_help() {
-    echo "Usage: ai [-q] [-t] [-l] [-d] [--select-model] [--list-models] [--refresh-models] [prompt]"
+    echo "Usage: ai [-q] [-t] [-l] [-d] [--glow] [--select-model] [--list-models] [--refresh-models] [prompt]"
     echo "  -q, --quick              Use quick model ($QUICK_MODEL)"
     echo "  -t, --thinking           Use thinking model ($THINKING_MODEL)"
     echo "  -l                       Use last selected model from --select-model"
     echo "  -d, --debug              Show debug info (model and request details)"
+    echo "  --glow                   Stream in full screen, then render final output with glow"
     echo "  --list-models            Show all available Gemini models"
     echo "  --select-model           Select a model from the list"
     echo "  --refresh-models         Force refresh the local model cache"
@@ -69,6 +70,7 @@ function ai() {
     local prompt_args=()
     local select_model=0
     local debug=0
+    local use_glow=0
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -108,6 +110,10 @@ function ai() {
                 ;;
             -d|--debug)
                 debug=1
+                shift
+                ;;
+            --glow)
+                use_glow=1
                 shift
                 ;;
             *)
@@ -213,8 +219,6 @@ function ai() {
             return 1
         fi
     fi
-    echo $model_name | glow
-
     local request_body
     request_body=$(jq -n \
         --arg content "${prompt_args[*]}" \
@@ -235,13 +239,41 @@ function ai() {
         echo "Request body: $request_body" >&2
     fi
 
-    echo "$request_body" | curl --silent --no-buffer \
-        --header 'Content-Type: application/json' \
-        --data @- \
-        --request POST \
-        "https://generativelanguage.googleapis.com/v1beta/models/${model_name}:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY" |
-        sed -u 's/^data: //' |
-        jq -r -j 'select(.candidates) | .candidates[].content.parts[].text'
-        # jq -r -j 'select(.candidates) | .candidates[].content.parts[].text' | (command -v glow >/dev/null 2>&1 && glow || cat)
+    if [[ $use_glow -eq 1 ]]; then
+        local tmp_output
+        tmp_output=$(mktemp)
+
+        # Ensure we restore the screen and delete temp file on exit/interrupt
+        trap 'tput rmcup 2>/dev/null; rm -f "$tmp_output"' RETURN INT TERM EXIT
+
+        # Enter alternate screen and clear it for the live stream
+        tput smcup
+        clear
+
+        echo "$request_body" | curl --silent --no-buffer \
+            --header 'Content-Type: application/json' \
+            --data @- \
+            --request POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/${model_name}:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY" |
+            sed -u 's/^data: //' |
+            jq --unbuffered -r -j 'select(.candidates) | .candidates[].content.parts[].text' |
+            tee "$tmp_output"
+
+        # Manually exit alternate screen before rendering final output
+        tput rmcup
+
+        if [[ -s "$tmp_output" ]]; then
+            glow < "$tmp_output"
+        fi
+    else
+        echo "$request_body" | curl --silent --no-buffer \
+            --header 'Content-Type: application/json' \
+            --data @- \
+            --request POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/${model_name}:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY" |
+            sed -u 's/^data: //' |
+            jq --unbuffered -r -j 'select(.candidates) | .candidates[].content.parts[].text'
+    fi
 }
 ai "$@"
+
