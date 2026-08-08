@@ -132,10 +132,11 @@ hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true,
 
 -- # my adds
 
+hl.bind(mainMod .. " + SHIFT + RETURN", hl.dsp.exec_cmd(term), { description = "Open the terminal" })
 hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-json ~/Water/crap/scripts/rofi/general.json"), { description = "General rofi" })
-hl.bind(mainMod .. " + CTRL + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-json ~/Water/crap/scripts/rofi/opencode.json"), { description = "General rofi" })
+hl.bind(mainMod .. " + CTRL + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-json ~/Water/crap/scripts/rofi/opencode.json"), { description = "opencode rofi" })
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(term .. " nchat"), { description = "Whatsapp" })
-hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(term .. " opencode"), { description = "Opencode" })
+hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(tmux .. " -A -s opencode opencode"), { description = "Opencode" })
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
 hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim"), { description = "Open nvim" })
 hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire nvim ~/Water/Fire/Archive/scratch.md"), { description = "Notes" })
