@@ -139,7 +139,7 @@ hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(term .. " nchat"), { description = "W
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(tmux .. " -A -s opencode opencode"), { description = "Opencode" })
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
 hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim"), { description = "Open nvim" })
-hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire nvim ~/Water/Fire/Archive/scratch.md"), { description = "Notes" })
+hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd(tmux .. " -A -s nvim  -c ~/Water/Fire nvim ~/Water/Fire/Archive/scratch.md"), { description = "Notes" })
 hl.bind(mainMod .. " + ALT + B", hl.dsp.exec_cmd(tmux .. " nvim '/home/ixdire/.config/hypr/conf/keybindings/custom.lua'"), { description = "Open keybinding file" })
 hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.exec_cmd(term .. " --app-id dotfiles-floating nvim ~/Water/crap/scripts/git.log"), { description = "Git log" })
 hl.bind(mainMod .. " + F2", hl.dsp.exec_cmd("firefox --name=ai-browser -P hminimal2 --new-instance gemini.google.com"), { description = "Notes" })

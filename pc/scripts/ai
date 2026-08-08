@@ -239,32 +239,40 @@ function ai() {
         echo "Request body: $request_body" >&2
     fi
 
+    # if [[ $use_glow -eq 1 ]]; then
+    #     local tmp_output
+    #     tmp_output=$(mktemp)
+    #
+    #     # Ensure we restore the screen and delete temp file on exit/interrupt
+    #     trap 'tput rmcup 2>/dev/null; rm -f "$tmp_output"' RETURN INT TERM EXIT
+    #
+    #     # # Enter alternate screen and clear it for the live stream
+    #     # tput smcup
+    #     # clear
+    #
+    #     echo "$request_body" | curl --silent --no-buffer \
+    #         --header 'Content-Type: application/json' \
+    #         --data @- \
+    #         --request POST \
+    #         "https://generativelanguage.googleapis.com/v1beta/models/${model_name}:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY" |
+    #         sed -u 's/^data: //' |
+    #         jq --unbuffered -r -j 'select(.candidates) | .candidates[].content.parts[].text' |
+    #         tee "$tmp_output"
+    #
+    #     # # Manually exit alternate screen before rendering final output
+    #     # tput rmcup
+    #
+    #     if [[ -s "$tmp_output" ]]; then
+    #         glow < "$tmp_output"
+    #     fi
     if [[ $use_glow -eq 1 ]]; then
-        local tmp_output
-        tmp_output=$(mktemp)
-
-        # Ensure we restore the screen and delete temp file on exit/interrupt
-        trap 'tput rmcup 2>/dev/null; rm -f "$tmp_output"' RETURN INT TERM EXIT
-
-        # Enter alternate screen and clear it for the live stream
-        tput smcup
-        clear
-
         echo "$request_body" | curl --silent --no-buffer \
             --header 'Content-Type: application/json' \
             --data @- \
             --request POST \
             "https://generativelanguage.googleapis.com/v1beta/models/${model_name}:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY" |
             sed -u 's/^data: //' |
-            jq --unbuffered -r -j 'select(.candidates) | .candidates[].content.parts[].text' |
-            tee "$tmp_output"
-
-        # Manually exit alternate screen before rendering final output
-        tput rmcup
-
-        if [[ -s "$tmp_output" ]]; then
-            glow < "$tmp_output"
-        fi
+            jq --unbuffered -r -j 'select(.candidates) | .candidates[].content.parts[].text' | glow
     else
         echo "$request_body" | curl --silent --no-buffer \
             --header 'Content-Type: application/json' \
