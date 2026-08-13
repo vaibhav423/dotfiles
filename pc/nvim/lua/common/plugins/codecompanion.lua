@@ -1,4 +1,6 @@
-
+-- https://github.com/AstroNvim/astrocommunity/blob/main/lua/astrocommunity/ai/codecompanion-nvim/init.lua
+-- https://github.com/olimorris/codecompanion.nvim
+-- ~/.local/share/nvim/lazy/codecompanion.nvim/README.md
 local prefix = "<Leader>k"
 
 return {
@@ -17,28 +19,49 @@ return {
   opts = {
     interactions = {
       chat = {
-        adapter = "gemini_cli",
+        -- adapter = "gemini_cli",
+        -- https://codecompanion.olimorris.dev/configuration/adapters-http#github-copilot-free-student
+        adapter = "copilot",
+        model = "auto",
       },
       inline = {
-        adapter = "gemini_cli",
+        -- adapter = "gemini_cli",
+        adapter = "copilot",
+        model = "auto"
       },
     },
     adapters = {
-      acp = {
-        gemini_cli = function()
-          return require("codecompanion.adapters").extend("gemini_cli", {
-            commands = {
-              default = {
-                "gemini",
-                "--acp",
-              },
+      -- local Gemini-FastAPI (localhost:8000) via OpenAI-compatible endpoint
+      http = {
+        gemini_local = function()
+          return require("codecompanion.adapters").extend("openai_compatible", {
+            env = {
+              url = "http://localhost:8000",
+              api_key = "gemini-local",
+              chat_url = "/v1/chat/completions",
+              models_endpoint = "/v1/models",
             },
-            defaults = {
-              model = "auto-gemini-3",
+            headers = {
+              ["Content-Type"] = "application/json",
             },
           })
         end,
       },
+      -- acp = {
+      --   gemini_cli = function()
+      --     return require("codecompanion.adapters").extend("gemini_cli", {
+      --       commands = {
+      --         default = {
+      --           "gemini",
+      --           "--acp",
+      --         },
+      --       },
+      --       defaults = {
+      --         model = "auto-gemini-3",
+      --       },
+      --     })
+      --   end,
+      -- },
     },
   },
   specs = {
@@ -115,15 +138,6 @@ return {
       opts = function(_, opts)
         if not opts.file_types then opts.file_types = { "markdown" } end
         opts.file_types = require("astrocore").list_insert_unique(opts.file_types, { "codecompanion" })
-      end,
-    },
-    {
-      "OXY2DEV/markview.nvim",
-      optional = true,
-      opts = function(_, opts)
-        if not opts.preview then opts.preview = {} end
-        if not opts.preview.filetypes then opts.preview.filetypes = { "markdown", "quarto", "rmd" } end
-        opts.preview.filetypes = require("astrocore").list_insert_unique(opts.preview.filetypes, { "codecompanion" })
       end,
     },
   },

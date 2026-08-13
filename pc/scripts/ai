@@ -16,7 +16,7 @@ fi
 MODEL_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/gemini-models.txt"
 LAST_MODEL_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/gemini-last-model.txt"
 DEFAULT_MODEL="gemini-3.5-flash-lite"
-QUICK_MODEL="gemini-3.5-flash-lite"
+QUICK_MODEL="gemini-3.5-flash"
 THINKING_MODEL="gemini-3.6-flash"
 
 function refresh_models() {
@@ -123,6 +123,16 @@ function ai() {
         esac
     done
 
+    # If prompt arguments exist and stdin is piped, append the piped content
+    # on a new line after the arguments
+    if [[ ${#prompt_args[@]} -gt 0 ]] && ! [[ -t 0 ]]; then
+        local piped_input
+        piped_input=$(cat)
+        if [[ -n "$piped_input" ]]; then
+            prompt_args+=("$piped_input")
+        fi
+    fi
+
     load_models
 
     if [[ $select_model -eq 1 ]]; then
@@ -220,8 +230,10 @@ function ai() {
         fi
     fi
     local request_body
+    local content
+    content=$(printf "%s\n" "${prompt_args[@]}")
     request_body=$(jq -n \
-        --arg content "${prompt_args[*]}" \
+        --arg content "$content" \
         '{
           "contents": [
             {

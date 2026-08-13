@@ -26,5 +26,9 @@
   {
     "title": "hyprland",
     "exec":" foot opencode -s ses_02a24982bffe1LSKne017IgyxE"
+  },
+  {
+    "title" : "opencode-manager",
+    "exec" : "foot opencode -s ses_01a629e19ffez7GsDYJLw6J5hd"
   }
 ]

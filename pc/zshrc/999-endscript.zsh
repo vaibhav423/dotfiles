@@ -7,7 +7,7 @@ export FZF_COMPLETION_TRIGGER=',,'
 # export PATH="$HOME/.wakatime:$PATH"
 # eval "$(terminal-wakatime init)"
 export TERM=xterm-256color
-source ~/Water/crap/python/bin/activate
+# source ~/Water/crap/python/bin/activate
 #export PATH="/usr/bin:$PATH"
 export LIBVIRT_DEFAULT_URI='qemu:///system'
 # export NVM_DIR="$HOME/.config/nvm"

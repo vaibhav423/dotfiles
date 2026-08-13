@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# collects all json from the dir which this file is in and shows them in rofi
+#  the selected entry is passed to rofi-meni-from-json
 dir="$(dirname "$0")"
 files=("$dir"/*.json)
 
@@ -12,4 +14,4 @@ selected=$(printf '%s\n' "${files[@]##*/}" | rofi -dmenu -p "JSON" -theme ~/.con
 
 [ -z "$selected" ] && exit 1
 
-"$dir/run-json" "$dir/$selected"
+"$dir/rofi-meni-from-json.sh" "$dir/$selected"

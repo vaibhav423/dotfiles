@@ -1,5 +1,6 @@
   -- https://github.com/AstroNvim/astrocommunity/tree/main/lua/astrocommunity/ai/opencode-nvim/init.lua
   -- https://github.com/NickvanDyke/opencode.nvim
+if true then return {} end
 return {
   "NickvanDyke/opencode.nvim",
   dependencies = {

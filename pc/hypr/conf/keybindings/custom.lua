@@ -133,9 +133,10 @@ hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true,
 -- # my adds
 
 hl.bind(mainMod .. " + SHIFT + RETURN", hl.dsp.exec_cmd(term), { description = "Open the terminal" })
-hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-json ~/Water/crap/scripts/rofi/general.json"), { description = "General rofi" })
-hl.bind(mainMod .. " + CTRL + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/run-json ~/Water/crap/scripts/rofi/opencode.json"), { description = "opencode rofi" })
+hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/rofi-menu-from-json.sh ~/Water/crap/scripts/rofi/general.json"), { description = "General rofi" })
+hl.bind(mainMod .. " + CTRL + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/rofi-menu-from-json.sh ~/Water/crap/scripts/rofi/opencode.json"), { description = "opencode rofi" })
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(term .. " nchat"), { description = "Whatsapp" })
+-- -A option allows u to join existing without it would throw duplicate session error
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(tmux .. " -A -s opencode opencode"), { description = "Opencode" })
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
 hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim"), { description = "Open nvim" })
@@ -150,7 +151,9 @@ hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("/home/ixdire/Water/crap/dotfiles/pc/
 hl.bind(mainMod .. " + U", hl.dsp.exec_cmd("/home/ixdire/Water/crap/dotfiles/pc/scripts/unhidewin.sh"), { description = "Unhidewin" })
 hl.bind(mainMod .. " + SHIFT + ALT + S", hl.dsp.window.move({ workspace = "special" }), { description = "Move window to special workspace" })
 hl.bind(mainMod .. " + ALT + C", hl.dsp.workspace.toggle_special(), { description = "Toggle special workspace" })
-hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("nmcli connection up fire"), { description = "Wifi connect" })
+-- hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("nmcli connection up fire"), { description = "Wifi connect" })
+-- hl.bind(mainMod .. " + `", hl.dsp.exec_cmd("nmcli connection up fire"), { description = "Wifi connect" })
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("foot --app-id gemini tmux new-session -A -s gemini-chat ~/Water/crap/srcgit/gemini-chat/.venv/bin/python ~/Water/crap/srcgit/gemini-chat/chat_cli.py"), { description = "Wifi connect" })
 hl.bind(mainMod .. " + CTRL + A", hl.dsp.exec_cmd("/home/ixdire/Water/crap/dotfiles/pc/scripts/bttogg.sh"), { description = "Bluetooth toggle" })
 hl.bind(mainMod .. " + ALT + F2", hl.dsp.exec_cmd("/home/ixdire/.config/ml4w/settings/aigpt.sh"), { description = "Chatgpt" })
 hl.bind(mainMod .. " + ALT + M", hl.dsp.exec_cmd("$SSH sudo input keyevent 85"), { description = "Music toggle" })

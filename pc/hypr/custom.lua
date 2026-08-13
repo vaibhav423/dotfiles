@@ -43,6 +43,16 @@ hl.window_rule({
     opacity = "0.0 override 0.0 override"
 })
 
+-- Gemini
+hl.window_rule({
+    name = "gemini",
+    match = { class = "(gemini)" },
+    float = true,
+    center = true,
+    size = { "monitor_w * 0.7", "monitor_h * 0.7" },
+    pin = true
+})
+
 -- Notifi
 hl.window_rule({
     name = "noti",

@@ -1,5 +1,35 @@
 return {
 
+    We = {
+        function(opts)
+        local cmd = opts.args
+        if cmd == "" then
+            vim.notify(":we requires a command", vim.log.levels.WARN)
+            return
+        end
+
+        local l1, l2 = opts.line1, opts.line2
+        local lines = vim.api.nvim_buf_get_lines(0, l1 - 1, l2, false)
+        local input = table.concat(lines, "\n")
+
+        local output = vim.fn.system(cmd, input)
+        if vim.v.shell_error ~= 0 then
+            vim.notify(":we failed: " .. output, vim.log.levels.ERROR)
+            return
+        end
+
+        local out_lines = vim.split(output, "\n")
+        if out_lines[#out_lines] == "" then
+            table.remove(out_lines)
+        end
+        vim.api.nvim_buf_set_lines(0, l2, l2, false, out_lines)
+        end,
+
+        range = "%",
+        nargs = "*",
+        complete = "shellcmd",
+        desc = "pass buffer or selected region as stdin to command"
+    },
 
     VaultInit = {
       function() require("common.personal.vault_jee").init_template() end,

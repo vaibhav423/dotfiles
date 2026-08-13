@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# run-json.sh rofi-menu.json
+# shows a rofi menu from json in format
+# [{"title":"" , "exec" : ""} , ... ]
+# and execute the selected one using exec key
+#
 file="${1:-/dev/stdin}"
 
 entries=$(jq -c 'if type == "array" then .[] else . end' "$file")

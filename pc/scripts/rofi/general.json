@@ -1,14 +1,18 @@
 [
   {
-    "title": "script-browser",
-    "exec": "~/Water/crap/scripts/rofi/rofi-json-browser"
+    "title": "show-rofi-jsons-and-exec-with-rofi-menu-from-json",
+    "exec": "~/Water/crap/scripts/rofi/rofi-json-browser.sh"
   },
   {
-    "title": "script-edit",
-    "exec": "~/Water/crap/scripts/rofi/rofi-json-edit"
+    "title": "show-rofi-jsons-and-edit",
+    "exec": "~/Water/crap/scripts/rofi/rofi-json-edit.sh"
   },
   {
-    "title": "add-json",
+    "title": "add-jsons",
     "exec": "kitty -e nvim ~/Water/crap/scripts/rofi"
+  },
+  {
+    "title" : "gemini-ai-in-tmux",
+    "exec": "cd ~/Water/crap/srcgit/Gemini-FastAPI && tmux new-session -d -s  gemini-fastapi '~/.pyenv/bin/python run.py'"
   }
 ]

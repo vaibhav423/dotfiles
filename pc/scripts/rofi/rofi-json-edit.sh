@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# collects all json from the dir which this file is in and shows them in rofi
+# the selected entry is then edited
 dir="$(dirname "$0")"
 files=("$dir"/*.json)
 

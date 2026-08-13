@@ -9,7 +9,10 @@
 # create python virtualenv and activate with given name 
 # do not create if already exists
 
+alias vpy="~/.pyenv/bin/python"
+alias sg='cd ~/Water/crap/srcgit/'
 #newstuf
+#only works when i a tmux-window
 alias ftn='fd --type f --hidden --exclude .git | fzf-tmux -p --reverse | xargs nvim'
 
 alias aig='ai --glow'
@@ -18,22 +21,6 @@ uh(){
 }
 androadb(){
 ssh chroot  'asu -c "setprop service.adb.tcp.port 5555" && asu -c "stop adbd" && asu -c "start adbd" ' 
-}
-pveng(){
-    source ~/Water/crap/python/bin/activate
-}
-pven() {
-    if [ -z "$1" ]; then
-        echo "Usage: mkvenv <env-name>"
-        return 1
-    fi
-    if [ ! -d "$1" ]; then
-        python -m venv "$1"
-        echo "Virtual environment '$1' created."
-    else
-        echo "Virtual environment '$1' already exists."
-    fi
-    source "$1/bin/activate"
 }
 
 bainstalled() {
@@ -56,7 +43,6 @@ bainstalled() {
 
 export FIP=$(ip route show default | awk '/default/ {print $3}')
 
-source ~/Water/crap/python/bin/activate
 
 alias cd='z'
 
