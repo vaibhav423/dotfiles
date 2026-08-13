@@ -97,3 +97,8 @@ Host ptk
     HostName fe80::9f79:295c:1735:38b%%wlan0
     User visionx
 
+#------------------------------------
+Host prince
+    HostName fe80::14c4:494e:736b:b0b9%%wlan0
+    User prince
+
