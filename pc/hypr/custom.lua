@@ -64,13 +64,13 @@ hl.window_rule({
     no_initial_focus = true
 })
 
-hl.window_rule({
-    name = "file-picker",
-    match = { class = "^(xdg-desktop-portal-gtk)$" },
-    float = true,
-    pin = true,
-    stay_focused = true
-})
+-- hl.window_rule({
+--     name = "file-picker",
+--     match = { class = "^(xdg-desktop-portal-gtk)$" },
+--     float = true,
+--     pin = true,
+--     stay_focused = true
+-- })
 
 hl.env("LIBVIRT_DEFAULT_URI", "qemu:///system")
 

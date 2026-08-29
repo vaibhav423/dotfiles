@@ -140,7 +140,7 @@ hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(term .. " nchat"), { description = "W
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(tmux .. " -A -s opencode opencode"), { description = "Opencode" })
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
 hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim"), { description = "Open nvim" })
-hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd(tmux .. " -A -s nvim  -c ~/Water/Fire nvim ~/Water/Fire/Archive/scratch.md"), { description = "Notes" })
+hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd(tmux .. " -A -s nvim  -c ~/Water/Fire nvim ~/Water/Fire/notes/scratch.md"), { description = "Notes" })
 hl.bind(mainMod .. " + ALT + B", hl.dsp.exec_cmd(tmux .. " nvim '/home/ixdire/.config/hypr/conf/keybindings/custom.lua'"), { description = "Open keybinding file" })
 hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.exec_cmd(term .. " --app-id dotfiles-floating nvim ~/Water/crap/scripts/git.log"), { description = "Git log" })
 hl.bind(mainMod .. " + F2", hl.dsp.exec_cmd("firefox --name=ai-browser -P hminimal2 --new-instance gemini.google.com"), { description = "Notes" })
@@ -154,7 +154,7 @@ hl.bind(mainMod .. " + ALT + C", hl.dsp.workspace.toggle_special(), { descriptio
 -- hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("nmcli connection up fire"), { description = "Wifi connect" })
 -- hl.bind(mainMod .. " + `", hl.dsp.exec_cmd("nmcli connection up fire"), { description = "Wifi connect" })
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("foot --app-id gemini tmux new-session -A -s gemini-chat ~/.pyenv/bin/gemini-chat"), { description = "Wifi connect" })
-hl.bind(mainMod .. " + CTRL + A", hl.dsp.exec_cmd("/home/ixdire/Water/crap/dotfiles/pc/scripts/bttogg.sh"), { description = "Bluetooth toggle" })
+hl.bind(mainMod .. " + CTRL + A", hl.dsp.exec_cmd("/home/ixdire/Water/crap/scripts/bttogg.sh"), { description = "Bluetooth toggle" })
 hl.bind(mainMod .. " + ALT + F2", hl.dsp.exec_cmd("/home/ixdire/.config/ml4w/settings/aigpt.sh"), { description = "Chatgpt" })
 hl.bind(mainMod .. " + ALT + M", hl.dsp.exec_cmd("$SSH sudo input keyevent 85"), { description = "Music toggle" })
 -- opacity-off: bind = mainMod ALT, O, exec, ~/Water/crap/scripts/opacity.sh 0.0

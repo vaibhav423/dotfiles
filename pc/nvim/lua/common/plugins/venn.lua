@@ -2,6 +2,9 @@
   -- https://github.com/AstroNvim/astrocommunity/tree/main/lua/astrocommunity/note-taking/venn-nvim/init.lua
   -- https://github.com/jbyuki/venn.nvim
   -- https://github.com/jbyuki/venn.nvim/issues/27
+  -- to beigin
+  -- use leader vn , then do HJKL to draw
+  -- to put a box somewhere use  ctrl - v block select the region then press f to draw box
 local hint = [[
  Arrow^^^^^^   Select region with <C-v> 
  ^ ^ _K_ ^ ^   _f_: surround it with box

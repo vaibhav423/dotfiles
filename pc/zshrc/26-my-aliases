@@ -9,6 +9,7 @@
 # create python virtualenv and activate with given name 
 # do not create if already exists
 
+alias p="sudo pacman"
 alias vpy="~/.pyenv/bin/python"
 alias sg='cd ~/Water/crap/srcgit/'
 #newstuf

@@ -104,4 +104,39 @@ return {
       end,
       desc = "Reorder markdown images using python script",
     },
+
+    Mdl = {
+      function()
+        local line = vim.api.nvim_get_current_line()
+        local col = vim.api.nvim_win_get_cursor(0)[2] + 1
+        local url_pattern = "https?://[^%s\"'>`]+"
+        
+        local start_idx = 1
+        local match_start, match_end, url
+        while true do
+          local s, e = line:find(url_pattern, start_idx)
+          if not s then break end
+          if col >= s and col <= e + 1 then
+            match_start = s
+            match_end = e
+            url = line:sub(s, e)
+            break
+          end
+          start_idx = e + 1
+        end
+
+        if not url then
+          vim.notify("No URL found at cursor", vim.log.levels.WARN)
+          return
+        end
+
+        local before = line:sub(1, match_start - 1)
+        local after = line:sub(match_end + 1)
+        local new_line = before .. "[](" .. url .. ")" .. after
+        vim.api.nvim_set_current_line(new_line)
+        vim.api.nvim_win_set_cursor(0, {vim.api.nvim_win_get_cursor(0)[1], #before + 1})
+        vim.cmd("startinsert")
+      end,
+      desc = "Create markdown link around URL at cursor",
+    },
 }

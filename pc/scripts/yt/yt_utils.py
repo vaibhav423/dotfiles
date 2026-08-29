@@ -29,7 +29,7 @@ def parse_seconds(url):
 def fetch_yt_data(url, cookie_browser=None):
     clean_url = re.sub(r'[?&]t=[^&]*', '', url)
     
-    cmd = ["yt-dlp", "-j", "-f", "bestvideo"]
+    cmd = ["yt-dlp", "-j", "--no-playlist", "-f", "worstvideo", "--no-check-certificate"]
     if cookie_browser:
         cmd.extend(["--cookies-from-browser", cookie_browser])
     cmd.append(clean_url)

@@ -9,6 +9,7 @@ import subprocess
 
 # Setup logging
 log_file = os.path.expanduser("/tmp/addytimg.log")
+subprocess.run(["rm" , log_file])
 logging.basicConfig(
     filename=log_file,
     level=logging.DEBUG,

@@ -93,8 +93,9 @@ Host sst-vb
     User git
     IdentityFile ~/.ssh/id_ed25519_git-sst-vb
 
+# 38:8d:3d:41:7b:fa host name in ip6 eui64
 Host ptk
-    HostName fe80::9f79:295c:1735:38b%%wlan0
+    HostName fe80::3a8d:3dff:fe41:7bfa%%wlan0
     User visionx
 
 #------------------------------------

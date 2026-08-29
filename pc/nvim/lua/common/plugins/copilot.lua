@@ -6,6 +6,8 @@
 --   return {}
 -- end
 
+vim.env.GITHUB_COPILOT_AUTH_TOKEN_ENCRYPTION = "false"
+
 local function has_words_before()
   local line, col = unpack(vim.api.nvim_win_get_cursor(0))
   return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match "%s" == nil
@@ -27,13 +29,13 @@ return {
     vim.fn.system("getent hosts api.github.com >/dev/null 2>&1")
     return vim.v.shell_error == 0
   end,
-  opts = {
-    filetypes = {
-      markdown = true,
-      zsh = true,
-      ["*"] = false,
-    },
-  },
+  -- opts = {
+  --   filetypes = {
+  --     markdown = true,
+  --     zsh = true,
+  --     ["*"] = false,
+  --   },
+  -- },
   specs = {
     { import = "astrocommunity.completion.copilot-lua" },
     {
