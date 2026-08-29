@@ -34,5 +34,5 @@ prepend_keymap = [
 	{ on = [ "u", "R" ], run = "plugin yamb -- rename_by_fzf", desc = "Rename bookmark by fzf" },
 
 	# gdrive mount
-	{ on = [ "m", "g" ], run = "shell --block -- /home/ixdire/.config/yazi/toggle-gdrive.sh", desc = "Toggle Google Drive mount" },
+	{ on = [ "m", "g" ], run = "shell --block -- ~/.config/yazi/toggle-gdrive.sh", desc = "Toggle Google Drive mount" },
 ]
