@@ -30,5 +30,11 @@
   {
     "title" : "opencode-manager",
     "exec" : "foot opencode -s ses_01a629e19ffez7GsDYJLw6J5hd"
+  },
+
+  {
+    "title" : "nvim",
+    "exec" : "foot opencode -s ses_fade15d49ffefJGE4Zgvb7XByO"
+
   }
 ]

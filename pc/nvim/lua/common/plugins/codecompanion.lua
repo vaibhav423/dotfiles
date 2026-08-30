@@ -21,7 +21,7 @@ return {
       chat = {
         -- adapter = "gemini_cli",
         -- https://codecompanion.olimorris.dev/configuration/adapters-http#github-copilot-free-student
-        adapter = "copilot",
+        adapter = "gemini_local",
         model = "auto",
       },
       inline = {

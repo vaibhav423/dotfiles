@@ -9,8 +9,25 @@ return {
         end
 
         local l1, l2 = opts.line1, opts.line2
+        local c1 = vim.fn.getpos("'<")[3]
+        local c2 = vim.fn.getpos("'>")[3]
+
         local lines = vim.api.nvim_buf_get_lines(0, l1 - 1, l2, false)
-        local input = table.concat(lines, "\n")
+
+        -- c2 == 2147483647 (v:maxcol) means the visual selection extends to end-of-line (linewise)
+        local partial = c2 < 2147483647
+        local input
+        if partial then
+            if l1 == l2 then
+                input = lines[1]:sub(c1, c2) .. "\n"
+            else
+                lines[1] = lines[1]:sub(c1)
+                lines[#lines] = lines[#lines]:sub(1, c2)
+                input = table.concat(lines, "\n") .. "\n"
+            end
+        else
+            input = table.concat(lines, "\n") .. "\n"
+        end
 
         local output = vim.fn.system(cmd, input)
         if vim.v.shell_error ~= 0 then

@@ -132,6 +132,7 @@ hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true,
 
 -- # my adds
 
+hl.bind(mainMod .. " + ALT + M", hl.dsp.exec_cmd(term .. " btop"), { description = "Open the terminal" })
 hl.bind(mainMod .. " + SHIFT + RETURN", hl.dsp.exec_cmd(term), { description = "Open the terminal" })
 hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/rofi-menu-from-json.sh ~/Water/crap/scripts/rofi/general.json"), { description = "General rofi" })
 hl.bind(mainMod .. " + CTRL + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/rofi-menu-from-json.sh ~/Water/crap/scripts/rofi/opencode.json"), { description = "opencode rofi" })
