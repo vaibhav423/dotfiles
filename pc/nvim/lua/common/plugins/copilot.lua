@@ -6,7 +6,7 @@
 --   return {}
 -- end
 
-vim.env.GITHUB_COPILOT_AUTH_TOKEN_ENCRYPTION = "false"
+-- vim.env.GITHUB_COPILOT_AUTH_TOKEN_ENCRYPTION = "false"
 
 local function has_words_before()
   local line, col = unpack(vim.api.nvim_win_get_cursor(0))
@@ -14,8 +14,8 @@ local function has_words_before()
 end
 
 local function copilot_action(action)
-  local copilot = require "copilot.suggestion"
   return function()
+    local copilot = require "copilot.suggestion"
     if copilot.is_visible() then
       copilot[action]()
       return true -- doesn't run the next command
@@ -25,10 +25,10 @@ end
 
 return {
   "zbirenbaum/copilot.lua",
-  cond = function()
-    vim.fn.system("getent hosts api.github.com >/dev/null 2>&1")
-    return vim.v.shell_error == 0
-  end,
+  -- cond = function()
+  --   vim.fn.system("getent hosts api.github.com >/dev/null 2>&1")
+  --   return vim.v.shell_error == 0
+  -- end,
   -- opts = {
   --   filetypes = {
   --     markdown = true,
@@ -36,6 +36,9 @@ return {
   --     ["*"] = false,
   --   },
   -- },
+  cmd = "Copilot",
+  event = function() return {} end,
+  opts = { suggestion = { auto_trigger = false } },
   specs = {
     { import = "astrocommunity.completion.copilot-lua" },
     {
