@@ -19,6 +19,7 @@ return {
     },
   },
   opts = {
+    enabled = false,
     backend = "sixel",
     integrations = {
       markdown = {
@@ -71,6 +72,7 @@ return {
   },
   config = function(_, opts)
     require("image").setup(opts)
+    require("image").disable()
 
     -- ==========================================================================
     -- WHY THIS PATCH EXISTS (image popup sizing)

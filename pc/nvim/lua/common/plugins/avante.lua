@@ -1,4 +1,5 @@
 if true then return {} end
+-- plugin disabled
 local prefix = "<Leader>a"
 return {
   "yetone/avante.nvim",
