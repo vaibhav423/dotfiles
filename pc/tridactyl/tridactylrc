@@ -35,6 +35,8 @@ bindurl ^https://web.whatsapp.com F hint -bc [tabindex]:not(.two)>div,a
 unbind <C-a>
 " unbind move half page down
 unbind <C-f>
+" open in archive
+bind ga js tri.excmds.tabopen("https://web.archive.org/web/" + window.location.href)
 
 " Aliases
 alias copytabs jsb browser.tabs.query({}).then(tabs => { const urls = tabs.map(t => t.url).join('\n'); tri.excmds.clipboard('yank', urls); })
