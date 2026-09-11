@@ -4,7 +4,7 @@ sort_reverse 	 = false
 [opener]
 
 edit = [
-  { run = 'setsid kitty -e nvim "$@" > /dev/null 2>&1 &', block = true, desc = "Neovim" },
+  { run = 'setsid foot nvim "$@" > /dev/null 2>&1 &', block = true, desc = "Neovim" },
   { run = 'nvim "$@"', block = true, desc = "Neovim-in-curr" },
 ]
 

@@ -15,19 +15,34 @@ return {
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
+    "ravitemer/codecompanion-history.nvim",
   },
   opts = {
     interactions = {
       chat = {
-        -- adapter = "gemini_cli",
-        -- https://codecompanion.olimorris.dev/configuration/adapters-http#github-copilot-free-student
         adapter = "gemini_local",
         model = "auto",
+        roles = {
+          llm = function() return "gemini_local" end,
+          user = "Me",
+        },
       },
       inline = {
-        -- adapter = "gemini_cli",
         adapter = "copilot",
-        model = "auto"
+        model = "auto",
+      },
+    },
+    display = {
+      chat = {
+        intro_message = "",
+      },
+    },
+    extensions = {
+      history = {
+        enabled = true,
+        opts = {
+          dir_to_save = vim.fn.stdpath("data") .. "/codecompanion_chats.json",
+        },
       },
     },
     adapters = {
@@ -64,57 +79,43 @@ return {
       -- },
     },
   },
+  config = function(_, opts)
+    require("codecompanion").setup(opts)
+
+    -- Safely handle `vim.cmd("hide")` in single-window setups to prevent E444
+    local shared_ui = require("codecompanion.interactions.shared.ui")
+    local orig_hide = shared_ui.hide
+    shared_ui.hide = function(winnr, bufnr, layout)
+      if vim.api.nvim_get_current_buf() == bufnr then
+        pcall(vim.cmd, "hide")
+        return
+      end
+      orig_hide(winnr, bufnr, layout)
+    end
+
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionChatCreated",
+      callback = function(args)
+        local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+        local win = vim.fn.bufwinid(args.data.bufnr)
+        chat:add_callback("on_before_submit", function()
+          if vim.api.nvim_win_is_valid(win) then
+            vim.wo[win].winbar = " ⠋ thinking..."
+          end
+        end)
+        chat:add_callback("on_ready", function()
+          if vim.api.nvim_win_is_valid(win) then
+            vim.wo[win].winbar = ""
+          end
+        end)
+      end,
+    })
+  end,
   specs = {
     {
-      "rebelot/heirline.nvim",
-      optional = true,
-
-      opts = function(_, opts)
-        opts.statusline = opts.statusline or {}
-        local spinner_symbols = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
-        local astroui = require "astroui.status.hl"
-        table.insert(opts.statusline, {
-          static = {
-            n_requests = 0,
-            spinner_index = 0,
-            spinner_symbols = spinner_symbols,
-            done_symbol = "✓",
-          },
-          init = function(self)
-            if self._cc_autocmds then return end
-            self._cc_autocmds = true
-            vim.api.nvim_create_autocmd("User", {
-              pattern = "CodeCompanionRequestStarted",
-              callback = function()
-                self.n_requests = self.n_requests + 1
-                vim.cmd "redrawstatus"
-              end,
-            })
-            vim.api.nvim_create_autocmd("User", {
-              pattern = "CodeCompanionRequestFinished",
-              callback = function()
-                self.n_requests = math.max(0, self.n_requests - 1)
-                vim.cmd "redrawstatus"
-              end,
-            })
-          end,
-          provider = function(self)
-            if not package.loaded["codecompanion"] then return nil end
-            local symbol
-            if self.n_requests > 0 then
-              self.spinner_index = (self.spinner_index % #self.spinner_symbols) + 1
-              symbol = self.spinner_symbols[self.spinner_index]
-            else
-              symbol = self.done_symbol
-              self.spinner_index = 0
-            end
-            return ("%d %s"):format(self.n_requests, symbol)
-          end,
-          hl = function() return astroui.filetype_color() end,
-        })
-      end,
+      "AstroNvim/astroui",
+      opts = { icons = { CodeCompanion = "󱙺" } },
     },
-    { "AstroNvim/astroui", opts = { icons = { CodeCompanion = "󱙺" } } },
     {
       "AstroNvim/astrocore",
       opts = function(_, opts)

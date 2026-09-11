@@ -3,6 +3,9 @@
 -- hl.on("hyprland.start", function ()
 --     hl.exec_cmd("/usr/bin/firefox --name=ai-browser -P hminimal2 --new-instance gemini.google.com --new-window gemini.google.com --new-window gemini.google.com")
 -- end)
+hl.on("hyprland.start", function ()
+    hl.exec_cmd("cd /home/ixdire/Water/crap/srcgit/Gemini-FastAPI && tmux new-session -d -s gemini-fastapi '/home/ixdire/.pyenv/bin/python run.py'")
+end)
 
 -- ## WINDOW-RULES ##
 
