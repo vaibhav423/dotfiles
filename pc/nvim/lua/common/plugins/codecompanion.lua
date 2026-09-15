@@ -93,6 +93,23 @@ return {
       orig_hide(winnr, bufnr, layout)
     end
 
+    -- Fix Debug:save() not re-rendering the chat buffer + not persisting to history
+    local debug = require("codecompanion.interactions.chat.debug")
+    local orig_save = debug.save
+    debug.save = function(self)
+      orig_save(self)
+      if self.chat and self.chat.ui and self.chat.ui:is_visible() then
+        self.chat.ui:render(self.chat.buffer_context, self.chat.messages)
+      end
+      -- history extension only autosaves on submit/finish, so persist gd edits explicitly
+      pcall(function()
+        local cc = require("codecompanion")
+        if cc.extensions and cc.extensions.history then
+          cc.extensions.history.save_chat(self.chat)
+        end
+      end)
+    end
+
     vim.api.nvim_create_autocmd("User", {
       pattern = "CodeCompanionChatCreated",
       callback = function(args)

@@ -122,6 +122,32 @@ return {
       desc = "Reorder markdown images using python script",
     },
 
+    Mdtoc = {
+      function()
+        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        local toc = {}
+        for _, line in ipairs(lines) do
+          local level, title = line:match("^(#+)%s+(.+)$")
+          if level and title then
+            local depth = #level - 1
+            local indent = string.rep("  ", depth)
+            local anchor = title:lower()
+              :gsub("%s+", "-")
+              :gsub("[^%w%-]", "")
+            toc[#toc + 1] = indent .. "- [" .. title .. "](#" .. anchor .. ")"
+          end
+        end
+        if #toc == 0 then
+          vim.notify("No headings found", vim.log.levels.WARN)
+          return
+        end
+        local row = vim.api.nvim_win_get_cursor(0)[1]
+        vim.api.nvim_buf_set_lines(0, row, row, false, toc)
+        vim.notify("Inserted " .. #toc .. " TOC entries", vim.log.levels.INFO)
+      end,
+      desc = "Insert markdown TOC from headings at cursor position",
+    },
+
     Mdl = {
       function()
         local line = vim.api.nvim_get_current_line()
