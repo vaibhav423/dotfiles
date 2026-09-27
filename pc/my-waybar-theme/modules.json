@@ -172,13 +172,13 @@
     "tooltip-format": "Left: Notifications\nRight: Do not disturb",
     "format": "{icon}",
     "format-icons": {
-      "notification": "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
+      "notification": "<span letter_spacing='-9000'></span><span foreground='red' size='smaller' rise='2500'></span>",
       "none": "",
-      "dnd-notification": "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
+      "dnd-notification": "<span letter_spacing='-9000'></span><span foreground='red' size='smaller' rise='2500'></span>",
       "dnd-none": "",
-      "inhibited-notification": "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
+      "inhibited-notification": "<span letter_spacing='-9000'></span><span foreground='red' size='smaller' rise='2500'></span>",
       "inhibited-none": "",
-      "dnd-inhibited-notification": "<span rise='8pt'><span foreground='red'><sup></sup></span></span>",
+      "dnd-inhibited-notification": "<span letter_spacing='-9000'></span><span foreground='red' size='smaller' rise='2500'></span>",
       "dnd-inhibited-none": ""
     },
     "return-type": "json",

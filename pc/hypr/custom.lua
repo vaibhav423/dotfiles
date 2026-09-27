@@ -7,6 +7,9 @@ hl.on("hyprland.start", function ()
     hl.exec_cmd("cd /home/ixdire/Water/crap/srcgit/Gemini-FastAPI && tmux new-session -d -s gemini-fastapi '/home/ixdire/.pyenv/bin/python run.py'")
 end)
 
+-- Cheat opacity: hidden by default, toggled via Super+Alt+O
+hl.window_rule({ match = { class = "(cheat)" }, opacity = "0.0 override 0.0 override" })
+
 -- ## WINDOW-RULES ##
 
 -- AI Browser
@@ -42,8 +45,7 @@ hl.window_rule({
     rounding = 0,
     border_size = 0,
     no_shadow = true,
-    no_blur = true,
-    opacity = "0.0 override 0.0 override"
+    no_blur = true
 })
 
 -- Gemini
@@ -65,6 +67,16 @@ hl.window_rule({
     pin = true,
     size = "300 400",
     no_initial_focus = true
+})
+
+-- File Chooser (Yazi)
+hl.window_rule({
+    name = "file-chooser",
+    match = { class = "(file_chooser)" },
+    float = true,
+    center = true,
+    size = { "monitor_w * 0.7", "monitor_h * 0.7" },
+    stay_focused = true
 })
 
 -- hl.window_rule({

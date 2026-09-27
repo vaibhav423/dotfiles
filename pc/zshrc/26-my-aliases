@@ -6,6 +6,21 @@
 # -----------------------------------------------------
 
 
+# Phone SSH wrappers with Wake-on-LAN (bypasses Android Doze mode)
+ssh-phone() {
+    echo "Waking phone from Doze..."
+    wakeonlan -i 10.106.228.89 96:e3:52:fe:2f:7a >/dev/null
+    sleep 1
+    ssh -p 22 fire@10.106.228.89 "$@"
+}
+
+mosh-phone() {
+    echo "Waking phone from Doze..."
+    wakeonlan -i 10.106.228.89 96:e3:52:fe:2f:7a >/dev/null
+    sleep 1
+    mosh --ssh="ssh -p 22" fire@10.106.228.89 "$@"
+}
+
 # create python virtualenv and activate with given name 
 # do not create if already exists
 

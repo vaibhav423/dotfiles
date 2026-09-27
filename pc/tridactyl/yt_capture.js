@@ -13,7 +13,7 @@ if (vid) {
     const safeUrl = u.href.replace(/'/g, "'\\''");
     
     // Pass the modified URL to the python script via Tridactyl's native messenger
-    // the py file saves it to /tmp/addytimg.log by default
+    // **** the py file saves it to /tmp/addytimg.log by default *****
     tri.excmds.exclaim_quiet(`echo '${safeUrl}' | /home/ixdire/Water/crap/scripts/yt/addytimg.py`);
     // tri.excmds.exclaim_quiet(`echo '${safeUrl}' | /home/ixdire/Water/crap/scripts/yt/addytimg.py --cookie firefox`);
 } else {

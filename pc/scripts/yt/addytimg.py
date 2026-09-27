@@ -55,7 +55,8 @@ def get_config_paths():
     logging.debug(f"Ensuring image directory exists: {image_dir}")
     image_dir.mkdir(parents=True, exist_ok=True)
     
-    return image_dir, md_file_path, vaultdir, rel_image_dir
+    cfg_quality = config.get("quality") or config.get("yt_quality")
+    return image_dir, md_file_path, vaultdir, rel_image_dir, cfg_quality
 
 def set_red_dot(state):
     state_file = Path("/tmp/yt-processing")
@@ -70,6 +71,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Add youtube image to vault")
     parser.add_argument("--cookie", help="Browser to extract cookies from (e.g., firefox)", default=None)
+    parser.add_argument("--quality", help="yt-dlp format selector (e.g., bestvideo/best, worstvideo, bestvideo[height<=1080])", default=None)
     args = parser.parse_args()
 
     url = sys.stdin.read().strip()
@@ -86,11 +88,14 @@ def main():
         return
         
     try:
-        image_dir, md_file, vaultdir, rel_image_dir = get_config_paths()
+        image_dir, md_file, vaultdir, rel_image_dir, cfg_quality = get_config_paths()
     except Exception as e:
         logging.error(f"Error reading config: {e}", exc_info=True)
         print(f"Error reading config: {e}")
         return
+
+    quality = args.quality or cfg_quality or os.getenv("YT_IMG_QUALITY") or "bestvideo/best"
+    logging.info(f"Using quality format: {quality}")
 
     seconds = parse_seconds(url)
     logging.info(f"Parsed seconds: {seconds}")
@@ -110,7 +115,7 @@ def main():
         logging.info(f"Target image path: {abs_image_path}")
         
         logging.debug("Calling process_url...")
-        chapter_title, success = process_url(url, abs_image_path, cookie_browser=args.cookie)
+        chapter_title, success = process_url(url, abs_image_path, cookie_browser=args.cookie, quality=quality)
         logging.info(f"process_url returned success={success}, chapter='{chapter_title}'")
         
         if success:

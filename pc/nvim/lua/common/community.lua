@@ -22,4 +22,6 @@ return {
   -- https://github.com/AstroNvim/astrocommunity/blob/main/lua/astrocommunity/code-runner/compiler-nvim/init.lua
   -- https://github.com/Zeioth/compiler.nvim/
   -- { import = "astrocommunity.code-runner.compiler-nvim" },
+  -- https://github.com/HakonHarnes/img-clip.nvim
+  { import = "astrocommunity.media.img-clip-nvim" },
 }

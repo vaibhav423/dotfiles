@@ -22,6 +22,45 @@ return {
       chat = {
         adapter = "gemini_local",
         model = "auto",
+        slash_commands = {
+          paste_image = {
+            description = "Paste image from clipboard",
+            callback = function(chat)
+              local dir = vim.fn.expand("~/.cache/codecompanion_images")
+              vim.fn.mkdir(dir, "p")
+
+              local filename = os.time() .. ".png"
+              local filepath = dir .. "/" .. filename
+
+              local is_wayland = os.getenv("WAYLAND_DISPLAY") ~= nil
+              local cmd = is_wayland
+                and string.format("wl-paste --type image/png > %s", vim.fn.shellescape(filepath))
+                or string.format("xclip -selection clipboard -t image/png -o > %s", vim.fn.shellescape(filepath))
+
+              os.execute(cmd)
+
+              local f = io.open(filepath, "r")
+              if not f then
+                vim.notify("No image found in clipboard", vim.log.levels.WARN)
+                return
+              end
+              local size = f:seek("end")
+              f:close()
+
+              if size == 0 then
+                vim.fn.delete(filepath)
+                vim.notify("No image found in clipboard", vim.log.levels.WARN)
+                return
+              end
+
+              chat:add_buf_message({
+                role = "user",
+                content = string.format("![image](%s)", filepath),
+              })
+            end,
+          },
+        },
+
         roles = {
           llm = function() return "gemini_local" end,
           user = "Me",
@@ -109,6 +148,7 @@ return {
         end
       end)
     end
+
 
     vim.api.nvim_create_autocmd("User", {
       pattern = "CodeCompanionChatCreated",
