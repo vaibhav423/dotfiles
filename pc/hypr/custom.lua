@@ -92,6 +92,7 @@ hl.window_rule({
 -- })
 
 hl.env("LIBVIRT_DEFAULT_URI", "qemu:///system")
+hl.env("EDITOR", "nvim")
 
 -- #oldformat (commented out)
 -- AI browser

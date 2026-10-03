@@ -16,8 +16,9 @@ prepend_keymap = [
 	{ on = [ "g", "s" ],       run = "cd ~/Water/crap/scripts",       desc = "go to scripts" },
 	{ on = [ "g", "t" ],       run = "cd /termux/home/",       desc = "go to termux" },
 
+	{ on = ["p", "a"],	run = "plugin fr rga" ,	desc = "Search file by content (rga)" },
 	# Operation
-	{ on = "<S-Enter>", run = "shell --block -- nvim %s", desc = "Open selected files interactively" },
+	{on = "<S-Enter>", run = "shell -- setsid foot nvim %s > /dev/null 2>&1", desc = "Open selected files interactively" },
 	{on  = "<C-n>" , run = 'shell -- dragon-drop -x -i -T "$0"' , desc = "drag and drop"},
 
 	# Operation

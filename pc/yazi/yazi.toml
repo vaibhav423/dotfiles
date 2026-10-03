@@ -1,12 +1,12 @@
 [mgr]
 sort_by        = "natural"
 sort_reverse 	 = false
-[opener]
+# [opener]
 
-edit = [
-  { run = 'setsid foot nvim "$@" > /dev/null 2>&1 &', block = true, desc = "Neovim" },
-  { run = 'nvim "$@"', block = true, desc = "Neovim-in-curr" },
-]
+# edit = [
+  # { run = 'nvim "$@"', block = true, desc = "nvim" },
+  # { run = 'setsid foot nvim "$@" > /dev/null 2>&1 &', block = true, desc = "nvim-in-seperate-window" },
+# ]
 
 pdf-open = [
 { run = "setsid zathura %s1" , desc = "pdf-open" , for = "linux"}

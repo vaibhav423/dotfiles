@@ -1,4 +1,3 @@
 
 bindkey '^o' fzf-history-widget
 
-source ~/.config/yazi/ya.zsh
