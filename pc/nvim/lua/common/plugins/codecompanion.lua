@@ -132,21 +132,39 @@ return {
       orig_hide(winnr, bufnr, layout)
     end
 
-    -- Fix Debug:save() not re-rendering the chat buffer + not persisting to history
+    -- Debug:save() only rewrites chat.messages, leaving a stale buffer and submit cursor behind
     local debug = require("codecompanion.interactions.chat.debug")
     local orig_save = debug.save
     debug.save = function(self)
       orig_save(self)
-      if self.chat and self.chat.ui and self.chat.ui:is_visible() then
-        self.chat.ui:render(self.chat.buffer_context, self.chat.messages)
-      end
-      -- history extension only autosaves on submit/finish, so persist gd edits explicitly
       pcall(function()
         local cc = require("codecompanion")
         if cc.extensions and cc.extensions.history then
           cc.extensions.history.save_chat(self.chat)
         end
       end)
+      if self.chat and self.chat.ui and self.chat.ui:is_visible() then
+        self.chat.ui:render(self.chat.buffer_context, self.chat.messages)
+        local header_row
+        pcall(function()
+          header_row = require("codecompanion.interactions.chat.parser").headers(self.chat)
+        end)
+        if header_row == nil then
+          local user_role = require("codecompanion.config").interactions.chat.roles.user
+          local lines = vim.api.nvim_buf_get_lines(self.chat.bufnr, 0, -1, false)
+          for i = #lines, 1, -1 do
+            if lines[i]:match("^##%s+" .. vim.pesc(user_role) .. "%s*$") then
+              header_row = i - 1
+              break
+            end
+          end
+        end
+        if header_row then
+          self.chat.header_line = header_row + 1
+        else
+          vim.notify("CodeCompanion debug save: could not locate last prompt", vim.log.levels.WARN)
+        end
+      end
     end
 
 

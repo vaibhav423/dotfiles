@@ -138,7 +138,7 @@ hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/rofi
 hl.bind(mainMod .. " + CTRL + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/rofi-menu-from-json.sh ~/Water/crap/scripts/rofi/opencode.json"), { description = "opencode rofi" })
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(term .. " nchat"), { description = "Whatsapp" })
 -- -A option allows u to join existing without it would throw duplicate session error
-hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(tmux .. " -A -s opencode opencode"), { description = "Opencode" })
+hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(term .. " opencode"), { description = "Opencode" })
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
 hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim"), { description = "Open nvim" })
 hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd(tmux .. " -A -s nvim  -c ~/Water/Fire nvim ~/Water/Fire/notes/scratch.md"), { description = "Notes" })

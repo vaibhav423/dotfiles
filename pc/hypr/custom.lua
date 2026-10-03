@@ -63,10 +63,14 @@ hl.window_rule({
     name = "noti",
     match = { class = "noti" },
     float = true,
-    move = "(monitor_w-window_w-16+600) 66",
+    move = "monitor_w-window_w+400 66",
     pin = true,
     size = "300 400",
-    no_initial_focus = true
+    no_initial_focus = true,
+    rounding = 0,
+    border_size = 0,
+    no_shadow = true,
+    no_blur = true
 })
 
 -- File Chooser (Yazi)
@@ -115,6 +119,10 @@ hl.env("LIBVIRT_DEFAULT_URI", "qemu:///system")
 -- hl.window_rule({ name = "noti", match = { class = "(noti)" }, pin = true })
 -- hl.window_rule({ name = "noti", match = { class = "(noti)" }, size = "300 400" })
 -- hl.window_rule({ name = "noti", match = { class = "(noti)" }, no_initial_focus = true })
+-- hl.window_rule({ name = "noti", match = { class = "(noti)" }, rounding = 0 })
+-- hl.window_rule({ name = "noti", match = { class = "(noti)" }, border_size = 0 })
+-- hl.window_rule({ name = "noti", match = { class = "(noti)" }, no_shadow = true })
+-- hl.window_rule({ name = "noti", match = { class = "(noti)" }, no_blur = true })
 
 -- misc {
 --    vrr = 1
