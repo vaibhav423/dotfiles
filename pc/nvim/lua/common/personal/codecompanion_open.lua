@@ -4,10 +4,23 @@ vim.o.ruler = false
 vim.o.showcmd = false
 
 vim.schedule(function()
-  require("codecompanion.config").display.chat.window.layout = "buffer"
-  require("codecompanion").chat()
+  local config = require "codecompanion.config"
+  config.display.chat.window.layout = "buffer"
+  config.interactions.chat.keymaps.new_window = {
+    callback = function()
+      vim.fn.system {
+        "tmux",
+        "new-window",
+        "-t",
+        "gemini-chat",
+        "nvim",
+        "-S",
+        vim.fn.expand "~/.config/nvim/lua/common/personal/codecompanion_open.lua",
+      }
+    end,
+    description = "New CodeCompanion window",
+    modes = { n = "gn" },
+  }
 
-  vim.keymap.set("n", "<Leader>an", function()
-    vim.fn.system { "tmux", "new-window", "-t", "gemini-chat", "nvim", "-S", vim.fn.expand "~/.config/nvim/lua/common/personal/codecompanion_open.lua" }
-  end, { desc = "New CodeCompanion window" })
+  require("codecompanion").chat()
 end)
