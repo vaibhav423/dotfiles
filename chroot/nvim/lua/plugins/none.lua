@@ -1,1 +1,1 @@
-return {}
+if true then return {} end
