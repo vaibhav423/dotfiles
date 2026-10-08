@@ -1,0 +1,6 @@
+[filechooser]
+cmd=/usr/share/xdg-desktop-portal-termfilechooser/yazi-wrapper.sh
+default_dir=$HOME
+env=TERMCMD=foot --app-id=file_chooser --title='file_chooser'
+open_mode=suggested
+save_mode=suggested

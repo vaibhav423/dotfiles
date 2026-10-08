@@ -17,12 +17,15 @@ prepend_keymap = [
 	{ on = [ "g", "s" ],       run = "cd ~/Water/crap/scripts",       desc = "go to scripts" },
 	{ on = [ "g", "t" ],       run = "cd /termux/home/",       desc = "go to termux" },
 
+	# s is a default bin
+	{ on = ["s"],	run = "plugin fr rga" ,	desc = "Search file by content (rga)" },
 	# Operation
-	{ on = "<S-Enter>", run = "shell --block -- nvim %s", desc = "Open selected files interactively" },
-	{on  = "<C-n>" , run = 'shell -- dragon-drop -x -i -T "$0"' , desc = "drag and drop"},
+	## orphan removes the need to use setsid or similar tricks
+	{on = "<S-Enter>", run = "shell --orphan --  foot nvim %h", desc = "Open selected files interactively" },
+	{on  = "<C-n>" , run = 'shell --orphan -- dragon-drop -x -i -T %h' , desc = "drag and drop"},
 
 	# Operation
-	{ on = "K", run = "shell -- nohup kitty --directory %d > /dev/null 2>&1 & ya emit quit", desc = "Open kitty here and quit" },
+	{ on = "K", run = "shell -- nohup foot -D %d > /dev/null 2>&1 & ya emit quit", desc = "Open foot here and quit" },
 
 	# yamb bookmarks
 	{ on = [ "u", "a" ], run = "plugin yamb -- save", desc = "Add bookmark" },

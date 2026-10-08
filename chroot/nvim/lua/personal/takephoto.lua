@@ -234,7 +234,7 @@ function M.edit()
         local name_noext = vim.fn.fnamemodify(orig_abs, ":t:r")
         local ext = vim.fn.fnamemodify(found, ":e")
         if ext == "" then ext = vim.fn.fnamemodify(orig_abs, ":e") end
-        
+
         -- Strip previous _edit_ suffixes if editing an already edited photo
         name_noext = name_noext:gsub("_edit_%d+$", "")
         local new_filename = name_noext .. "_edit_" .. tostring(os.time()) .. "." .. ext

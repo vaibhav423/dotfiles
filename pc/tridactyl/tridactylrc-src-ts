@@ -1,0 +1,2863 @@
+// to update curl -Lo ~/.config/tridactyl/tridactylrc-src-ts https://raw.githubusercontent.com/tridactyl/tridactyl/refs/heads/master/src/lib/config.ts
+// Sketch
+//
+// Need an easy way of getting and setting settings
+// If a setting is not set, the default should probably be returned.
+// That probably means that binds etc. should be per-key?
+//
+// We should probably store all settings in memory, and only load from storage on startup and when we set it
+//
+// Really, we'd like a way of just letting things use the variables
+//
+
+/** # Tridactyl Configuration
+ *
+ * We very strongly recommend that you pretty much ignore this page and instead follow the link below DEFAULTS that will take you to our own source code which is formatted in a marginally more sane fashion.
+ *
+ * Intrepid Tridactyl users: this page is how Tridactyl arranges and manages its settings internally. To view your own settings, use `:viewconfig` and `:viewconfig --user`. To understand how to set settings, see `:help set`.
+ *
+ */
+import * as R from "ramda"
+import * as binding from "@src/lib/binding"
+import * as platform from "@src/lib/platform"
+import { DeepPartial } from "tsdef"
+
+/* Remove all nulls from objects recursively
+ * NB: also applies to arrays
+ */
+const removeNull = R.when(
+    R.is(Object),
+    R.pipe(
+        // Ramda gives an error here without the any
+        R.reject(val => val === null) as any,
+        R.map(a => removeNull(a)),
+    ),
+)
+
+/** @hidden */
+const CONFIGNAME = "userconfig"
+const CONFIG_WRITE = "userconfig-write"
+const CURRENT_CONFIG_VERSION = "2.0"
+const BACKGROUND_URL = browser.runtime.getURL("_generated_background_page.html")
+const IN_BACKGROUND = !BACKGROUND_URL || BACKGROUND_URL === window.location.href
+/** @hidden */
+const WAITERS = []
+/** @hidden */
+export let INITIALISED = false
+let INITIALISATION_ERROR
+
+/** @hidden */
+// make a naked object
+export function o(object) {
+    return Object.assign(Object.create(null), object)
+}
+
+/** @hidden */
+// "Import" is a reserved word so this will have to do
+function schlepp(settings) {
+    Object.assign(USERCONFIG, settings)
+}
+
+/** @hidden */
+export let USERCONFIG = o({})
+let STORE_QUEUE = Promise.resolve()
+let EXCLUSIVE_QUEUE = Promise.resolve()
+let EXCLUSIVE_PENDING = 0
+let WRITE_ID = 0
+const WRITE_SESSION = `${Date.now()}-${Math.random()}:`
+const PENDING_WRITES = new Set<string>()
+
+function store<T>(operation: () => Promise<T>) {
+    const pending = STORE_QUEUE.then(operation)
+    STORE_QUEUE = pending.catch(() => undefined)
+    return pending
+}
+
+function exclusively<T>(operation: () => Promise<T>) {
+    EXCLUSIVE_PENDING++
+    const pending = EXCLUSIVE_QUEUE.then(operation)
+    EXCLUSIVE_QUEUE = pending.catch(() => undefined).then(() => {
+        EXCLUSIVE_PENDING--
+    })
+    return pending
+}
+
+function mutateInBackground(command, args) {
+    return browser.runtime.sendMessage({ type: "config_background", command, args })
+}
+
+/** @internal
+ * Ideally, LoggingLevel should be in logging.ts and imported from there. However this would cause a circular dependency, which webpack can't deal with
+ */
+export type LoggingLevel = "never" | "error" | "warning" | "info" | "debug"
+
+/**
+ * This page documents Tridactyl's default configuration. Where present, input fields show values from your current configuration.
+ *
+ * You can change anything here using `set key1.key2.key3 value` or specific things any of the various helper commands such as `bind` or `command`. You can also jump to the help section of a setting using `:help $settingname`. You can modify values in the input fields and save them by pressing `<Enter>` but using `:set $setting $value` is a good habit to take as it doesn't force you to leave the page you're visiting to change your settings.
+ *
+ * If the setting you are changing has a dot or period character (.) in it, it cannot be set with `:set` directly. You must either use a helper command for that specific setting - e.g. `:seturl` or `:autocontain`, or you must use Tridactyl's JavaScript API with `:js tri.config.set("path", "to", "key", "value")` to set `{path: {to: {key: value}}}`.
+ *
+ */
+export class default_config {
+    /**
+     * Internal version number Tridactyl uses to know whether it needs to update from old versions of the configuration.
+     *
+     * Changing this might do weird stuff.
+     */
+    configversion = "0.0"
+
+    /**
+     * Internal field to handle site-specific configs. Use :seturl/:unseturl to change these values.
+     */
+    subconfigs: { [key: string]: DeepPartial<default_config> } = {
+        "www.google.com": {
+            followpagepatterns: {
+                next: ["Next"],
+                prev: ["Previous"],
+            },
+            nmaps: {
+                gi: "composite focusinput -l ; text.end_of_line", // Fix #4706
+            },
+        },
+        "^https://web.whatsapp.com": {
+            nmaps: {
+                f: "hint -c [tabindex]:not(.two)>div,a",
+                F: "hint -bc [tabindex]:not(.two)>div,a",
+            },
+        },
+        "^https://teams.microsoft.com": {
+            // #5054
+            modeindicator: "false",
+        },
+        "^https://teams.live.com": {
+            // #5054
+            modeindicator: "false",
+        },
+    }
+
+    /**
+     * Internal field to handle mode-specific configs. Use :setmode/:unsetmode to change these values.
+     *
+     * Changing this might do weird stuff.
+     */
+    modesubconfigs: { [key: string]: DeepPartial<default_config> } = {
+        normal: {},
+        insert: { countaware: "false" },
+        input: { countaware: "false" },
+        ignore: { countaware: "false" },
+        ex: {},
+        hint: {},
+        visual: {},
+    }
+
+    /**
+     * Internal field to handle site-specific config priorities. Use :seturl/:unseturl to change this value.
+     */
+    priority = 0
+
+    // Note to developers: When creating new <modifier-letter> maps, make sure to make the modifier uppercase (e.g. <C-a> instead of <c-a>) otherwise some commands might not be able to find them (e.g. `bind <c-a>`)
+
+    /**
+     * exmaps contains all of the bindings for the command line.
+     * You can of course bind regular ex commands but also [editor functions](/static/docs/modules/_src_lib_editor_.html) and [commandline-specific functions](/static/docs/modules/_src_commandline_frame_.html).
+     */
+    exmaps = {
+        "<Enter>": "ex.accept_line",
+        "<C-Enter>": "ex.execute_ex_on_completion",
+        "<C-j>": "ex.accept_line",
+        "<C-m>": "ex.accept_line",
+        "<Escape>": "ex.hide_and_clear",
+        "<C-[>": "ex.hide_and_clear",
+        "<ArrowUp>": "ex.prev_history_or_completion",
+        "<ArrowDown>": "ex.next_history_or_completion",
+        "<PageUp>": "ex.prev_completion 15",
+        "<PageDown>": "ex.next_completion 15",
+        "<S-Delete>": "ex.execute_ex_on_completion_args tabclose",
+
+        "<A-b>": "text.backward_word",
+        "<A-f>": "text.forward_word",
+        "<C-e>": "text.end_of_line",
+        "<A-d>": "text.kill_word",
+        "<S-Backspace>": "text.backward_kill_word",
+        "<C-u>": "text.backward_kill_line",
+        "<C-k>": "text.kill_line",
+
+        "<C-f>": "ex.complete",
+        "<Tab>": "ex.next_completion",
+        "<S-Tab>": "ex.prev_completion",
+        "<Space>": "ex.insert_character_or_completion",
+        "<C-Space>": "ex.insert_space",
+
+        "<C-o>yy": "ex.copy_completion",
+        "<C-o>t": "ex.execute_ex_on_completion_args tabopen -b",
+        "<C-o>w": "ex.execute_ex_on_completion_args winopen",
+        "<C-o>x": "ex.execute_ex_on_all_completions",
+    }
+
+    /**
+     * ignoremaps contain all of the bindings for "ignore mode".
+     *
+     * They consist of key sequences mapped to ex commands.
+     */
+    ignoremaps = {
+        "<S-Insert>": "mode normal",
+        "<AC-Escape>": "mode normal",
+        "<AC-`>": "mode normal",
+        "<S-Escape>": "mode normal",
+        "<C-o>": "nmode normal 1 mode ignore",
+    }
+
+    /**
+     * imaps contain all of the bindings for "insert mode".
+     *
+     * On top of regular ex commands, you can also bind [editor functions](/static/docs/modules/_src_lib_editor_.html) in insert mode.
+     *
+     * They consist of key sequences mapped to ex commands.
+     */
+    imaps = {
+        "<Escape>": "composite unfocus | mode normal",
+        "<C-[>": "composite unfocus | mode normal",
+        "<C-i>": "editor",
+        "<AC-Escape>": "mode normal",
+        "<AC-`>": "mode normal",
+        "<S-Escape>": "mode ignore",
+        "<C-o>": "nmode normal 1 mode ignore",
+    }
+
+    /**
+     * inputmaps contain all of the bindings for "input mode".
+     *
+     * On top of regular ex commands, you can also bind [editor functions](/static/docs/modules/_src_lib_editor_.html) in input mode.
+     *
+     * They consist of key sequences mapped to ex commands.
+     */
+    inputmaps = {
+        "<Tab>": "focusinput -n",
+        "<S-Tab>": "focusinput -N",
+        /**
+         * Config objects with this key inherit their keys from the object specified.
+         *
+         * Only supports "root" objects. Subconfigs (`seturl`) work as expected.
+         *
+         * Here, this means that input mode is the same as insert mode except it has added binds for tab and shift-tab.
+         */
+        "🕷🕷INHERITS🕷🕷": "imaps",
+    }
+
+    /**
+     * Disable Tridactyl almost completely within a page, e.g. `seturl ^https?://mail.google.com superignore true`. Only takes affect on page reload.
+     *
+     * You are usually better off using `blacklistadd` and `seturl [url] noiframe true` as you can then still use some Tridactyl binds, e.g. `shift-insert` for exiting ignore mode.
+     *
+     * Use the toolbar popup to toggle this globally. If you get trapped with Tridactyl disabled everywhere just run `tri unset superignore` in the Firefox address bar. If that still doesn't fix things, you can totally reset Tridactyl by running `tri help superignore` in the Firefox address bar, scrolling to the bottom of that page and then clicking "Reset Tridactyl config".
+     */
+    superignore: "true" | "false" = "false"
+
+    /**
+     * nmaps contain all of the bindings for "normal mode".
+     *
+     * They consist of key sequences mapped to ex commands.
+     */
+    nmaps = {
+        "<A-p>": "pin",
+        "<A-m>": "mute toggle",
+        "<F1>": "help",
+        o: "fillcmdline open",
+        O: "current_url open",
+        w: "fillcmdline winopen",
+        W: "current_url winopen",
+        t: "fillcmdline tabopen",
+        "]]": "followpage next",
+        "[[": "followpage prev",
+        "[c": "urlincrement -1",
+        "]c": "urlincrement 1",
+        "<C-x>": "urlincrement -1",
+        "<C-a>": "urlincrement 1",
+        T: "current_url tabopen",
+        yy: "clipboard yank",
+        ys: "clipboard yankshort",
+        yq: "text2qr --timeout 5",
+        yc: "clipboard yankcanon",
+        ym: "clipboard yankmd",
+        yo: "clipboard yankorg",
+        yt: "clipboard yanktitle",
+        gh: "home",
+        gH: "home true",
+        p: "clipboard open",
+        P: "clipboard tabopen",
+        j: "scrollline 10",
+        "<C-e>": "scrollline 10",
+        k: "scrollline -10",
+        "<C-y>": "scrollline -10",
+        h: "scrollpx -50",
+        l: "scrollpx 50",
+        G: "scrollto 100",
+        gg: "scrollto 0",
+        "<C-u>": "scrollpage -0.5",
+        "<C-d>": "scrollpage 0.5",
+        "<C-f>": "scrollpage 1",
+        "<C-b>": "scrollpage -1",
+        "<C-v>": "nmode ignore 1 mode normal",
+        $: "scrollto 100 x",
+        // "0": "scrollto 0 x", // will get interpreted as a count
+        "^": "scrollto 0 x",
+        H: "back",
+        L: "forward",
+        "<C-o>": "jumpprev",
+        "<C-i>": "jumpnext",
+        d: "tabclose",
+        D: "js tri.excmds.composite('tabprev;', 'tabclose #')", // use JS to make counts error
+        gx0: "tabclosealltoleft",
+        gx$: "tabclosealltoright",
+        "<<": "tabmove -1",
+        ">>": "tabmove +1",
+        u: "undo",
+        U: "undo window",
+        r: "reload",
+        R: "reloadhard",
+        x: "stop",
+        gi: "focusinput",
+        gI: "hintinput",
+        "g?": "rot13",
+        "g!": "jumble",
+        "g;": "changelistjump -1",
+        J: "tabprev",
+        K: "tabnext",
+        gt: "tabnext_gt",
+        gT: "tabprev",
+        // "<c-n>": "tabnext_gt", // c-n is reserved for new window
+        // "<c-p>": "tabprev",
+        "g^": "tabfirst",
+        g0: "tabfirst",
+        g$: "tablast",
+        ga: "tabaudio",
+        gr: "reader",
+        gu: "urlparent",
+        gU: "urlroot",
+        gf: "viewsource",
+        ":": "fillcmdline_notrail",
+        s: "fillcmdline open search",
+        S: "fillcmdline tabopen search",
+        // find mode not suitable for general consumption yet.
+        // "/": "fillcmdline find",
+        // "?": "fillcmdline find -?",
+        // n: "findnext 1",
+        // N: "findnext -1",
+        // ",<Space>": "nohlsearch",
+        M: "gobble 1 quickmark",
+        B: "fillcmdline taball",
+        b: "fillcmdline tab",
+        ZZ: "qall",
+        f: "hint",
+        F: "hint -b",
+        gF: "hint -qb",
+        ";i": "hint -i",
+        ";b": "hint -b",
+        ";o": "hint",
+        ";I": "hint -I",
+        ";k": "hint -k",
+        ";K": "hint -K",
+        ";y": "hint -y",
+        ";Y": "hint -cF img i => tri.excmds.yankimage(tri.urlutils.getAbsoluteURL(i.src))",
+        ";p": "hint -p",
+        ";h": "hint -h",
+        v: "hint -h", // Easiest way of entering visual mode for now. Expect this bind to change
+        ";P": "hint -P",
+        ";r": "hint -r",
+        ";s": "hint -s",
+        ";S": "hint -S",
+        ";a": "hint -a",
+        ";A": "hint -A",
+        ";;": "hint -; *",
+        ";#": "hint -#",
+        ";v": "hint -W mpvsafe",
+        ";V": "hint -V",
+        ";w": "hint -w",
+        ";t": "hint -W tabopen",
+        ";O": "hint -W fillcmdline_notrail open ",
+        ";W": "hint -W fillcmdline_notrail winopen ",
+        ";T": "hint -W fillcmdline_notrail tabopen ",
+        ";d": "hint -W tabopen --discard",
+        ";gd": "hint -qW tabopen --discard",
+        ";z": "hint -z",
+        ";m": "hint -JFc img i => tri.excmds.open('https://lens.google.com/uploadbyurl?url='+i.src)",
+        ";M": "hint -JFc img i => tri.excmds.tabopen('https://lens.google.com/uploadbyurl?url='+i.src)",
+        ";gi": "hint -qi",
+        ";gI": "hint -qI",
+        ";gk": "hint -qk",
+        ";gy": "hint -qy",
+        ";gp": "hint -qp",
+        ";gP": "hint -qP",
+        ";gr": "hint -qr",
+        ";gs": "hint -qs",
+        ";gS": "hint -qS",
+        ";ga": "hint -qa",
+        ";gA": "hint -qA",
+        ";g;": "hint -q;",
+        ";g#": "hint -q#",
+        ";gv": "hint -qW mpvsafe",
+        ";gw": "hint -qw",
+        ";gb": "hint -qb",
+        // These two don't strictly follow the "bind is ;g[flag]" rule but they make sense
+        ";gF": "hint -qb",
+        ";gf": "hint -q",
+
+        "<S-Insert>": "mode ignore",
+        "<AC-Escape>": "mode ignore",
+        "<AC-`>": "mode ignore",
+        "<S-Escape>": "mode ignore",
+        "<Escape>": "composite mode normal ; hidecmdline",
+        "<C-[>": "composite mode normal ; hidecmdline",
+        a: "current_url bmark",
+        A: "bmark",
+        zi: "zoom 0.1 true",
+        zo: "zoom -0.1 true",
+        zm: "zoom 0.5 true",
+        zr: "zoom -0.5 true",
+        zM: "zoom 0.5 true",
+        zR: "zoom -0.5 true",
+        zz: "zoom 0",
+        zI: "zoom 3",
+        zO: "zoom 0.3",
+        ".": "repeat",
+        "<AS-ArrowUp><AS-ArrowUp><AS-ArrowDown><AS-ArrowDown><AS-ArrowLeft><AS-ArrowRight><AS-ArrowLeft><AS-ArrowRight>ba":
+            "open https://www.youtube.com/watch?v=M3iOROuTuMA",
+        m: "gobble 1 markadd",
+        "`": "gobble 1 markjump",
+    }
+
+    vmaps = {
+        "<Escape>":
+            "composite js tri.dom.getSelection().empty(); mode normal; hidecmdline",
+        "<C-[>":
+            "composite js tri.dom.getSelection().empty(); mode normal ; hidecmdline",
+        y: "composite js tri.dom.getSelection().toString() | clipboard yank",
+        "#": "composite js document.location + '#:~:text=' + encodeURIComponent(tri.dom.getSelection().toString()) | clipboard yank",
+        s: "composite js tri.dom.getSelection().toString() | fillcmdline open search",
+        S: "composite js tri.dom.getSelection().toString() | fillcmdline tabopen search",
+        l: `js
+            const sel = tri.dom.getSelection();
+            tri.visual.extendByCharacter(sel, "forward");
+        `,
+        h: `js
+            const sel = tri.dom.getSelection();
+            tri.visual.extendByCharacter(sel, "backward");
+        `,
+        e: 'js tri.dom.getSelection().modify("extend","forward","word")',
+        w: "js tri.visual.extendByWord(tri.dom.getSelection())",
+        b: 'js let s=tri.dom.getSelection(); s.modify("extend","backward","character"); s.modify("extend","backward","word"); s.modify("extend","forward","character")',
+        j: 'js tri.dom.getSelection().modify("extend","forward","line")',
+        q: "composite js tri.dom.getSelection().toString() | text2qr --timeout 5",
+        // "j": 'js document.getSelection().modify("extend","forward","paragraph")', // not implemented in Firefox
+        k: 'js tri.dom.getSelection().modify("extend","backward","line")',
+        $: 'js tri.dom.getSelection().modify("extend","forward","lineboundary")',
+        "0": 'js tri.dom.getSelection().modify("extend","backward","lineboundary")',
+        "=": "js let s = tri.dom.getSelection(); let n = s.anchorNode.parentNode; let r = n.ownerDocument.createRange(); s.removeAllRanges(); r.selectNodeContents(n); s.addRange(r)",
+        o: "js tri.visual.reverseSelection(tri.dom.getSelection())",
+        "🕷🕷INHERITS🕷🕷": "nmaps",
+    }
+
+    hintmaps = {
+        "<Backspace>": "hint.popKey",
+        "<Escape>": "hint.reset",
+        "<C-[>": "hint.reset",
+        "<Tab>": "hint.focusNextHint",
+        "<S-Tab>": "hint.focusPreviousHint",
+        "<ArrowUp>": "hint.focusTopHint",
+        "<ArrowDown>": "hint.focusBottomHint",
+        "<ArrowLeft>": "hint.focusLeftHint",
+        "<ArrowRight>": "hint.focusRightHint",
+        "<Enter>": "hint.selectFocusedHint",
+        "<Space>": "hint.selectFocusedHint",
+    }
+
+    /**
+     * Browser-wide binds accessible in all modes and on pages where Tridactyl "cannot run".
+     * <!-- Note to developers: binds here need to also be listed in manifest.json -->
+     */
+    browsermaps = {
+        "<C-,>": "escapehatch",
+        "<C-6>": "tab #",
+        // "<CS-6>": "tab #", // banned by e2e tests
+    }
+
+    /**
+     * Whether to allow pages (not necessarily github) to override `/`, which is a default Firefox binding.
+     */
+    leavegithubalone: "true" | "false" = "false"
+
+    /**
+     * Which additional keys to protect from pages that try to override them. `:bind --mode=browser` binds are protected automatically. Requires [[leavegithubalone]] to be set to false.
+     */
+    blacklistkeys: string[] = ["/"]
+
+    /**
+     * Autocommands that run when certain events happen, and other conditions are met.
+     *
+     * Related ex command: `autocmd`.
+     */
+    autocmds = {
+        /** Commands that will be run when a page gains focus. */
+        DocFocus: {},
+
+        /** Commands that will be run when a page loses focus. */
+        DocBlur: {},
+
+        /**
+         * Commands that will be run as soon as Tridactyl loads into a page.
+         *
+         * Each key corresponds to a URL fragment which, if contained within the page URL, will run the corresponding command.
+         */
+        DocStart: {
+            // "addons.mozilla.org": "mode ignore",
+        },
+
+        /**
+         * Commands that will be run when pages are loaded.
+         *
+         * Each key corresponds to a URL fragment which, if contained within the page URL, will run the corresponding command.
+         */
+        DocLoad: {
+            "^https://github.com/tridactyl/tridactyl/issues/new$": "issue",
+        },
+
+        /**
+         * Commands that will be run when pages are unloaded.
+         *
+         * Each key corresponds to a URL fragment which, if contained within the page URL, will run the corresponding command.
+         */
+        DocEnd: {
+            // "emacs.org": "sanitise history",
+        },
+
+        /**
+         * Commands that will be run when Tridactyl first runs each time you start your browser.
+         *
+         * Each key corresponds to a javascript regex that matches the hostname of the computer Firefox is running on. Note that fetching the hostname could be a little slow, if you want to execute something unconditionally, use ".*" as Tridactyl special-cases this pattern to avoid hostname lookups.
+         */
+        TriStart: {
+            ".*": "source_quiet",
+        },
+
+        /**
+         * Commands that will be run when you enter a tab.
+         *
+         * Each key corresponds to a URL fragment which, if contained within the page URL, will run the corresponding command.
+         */
+        TabEnter: {
+            // "gmail.com": "mode ignore",
+        },
+
+        /**
+         * Commands that will be run when you leave a tab.
+         *
+         * Each key corresponds to a URL fragment which, if contained within the page URL, will run the corresponding command.
+         */
+        TabLeft: {
+            // Actually, this doesn't work because tabclose closes the current tab
+            // Too bad :/
+            // "emacs.org": "tabclose",
+        },
+
+        /** Commands that will be run when a mode is entered. */
+        ModeEnter: {},
+
+        /** Commands that will be run when a mode is left. */
+        ModeLeave: {},
+
+        /**
+         * Commands that will be run when fullscreen state changes.
+         */
+        FullscreenChange: {},
+
+        /**
+         * Commands that will be run when fullscreen state is entered.
+         */
+        FullscreenEnter: {},
+
+        /**
+         * Commands that will be run when fullscreen state is left.
+         */
+        FullscreenLeft: {},
+    }
+
+    /**
+     * @deprecated Map for translating keys directly into other keys in normal-ish modes.
+     * For example, if you have an entry in this config option mapping `п` to `g`,
+     * then you could type `пп` instead of `gg` or `пi` instead of `gi` or `;п` instead
+     * of `;g`.
+     *
+     * This was primarily useful for international users, but now you can `set
+     * keyboardlayoutforce true`, which will make everything layout-independent(and work like qwerty by default),
+     * and use [[keyboardlayoutoverrides]] setting to change the desired layout.
+     *
+     *
+     * For example, you may want to map 'a' to 'q` on azerty
+     * or 'r' to 'p' if you use dvorak.
+     *
+     * Note that the current implementation does not allow you to "chain" keys, for example, "a"=>"b" and "b"=>"c" for "a"=>"c". You can, however, swap or rotate keys, so "a"=>"b" and "b"=>"a" will work the way you'd expect, as will "a"=>"b" and "b"=>"c" and "c"=>"a".
+     */
+    keytranslatemap = {
+        // Examples (I think >_>):
+        // "д": "l", // Russian language
+        // "é" : "w", // BÉPO
+        // "h": "j", // Dvorak
+        // "n": "j", // Colemak
+        // etc
+    }
+
+    /**
+     * @deprecated Whether to use the keytranslatemap.
+     * Legacy option to map one keyboard character to another, was used to emulate
+     * layout-independence. Now deprecated since you can set your layout once with [[keyboardlayoutforce]]
+     * and [[keyboardlayoutoverrides]].
+     */
+    usekeytranslatemap: "true" | "false" = "true"
+
+    /**
+     * Whether digits typed before bindings are interpreted as counts, e.g. whether `2gt` should run `:tabnext_gt 2` or just `:tabnext_gt`. Defaults to false in insert, input, and ignore modes. You can control it per mode with [[setmode]] or per site with [[seturl]]
+     */
+    countaware: "true" | "false" = "true"
+
+    /**
+     * Instead of fetching actual character which depends on selected layout,
+     * use machine code of a key and convert to character according to keyboardlayoutoverrides. The default layout mapping
+     * is US `qwerty`, but can be changed with [[keyboardlayoutbase]].
+     *
+     * There is a much more detailed help page towards the end of `:tutor` under the title "Non-QWERTY layouts".
+     *
+     * Recommended for everyone with multiple or/and non-latin keyboard layouts. Make sure [[usekeytranslatemap]] is false
+     * if you have previously used `keymap`.
+     */
+    keyboardlayoutforce: "true" | "false" = "false"
+
+    /**
+     * Base keyboard layout to use when [[keyboardlayoutforce]] is enabled. At the time of writing, the following layouts are supported: `qwerty, azerty, german, dvorak, uk, ca, bepo`. Requires page reload to take effect.
+     *
+     * If your layout is missing, you can contribute it with the help of https://gistpreview.github.io/?324119c773fac31651f6422087b36804 - please just open an `:issue` with your layout and we'll add it.
+     *
+     * You can manually override individual keys for a layout with [[keyboardlayoutoverrides]].
+     */
+    keyboardlayoutbase: keyof typeof keyboardlayouts = "qwerty"
+
+    /**
+     * Override individual keys for a layout when [[keyboardlayoutforce]] is enabled. Changes take effect only after a page reload.
+     *
+     * Key codes for printable keys for [[keyboardlayoutforce]], lower and upper register. See https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values for the names of each key.
+     *
+     * NB: due to a Tridactyl bug, you cannot set this using array notation as you can for, e.g. [[homepage]].
+     * You must instead set the lower and upper registers using a string with no spaces in it, for example
+     * `:set keyboardlayoutoverrides Digit2: 2"` for the British English layout.
+     */
+    keyboardlayoutoverrides = {}
+
+    /**
+     * Automatically place these sites in the named container.
+     *
+     * Each key corresponds to a URL fragment which, if contained within the page URL, the site will be opened in a container tab instead.
+     */
+    autocontain = o({
+        // "github.com": "microsoft",
+        // "youtube.com": "google",
+    })
+
+    /**
+     * Default proxy to use for all URLs. Has to be the name of a proxy. To add a proxy, see `:help proxyadd`. NB: usage with `:seturl` is buggy, use `:autocontain -s [regex to match URL] none [proxy]` instead
+     *
+     * The special value `none` disables the proxy and also works with `:autocontain`
+     */
+    proxy = ""
+
+    /**
+     * Definitions of proxies.
+     *
+     * You can add a new proxy with `proxyadd proxyname proxyurl`
+     */
+    proxies = o({
+        // "socksName": "socks://hostname:port",
+        // "socks4": "socks4://hostname:port",
+        // "https": "https://username:password@hostname:port"
+    })
+
+    /**
+     * Whether to use proxy settings.
+     *
+     * If set to `true`, all proxy settings will be ignored.
+     */
+    noproxy: "true" | "false" = "false"
+
+    /**
+     * Strict mode will always ensure a domain is open in the correct container, replacing the current tab if necessary.
+     *
+     * Relaxed mode is less aggressive and instead treats container domains as a default when opening a new tab.
+     */
+    autocontainmode: "strict" | "relaxed" = "strict"
+
+    /**
+     * Aliases for the commandline.
+     *
+     * You can make a new one with `command alias ex-command`.
+     */
+    exaliases = {
+        alias: "command",
+        au: "autocmd",
+        aucon: "autocontain",
+        audel: "autocmddelete",
+        audelete: "autocmddelete",
+        blacklistremove: "autocmddelete DocStart",
+        b: "tab",
+        d: "dialog",
+        clsh: "clearsearchhighlight",
+        downloads: "tabopen about:downloads",
+        nohlsearch: "clearsearchhighlight",
+        noh: "clearsearchhighlight",
+        o: "open",
+        w: "winopen",
+        t: "tabopen",
+        tabgroupabort: "tgroupabort",
+        tabgroupclose: "tgroupclose",
+        tabgroupcreate: "tgroupcreate",
+        tabgrouplast: "tgrouplast",
+        tabgroupmove: "tgroupmove",
+        tabgrouprename: "tgrouprename",
+        tabgroupswitch: "tgroupswitch",
+        tabnew: "tabopen",
+        tabm: "tabmove",
+        tabo: "fillcmdline_tmp 3000 The :tabo alias has been removed. You can add it back with :command tabo tabonly",
+        tn: "tabnext_gt",
+        bn: "tabnext_gt",
+        tnext: "tabnext_gt",
+        bnext: "tabnext_gt",
+        tp: "tabprev",
+        tN: "tabprev",
+        bp: "tabprev",
+        bN: "tabprev",
+        tprev: "tabprev",
+        bprev: "tabprev",
+        bfirst: "tabfirst",
+        blast: "tablast",
+        tfirst: "tabfirst",
+        tlast: "tablast",
+        buffer: "tab",
+        bufferall: "taball",
+        bd: "tabclose",
+        bdelete: "tabclose",
+        quit: "tabclose",
+        q: "tabclose",
+        qa: "qall",
+        sanitize: "sanitise",
+        "saveas!": "saveas --cleanup --overwrite",
+        tutorial: "tutor",
+        glossary: "define",
+        h: "help",
+        unmute: "mute unmute",
+        authors: "credits",
+        openwith: "hint -W",
+        "!": "exclaim",
+        "!s": "exclaim_quiet",
+        containerremove: "containerdelete",
+        colours: "colourscheme",
+        colorscheme: "colourscheme",
+        colors: "colourscheme",
+        man: "help",
+        "!js": "fillcmdline_tmp 3000 !js is deprecated. Please use js instead",
+        "!jsb": "fillcmdline_tmp 3000 !jsb is deprecated. Please use jsb instead",
+        findrc: "js tri.native.getrcpath().then(tri.excmds.fillcmdline_notrail)",
+        get_current_url: "js tri.urlutils.decodeUrlForDisplay(document.location.href)",
+        current_url: "composite get_current_url | fillcmdline_notrail ",
+        stop: "js window.stop()",
+        zo: "zoom",
+        installnative: "nativeinstall",
+        nativeupdate: "updatenative",
+        mkt: "mktridactylrc",
+        "mkt!": "mktridactylrc -f",
+        "mktridactylrc!": "mktridactylrc -f",
+        mpvsafe:
+            "js -p tri.excmds.shellescape(JS_ARG).then(url => tri.excmds.exclaim_quiet('mpv --no-terminal ' + url))",
+        drawingstop: "mouse_mode",
+        exto: "extoptions",
+        extpreferences: "extoptions",
+        extp: "extpreferences",
+        prefset: "setpref",
+        prefremove: "removepref",
+        tabclosealltoright: "tabcloseallto right",
+        tabclosealltoleft: "tabcloseallto left",
+        reibadailty: "jumble",
+        smoothscrollwizard: "composite set smoothscroll true; unbind h; unbind j; unbind k; unbind l; unbind <C-u>; unbind <C-d>; bind <D-j> scrollstart 0 100; bind <D-k> scrollstart 0 -100; bind <D-h> scrollstart -100 0; bind <D-l> scrollstart 100 0; bind <DC-d> scrollstart 0 500; bind <DC-u> scrollstart 0 -500; bind <U-j> scrollstop; bind <U-k> scrollstop; bind <U-h> scrollstop; bind <U-l> scrollstop; bind <U-J> scrollstop; bind <U-K> scrollstop; bind <U-H> scrollstop; bind <U-L> scrollstop; bind <UC-u> scrollstop; bind <UC-d> scrollstop; bind <UC-U> scrollstop; bind <UC-D> scrollstop; fillcmdline_tmp 2000 smooth scroll binds set up",
+        nosmoothscrollwizard: "composite set smoothscroll false; reset <D-j>; reset <D-k>; reset <D-h>; reset <D-l>; reset <DC-d>; reset <DC-u>; reset <U-j>; reset <U-k>; reset <U-h>; reset <U-l>; reset <U-J>; reset <U-K>; reset <U-H>; reset <U-L>; reset <UC-u>; reset <UC-d>; reset <UC-U>; reset <UC-D>; reset j; reset k; reset h; reset l; reset <C-d>; reset <C-u>; reset <C-f>; reset <C-b>; fillcmdline_tmp 2000 original scroll binds restored",
+        scrollsmoothwizard: "smoothscrollwizard",
+        noscrollsmoothwizard: "nosmoothscrollwizard",
+    }
+
+    /** Ex-mode abbreviations, added with [[abbreviate]]. */
+    abbreviations: { [abbreviation: string]: string } = {}
+
+    /**
+     * Used by `]]` and `[[` to look for links containing these patterns.
+     * Arrays are tried in order; strings retain the legacy single-regex behaviour.
+     *
+     * Edit these if you want to add, e.g. other language support.
+     */
+    followpagepatterns: {
+        next: string | string[]
+        prev: string | string[]
+    } = {
+        next: [
+            "^(next|newer|neuer(e[mnrs]?)?|nächst(e[mnrs]?)?|weiter(e[mnrs]?)?|suivante?s?|prochaine?s?|successiv[oaie]|seguent[ei]|avanti|siguientes?|próxim[oa]s?)\\b",
+            "›|>",
+            "»",
+            "more",
+        ],
+        prev: [
+            "^(prev(ious)?|older|vorherig(e[mnrs]?)?|älter(e[mnrs]?)?|zurück|précédente?s?|precedent[ei]|indietro|anterior(es)?|atrás)\\b",
+            "‹|<",
+            "«",
+        ],
+    }
+
+    /**
+     * The default search engine used by `open search`. If empty string, your browser's default search engine will be used. If set to something, Tridactyl will first look at your [[searchurls]] and then at the search engines for which you have defined a keyword on `about:preferences#search`.
+     */
+    searchengine = ""
+
+    /**
+     * Definitions of search engines for use via `open [keyword]`.
+     *
+     * `%s` will be replaced with your whole query and `%s1`, `%s2`, ..., `%sn` will be replaced with the first, second and nth word of your query. Also supports array slicing, e.g. `%s[2:4]`, `%s[5:]`. If there are none of these patterns in your search urls, your query will simply be appended to the searchurl.
+     *
+     * Aliases are supported - for example, if you have a `google` searchurl, you can run `:set searchurls.g google` in which case `g` will act as if it was the `google` searchurl.
+     *
+     * Examples:
+     * - When running `open gi cute puppies`, with a `gi` searchurl defined with `set searchurls.gi https://www.google.com/search?q=%s&tbm=isch`, tridactyl will navigate to `https://www.google.com/search?q=cute puppies&tbm=isch`.
+     * - When running `tabopen translate en ja Tridactyl`, with a `translate` searchurl defined with `set searchurls.translate https://translate.google.com/#view=home&op=translate&sl=%s1&tl=%s2&text=%s3`, tridactyl will navigate to `https://translate.google.com/#view=home&op=translate&sl=en&tl=ja&text=Tridactyl`.
+     *
+     * [[setnull]] can be used to "delete" the default search engines. E.g. `setnull searchurls.google`.
+     *
+     * NB: lots of searchurls were removed in May 2024. You can restore them with:
+     *
+     * ```
+     *     set searchurls.googleuk https//www.google.co.uk/search?q=
+     *     set searchurls.yahoo https//search.yahoo.com/search?p=
+     *     set searchurls.twitter https//twitter.com/search?q=
+     *     set searchurls.wikipedia https//en.wikipedia.org/wiki/SpecialSearch/
+     *     set searchurls.amazon https//www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=
+     *     set searchurls.amazonuk https//www.amazon.co.uk/s/ref=nb_sb_noss?url=search-alias%3Daps&field-keywords=
+     *     set searchurls.startpage https//startpage.com/do/search?language=english&cat=web&query=
+     *     set searchurls.github https//github.com/search?utf8=✓&q=
+     *     set searchurls.searx https//searx.me/?category_general=on&q=
+     *     set searchurls.cnrtl http//www.cnrtl.fr/lexicographie/
+     *     set searchurls.osm https//www.openstreetmap.org/search?query=
+     *     set searchurls.mdn https//developer.mozilla.org/en-US/search?q=
+     *     set searchurls.gentoo_wiki https//wiki.gentoo.org/index.php?title=Special%3ASearch&profile=default&fulltext=Search&search=
+     *     set searchurls.qwant https//www.qwant.com/?q=
+     *  ```
+     */
+    searchurls = {
+        google: "https://www.google.com/search?udm=14&q=",
+        scholar: "https://scholar.google.com/scholar?q=",
+        bing: "https://www.bing.com/search?q=",
+        duckduckgo: "https://duckduckgo.com/?q=",
+        youtube: "https://www.youtube.com/results?search_query=",
+    }
+
+    /**
+     * Like [[searchurls]] but must be a Javascript function that takes one argument (a single string with the remainder of the command line including spaces) and maps it to a valid href (or a promise that resolves to a valid href) that will be followed, e.g. `set jsurls.googleloud query => "https://google.com/search?q=" + query.toUpperCase()`
+     *
+     * NB: the href must be valid, i.e. it must include the protocol (e.g. "http://") and not just be e.g. "www.".
+     */
+    jsurls = {}
+
+    /**
+     * URL the newtab will redirect to.
+     *
+     * All usual rules about things you can open with `open` apply, with the caveat that you'll get interesting results if you try to use something that needs `nativeopen`: so don't try `about:newtab` or a `file:///` URI. You can instead host a local webserver (e.g. Caddy).
+     */
+    newtab = ""
+
+    /**
+     * Whether `:viewsource` will use our own page that you can use Tridactyl binds on, or Firefox's default viewer, which you cannot use Tridactyl on.
+     */
+    viewsource: "tridactyl" | "default" = "tridactyl"
+
+    /**
+     * Pages opened with `gH`. In order to set this value, use `:set homepages ["example.org", "example.net", "example.com"]` and so on.
+     */
+    homepages: string[] = []
+
+    /**
+     * Characters to use in hint mode.
+     *
+     * They are used preferentially from left to right.
+     */
+    hintchars = "hjklasdfgyuiopqwertnmzxcvb"
+
+    /**
+     * The type of hinting to use. `vimperator` will allow you to filter links based on their names by typing non-hint chars. It is recommended that you use this in conjuction with the [[hintchars]] setting, which you should probably set to e.g, `5432167890`. ´vimperator-reflow´ additionally updates the hint labels after filtering.
+     */
+    hintfiltermode: "simple" | "vimperator" | "vimperator-reflow" = "simple"
+
+    /**
+     * Whether to optimise for the shortest possible names for each hint, or to use a simple numerical ordering. If set to `numeric` or `words`, overrides `hintchars` setting. `words` uses random three letter English words (and therefore works badly with hintfiltermode vimperator*)
+     */
+    hintnames: "short" | "numeric" | "uniform" | "words" = "short"
+
+    /**
+     * Whether to display the names for hints in uppercase.
+     */
+    hintuppercase: "true" | "false" = "true"
+
+    /**
+     * The delay in milliseconds in `vimperator` style hint modes after selecting a hint before you are returned to normal mode.
+     *
+     * The point of this is to prevent accidental execution of normal mode binds due to people typing more than is necessary to choose a hint.
+     */
+    hintdelay = 300
+
+    /**
+     * Controls whether hints should be shifted in quick-hints mode.
+     *
+     * Here's what it means: let's say you have hints from a to z but are only
+     * interested in every second hint. You first press `a`, then `c`.
+     * Tridactyl will realize that you skipped over `b`, and so that the next
+     * hint you're going to trigger is probably `e`. Tridactyl will shift all
+     * hint names so that `e` becomes `c`, `d` becomes `b`, `c` becomes `a` and
+     * so on.
+     * This means that once you pressed `c`, you can keep on pressing `c` to
+     * trigger every second hint. Only makes sense with hintnames = short.
+     */
+    hintshift: "true" | "false" = "false"
+
+    /**
+     * Controls whether hints should be followed automatically.
+     *
+     * If set to `false`, hints will only be followed upon confirmation. This applies to cases when there is only a single match or only one link on the page.
+     */
+    hintautoselect: "true" | "false" = "true"
+
+    /** Whether to hide hints for elements obscured by other elements. */
+    hinthideobscured: "true" | "false" = "false"
+
+    /**
+     * Controls whether the page can focus elements for you via js
+     *
+     * NB: will break fancy editors such as CodeMirror on Jupyter. Simply use `seturl` to whitelist pages you need it on.
+     *
+     * Best used in conjunction with browser.autofocus in `about:config`
+     */
+    allowautofocus: "true" | "false" = "true"
+
+    /**
+     * Uses a loop to prevent focus until you interact with a page. Only recommended for use via `seturl` for problematic sites as it can be a little heavy on CPU if running on all tabs. Should be used in conjuction with [[allowautofocus]]
+     */
+    preventautofocusjackhammer: "true" | "false" = "false"
+
+    /**
+     * Run a loop forcing the commandline to be reinserted if it is deleted as is typically the case after server-side rendering of bloated web frameworks such as React. Uses some CPU, so enable only on specific websites with `:seturl https://badwebsite\.com commandlineterriblewebsitefix true`.
+     *
+     * A better workaround is to stop visiting websites that have so little respect for their users.
+     */
+    commandlineterriblewebsitefix: "true" | "false" = "false"
+
+    /**
+     * **Deprecated** Use `:smoothscrollwizard` instead.
+     *
+     * Whether to use Tridactyl's (bad) smooth scrolling.
+     */
+    smoothscroll: "true" | "false" = "false"
+
+    /**
+     * How viscous you want smooth scrolling to feel.
+     */
+    scrollduration = 100
+
+    /**
+     * Where to open tabs opened with `tabopen` - to the right of the current tab, or at the end of the tabs.
+     */
+    tabopenpos: "next" | "last" | "related" = "next"
+
+    /**
+     * When enabled (the default), running tabclose will close the tabs whether they are pinned or not. When disabled, tabclose will fail with an error if a tab is pinned.
+     */
+    tabclosepinned: "true" | "false" = "true"
+
+    /**
+     * Controls which tab order to use when numbering tabs. Either mru = sort by most recent tab or default = by tab index
+     *
+     * Applies to all places where Tridactyl numbers tabs including `:tab`, `:tabnext_gt` etc. (so, for example, with `:set tabsort mru` `2gt` would take you to the second most recently used tab, not the second tab in the tab bar).
+     */
+    tabsort: "mru" | "default" = "default"
+
+    /**
+     * Where to open tabs opened with hinting - as if it had been middle clicked, to the right of the current tab, or at the end of the tabs.
+     */
+    relatedopenpos: "related" | "next" | "last" = "related"
+    /**
+     * The name of the voice to use for text-to-speech. You can get the list of installed voices by running the following snippet: `js alert(window.speechSynthesis.getVoices().reduce((a, b) => a + " " + b.name))`
+     */
+    ttsvoice = "default" // chosen from the listvoices list or "default"
+    /**
+     * Controls text-to-speech volume. Has to be a number between 0 and 1.
+     */
+    ttsvolume = 1
+    /**
+     * Controls text-to-speech speed. Has to be a number between 0.1 and 10.
+     */
+    ttsrate = 1
+    /**
+     * Controls text-to-speech pitch. Has to be between 0 and 2.
+     */
+    ttspitch = 1
+
+    /**
+     * When set to "nextinput", pressing `<Tab>` after gi selects the next input.
+     *
+     * When set to "firefox", `<Tab>` behaves like normal, focusing the next tab-indexed element regardless of type.
+     */
+    gimode: "nextinput" | "firefox" = "nextinput"
+
+    /**
+     * Decides where to place the cursor when selecting non-empty input fields
+     */
+    cursorpos: "beginning" | "end" = "end"
+
+    /**
+     * The theme to use.
+     *
+     * Permitted values: run `:composite js tri.styling.THEMES | fillcmdline` to find out.
+     */
+    theme = "default"
+
+    /**
+     * Whether to _not_ expose the active theme as a `TridactylTheme...` class on page root elements. Disabled by default for backwards compatibility with custom themes that use this class.
+     */
+    themeprivacy: "true" | "false" = "false"
+
+    /**
+     * Storage for custom themes
+     *
+     * Maps theme names to CSS. Predominantly used automatically by [[colourscheme]] to store themes read from disk, as documented by [[colourscheme]]. Setting this manually is untested but might work provided that [[colourscheme]] is then used to change the theme to the right theme name.
+     */
+    customthemes = {}
+
+    /**
+     * Whether to display the mode indicator or not.
+     */
+    modeindicator: "true" | "false" = "true"
+
+    /**
+     * Whether to display the mode indicator in various modes. Ignored if modeindicator set to false.
+     */
+    modeindicatormodes: { [key: string]: "true" | "false" } = {
+        normal: "true",
+        insert: "true",
+        input: "true",
+        ignore: "true",
+        ex: "true",
+        hint: "true",
+        visual: "true",
+    }
+
+    /**
+     * Milliseconds before registering a scroll in the jumplist
+     */
+    jumpdelay = 3000
+
+    /**
+     * Whether `markjump` should pop-up with a notification
+     */
+    markjumpnoisy: "true" | "false" = "true"
+
+    /**
+     * Logging levels. Unless you're debugging Tridactyl, it's unlikely you'll ever need to change these.
+     */
+    logging: { [key: string]: LoggingLevel } = {
+        cmdline: "warning",
+        containers: "warning",
+        controller: "warning",
+        excmd: "error",
+        hinting: "warning",
+        messaging: "warning",
+        native: "warning",
+        performance: "warning",
+        state: "warning",
+        styling: "warning",
+        autocmds: "warning",
+        profiles: "warning",
+    }
+
+    /**
+     * Disables the commandline iframe. Dangerous setting, use [[seturl]] to set it. If you ever set this setting to "true" globally and then want to set it to false again, you can do this by opening Tridactyl's preferences page from about:addons. By default, it is set to 'lazy' which should be ideal for the widest level of compatibility.
+     */
+    noiframe: "true" | "false" | "lazy" = "lazy"
+
+    /**
+     * @deprecated A list of URLs on which to not load the iframe. Use `seturl [URL] noiframe true` instead, as shown in [[noiframe]].
+     */
+    noiframeon: string[] = []
+
+    /**
+     * Insert / input mode edit-in-$EDITOR command to run
+     * This has to be a command that stays in the foreground for the whole editing session
+     * "auto" will attempt to find a sane editor in your path.
+     * Please send your requests to have your favourite terminal moved further up the list to /dev/null.
+     *          (but we are probably happy to add your terminal to the list if it isn't already there.)
+     *
+     * Example values:
+     * - linux: `xterm -e vim`
+     * - windows: `start /wait cmd.exe /c \"vim\"`.
+     *
+     * Also see [:editor](/static/docs/modules/_src_excmds_.html#editor).
+     */
+    editorcmd = "auto"
+
+    /**
+     * Try to preserve HTML tags when using an external editor.
+     *
+     * Defaults to false. Some sites work better with it set to true, see https://github.com/tridactyl/tridactyl/issues/3900
+     */
+    editorusehtml = "false"
+
+    /**
+     * Command that should be run by the [[rssexec]] ex command. Has the
+     * following format:
+     * - %u: url
+     * - %t: title
+     * - %y: type (rss, atom, xml...)
+     * Warning: This is a very large footgun. %u will be inserted without any
+     * kind of escaping, hence you must obey the following rules if you care
+     * about security:
+     * - Do not use a composite command. If you need a composite command,
+     * create an alias.
+     * - Do not use `js` or `jsb`. If you need to use them, create an alias.
+     * - Do not insert any %u, %t or %y in shell commands run by the native
+     * messenger. Use pipes instead.
+     *
+     * Here's an example of how to save an rss url in a file on your disk
+     * safely:
+     * `alias save_rss jsb -p tri.native.run("cat >> ~/.config.newsboat/urls", JS_ARG)`
+     * `set rsscmd save_rss %u`
+     * This is safe because the url is passed to jsb as an argument rather than
+     * being expanded inside of the string it will execute and because it is
+     * piped to the shell command rather than being expanded inside of it.
+     */
+    rsscmd = "yank %u"
+
+    /**
+     * The browser executable to look for in commands such as `restart`. Not as mad as it seems if you have multiple versions of Firefox...
+     */
+    browser = "firefox"
+
+    /**
+     * Which clipboard to store items in. Requires the native messenger to be installed.
+     */
+    yankto: "clipboard" | "selection" | "both" = "clipboard"
+
+    /**
+     * Which clipboard to retrieve items from. Requires the native messenger to be installed.
+     *
+     * Permitted values: `clipboard`, or `selection`.
+     */
+    putfrom: "clipboard" | "selection" = "clipboard"
+
+    /**
+     * Clipboard command to try to get the selection from (e.g. `xsel` or `xclip`)
+     */
+    externalclipboardcmd = "auto"
+
+    /**
+     * Whether downloads (e.g. via ;s hint modes) appear in your download history.
+     *
+     * NB: will cause downloads to fail silently if Tridactyl is not allowed to run in private windows (regardless of whether you are trying to call it in a private window).
+     */
+    downloadsskiphistory: "true" | "false" = "false"
+
+    /**
+     * Set of characters that are to be considered illegal as download filenames.
+     */
+    downloadforbiddenchars = "/\0"
+
+    /**
+     * Value that will be used to replace the illegal character(s), if found, in the download filename.
+     */
+    downloadforbiddenreplacement = "_"
+
+    /**
+     * Comma-separated list of whole filenames which, if match
+     * with the download filename, will be suffixed with the
+     * "downloadforbiddenreplacement" value.
+     */
+    downloadforbiddennames = ""
+
+    /**
+     * Placeholder string used in ":saveas" targets. If the save-as path
+     * contains this marker, it will be replaced with the filename
+     * derived from the URL.
+     *
+     * For example, using:
+     *
+     *   :saveas ~/Documents/ex-%
+     *
+     * with the URL:
+     *
+     *   https://example.com/log.txt
+     *
+     * will produce the file:
+     *
+     *   ~/Documents/ex-log.txt
+     */
+    downloadfilenamemarker = "%"
+
+    /**
+     * Set this to something weird if you want to have fun every time Tridactyl tries to update its native messenger.
+     *
+     * %TAG will be replaced with your version of Tridactyl for stable builds, or "master" for beta builds
+     *
+     * NB: Windows has its own platform-specific default.
+     */
+    nativeinstallcmd =
+        "curl -fsSl https://raw.githubusercontent.com/tridactyl/native_messenger/master/installers/install.sh -o /tmp/trinativeinstall.sh && sh /tmp/trinativeinstall.sh %TAG"
+
+    /**
+     * Used by :updatecheck and related built-in functionality to automatically check for updates and prompt users to upgrade.
+     */
+    update = {
+        /**
+         * Whether Tridactyl should check for available updates at startup.
+         */
+        nag: true,
+
+        /**
+         * How many days to wait after an update is first available until telling people.
+         */
+        nagwait: 7,
+
+        /**
+         * The version we last nagged you about. We only nag you once per version.
+         */
+        lastnaggedversion: "1.14.0",
+
+        /**
+         * Time we last checked for an update, milliseconds since unix epoch.
+         */
+        lastchecktime: 0,
+
+        /**
+         * Minimum interval between automatic update checks, in seconds.
+         */
+        checkintervalsecs: 60 * 60 * 24,
+    }
+
+    /**
+     * Profile directory used by native messenger commands such as `guiset` and [[nativeopen]].
+     *
+     * `auto` tries to detect the current Firefox profile. If detection chooses the
+     * wrong profile, set this to the absolute profile directory shown in `about:support`. Do not surround
+     * the path with quotes: use `:set profiledir /path/to/profile`, not `:set profiledir "/path/to/profile"`.
+     * Values are used literally: `~` and environment variables such as `$HOME` are not expanded.
+     *
+     * Launching Firefox with `-P <name>` or `--profile <path>` makes `auto` work better.
+     */
+    profiledir = "auto"
+
+    // Container settings
+
+    /**
+     * If enabled, tabopen opens a new tab in the currently active tab's container.
+     */
+    tabopencontaineraware: "true" | "false" = "false"
+
+    /**
+     * If modeindicator is enabled, containerindicator will color the border of the mode indicator with the container color.
+     */
+    containerindicator: "true" | "false" = "true"
+
+    /**
+     * Autocontain directives create a container if it doesn't exist already.
+     */
+    auconcreatecontainer: "true" | "false" = "true"
+
+    /**
+     * Initial urls to navigate to when creating a new tab for a new tab group.
+     */
+    tabgroupnewtaburls = {}
+
+    /**
+     * Whether :tab shows completions for hidden tabs (e.g. tabs in other tab groups).
+     */
+    tabshowhidden: "true" | "false" = "false"
+
+    /**
+     * Number of most recent results to ask Firefox for. The displayed subset is ordered by historysort.
+     */
+    historyresults = 50
+
+    /** Sort history by visit count ("frequency"), last visit ("recent"), or visit count inversely decayed after 90 days ("frecency"). */
+    historysort: "frequency" | "recent" | "frecency" = "frequency"
+
+    /**
+     * Whether bookmarks are included in :open, :tabopen and :winopen completions.
+     */
+    bmarkopen: "true" | "false" = "true"
+
+    /**
+     * Whether searchurls are included in :open, :tabopen and :winopen completions.
+     */
+    searchurlopen: "true" | "false" = "true"
+
+    /**
+     * When displaying bookmarks in history completions, how many page views to pretend they have.
+     */
+    bmarkweight = 100
+
+    /**
+     * Should folders be shown and filtered in bookmark searches.
+     */
+    bmarkfoldersearch: "true" | "false" = "false"
+
+    /**
+     * When displaying searchurls in history completions, how many page views to pretend they have.
+     */
+    searchurlweight = 150
+
+    /**
+     * Default selector for :goto command.
+     */
+    gotoselector = "h1, h2, h3, h4, h5, h6"
+
+    /**
+     * General completions options - NB: options are set according to our internal completion source name - see - `src/completions/[name].ts` in the Tridactyl source.
+     */
+    completions = {
+        Goto: {
+            autoselect: "true",
+        },
+        Tab: {
+            /**
+             * Whether to automatically select the closest matching completion
+             */
+            autoselect: "true",
+            /**
+             * Initially position and navigate from the active tab for physical
+             * ordering, or first tab for MRU. "active" and "top" force either.
+             */
+            initialposition: "top" as "auto" | "active" | "top",
+            /**
+             * Whether to use unicode symbols to display tab statuses
+             */
+            statusstylepretty: "false",
+        },
+        TabAll: {
+            autoselect: "true",
+        },
+        TabGroup: {
+            autoselect: "true",
+        },
+        Rss: {
+            autoselect: "true",
+        },
+        Bmark: {
+            autoselect: "true",
+        },
+        History: {
+            autoselect: "false",
+        },
+        Sessions: {
+            autoselect: "true",
+        },
+    }
+
+    /**
+     * Number of results that should be shown in completions. -1 for unlimited
+     */
+    findresults = -1
+
+    /**
+     * Number of characters to use as context for the matches shown in completions
+     */
+    findcontextlen = 50
+
+    /**
+     * Whether find should be case-sensitive
+     */
+    findcase: "smart" | "sensitive" | "insensitive" = "smart"
+
+    /**
+     * How long find highlights should persist in milliseconds. `<= 0` means they persist until cleared
+     */
+    findhighlighttimeout = 0
+
+    /**
+     * Whether Tridactyl should preview matches while typing `:find`
+     */
+    incsearch: "true" | "false" = "true"
+
+    /** @deprecated Retained for compatibility; this setting has no effect. */
+    minincsearchlen = 3
+
+    /**
+     * Deprecated.
+     * Change this to "clobber" to ruin the "Content Security Policy" of all sites a bit and make Tridactyl run a bit better on some of them, e.g. raw.github*
+     */
+    csp: "untouched" | "clobber" = "untouched"
+
+    /**
+     * JavaScript RegExp used to recognize words in text.* functions (e.g. text.transpose_words). Should match any character belonging to a word.
+     */
+    wordpattern = "[^\\s]+"
+
+    /**
+     * Activate tridactyl's performance counters. These have a
+     * measurable performance impact, since every sample is a few
+     * hundred bytes and we sample tridactyl densely, but they're good
+     * when you're trying to optimize things.
+     */
+    perfcounters: "true" | "false" = "false"
+
+    /**
+     * How many samples to store from the perf counters.
+     *
+     * Each performance entry is two numbers (16 bytes), an entryType
+     * of either "mark" or "measure" (js strings are utf-16 ad we have
+     * two marks for each measure, so amortize to about 10 bytes per
+     * entry), and a string name that for Tridactyl object will be
+     * about 40 (utf-16) characters (80 bytes), plus object overhead
+     * roughly proportional to the string-length of the name of the
+     * constructor (in this case something like 30 bytes), for a total
+     * of what we'll call 128 bytes for ease of math.
+     *
+     * We want to store, by default, about 1MB of performance
+     * statistics, so somewhere around 10k samples.
+     *
+     */
+    perfsamples = "10000"
+
+    /**
+     * Show (partial) command in the mode indicator.
+     * Corresponds to 'showcmd' option of vi.
+     */
+    modeindicatorshowkeys: "true" | "false" = "false"
+
+    /** Show the Ex command that `:repeat` would execute. */
+    modeindicatorshowlastex: "true" | "false" = "false"
+
+    /** Names of Ex commands that do not replace the command executed by `:repeat`. */
+    repeatblacklist: string[] = []
+
+    /**
+     * Whether a trailing slash is appended when we get the parent of a url with
+     * gu (or other means).
+     */
+    urlparenttrailingslash: "true" | "false" = "true"
+
+    /**
+     * Whether removal of the url fragment (the name after # in the url)
+     * is counted as a parent level.
+     */
+    urlparentignorefragment: "true" | "false" = "false"
+
+    /**
+     * Whether removal the url search parameter (the name after ? in the url)
+     * is counted as a parent level.
+     */
+    urlparentignoresearch: "true" | "false" = "false"
+
+    /**
+     * RegExp to remove from the url pathname before go to any parent path.
+     * To ignore "index.html" in "parent/index.html", set it to
+     * "//index\.html/". The regexp flag is supported, and the escape of
+     * the slashes inside the regexp is not required.
+     *
+     * An empty string will disable this feature.
+     *
+     * Suggested value: //index\.(html?|php|aspx?|jsp|cgi|pl|js)$/i
+     */
+    urlparentignorepathregexp = ""
+
+    /**
+     * Whether to enter visual mode when text is selected. Visual mode can always be entered with `:mode visual`.
+     */
+    visualenterauto: "true" | "false" = "true"
+
+    /**
+     * Whether to return to normal mode when text is deselected.
+     */
+    visualexitauto: "true" | "false" = "true"
+
+    /**
+     * Whether to open and close the sidebar quickly to get focus back to the page when <C-,> is pressed.
+     *
+     * Disable if the fact that it closes TreeStyleTabs gets on your nerves too much : )
+     *
+     * NB: when disabled, <C-,> can't get focus back from the address bar, but it can still get it back from lots of other places (e.g. Flash-style video players)
+     */
+    escapehatchsidebarhack: "true" | "false" = "true"
+
+    /**
+     * Threshold for fuzzy matching on completions. Lower => stricter matching. Range between 0 and 1: 0 corresponds to perfect matches only. 1 will match anything.
+     *
+     * https://fusejs.io/api/options.html#threshold
+     */
+    completionfuzziness = 0.3
+
+    /**
+     * Whether to show article url in the document.title of Reader View.
+     */
+    readerurlintitle: "true" | "false" = "false"
+
+    /**
+     * Which css styles to add for hint elements.
+     * Optionally add extra elements to the page to highlight hints using overlay and overlay outline.
+     *
+     * Use `hintstyles.fg` for text color, `hintstyles.bg` for background color, `hintstyles.outline` for outlines.
+     * Values may be set to "all" to enable the style for all hints, "active" to enable the style only for the currently selected hint, or "none" to disable the style completely.
+     *
+     * For example, run
+     *`:set hintstyles.bg none` and reload the page to remove background colors from all hints.
+     */
+    hintstyles: { [key: string]: "all" | "active" | "none" } = {
+        fg: "all",
+        bg: "all",
+        outline: "all",
+        overlay: "none",
+        overlayoutline: "none",
+    }
+
+    /**
+     * Internal temporary storage for :reader, mapping UUIDs to base64 encoded html strings of articles
+     */
+    reader_articles: { [id: string]: string } = {}
+}
+
+const platform_defaults = {
+    win: {
+        browsermaps: {
+            "<C-6>": null,
+            "<A-6>": "buffer #",
+        } as unknown, // typescript doesn't like me adding new binds like this
+        nmaps: {
+            "<C-6>": "buffer #",
+        } as unknown,
+        imaps: {
+            "<C-6>": "buffer #",
+        } as unknown,
+        inputmaps: {
+            "<C-6>": "buffer #",
+        } as unknown,
+        ignoremaps: {
+            "<C-6>": "buffer #",
+        } as unknown,
+
+        nativeinstallcmd: `powershell -ExecutionPolicy Bypass -NoProfile -Command "\
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12;\
+(New-Object System.Net.WebClient).DownloadFile('https://raw.githubusercontent.com/tridactyl/native_messenger/master/installers/windows.ps1', '%TEMP%/tridactyl_installnative.ps1');\
+& '%TEMP%/tridactyl_installnative.ps1' -Tag %TAG;\
+Remove-Item '%TEMP%/tridactyl_installnative.ps1'"`,
+        downloadforbiddenchars: "#%&{}\\<>*?/$!'\":@+`|=",
+        downloadforbiddennames:
+            "CON, PRN, AUX, NUL, COM1, COM2," +
+            "COM3, COM4, COM5, COM6, COM7, COM8, COM9, LPT1," +
+            "LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, LPT9,",
+    },
+    linux: {
+        nmaps: {
+            ";x": 'hint -F e => { const pos = tri.dom.getAbsoluteCentre(e); tri.excmds.exclaim_quiet("xdotool mousemove --sync " + window.devicePixelRatio * pos.x + " " + window.devicePixelRatio * pos.y + "; xdotool click 1")}',
+            ";c": 'hint -F e => { const pos = tri.dom.getAbsoluteCentre(e); tri.excmds.exclaim_quiet("xdotool mousemove --sync " + window.devicePixelRatio * pos.x + " " + window.devicePixelRatio * pos.y + "; xdotool click 3")}',
+            ";:": 'hint -F e => { const pos = tri.dom.getAbsoluteCentre(e); tri.excmds.exclaim_quiet("xdotool mousemove --sync " + window.devicePixelRatio * pos.x + " " + window.devicePixelRatio * pos.y)}',
+            ";X": 'hint -F e => { const pos = tri.dom.getAbsoluteCentre(e); tri.excmds.exclaim_quiet("xdotool mousemove --sync " + window.devicePixelRatio * pos.x + " " + window.devicePixelRatio * pos.y + "; xdotool keydown ctrl+shift; xdotool click 1; xdotool keyup ctrl+shift")}',
+        } as unknown,
+    },
+} as Record<browser.runtime.PlatformOs, default_config>
+
+/**
+ * Key codes for printable keys for [[keyboardlayoutforce]], lower and upper register.
+ * See https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values
+ * These maps are assigned via `:set keyboardlayoutbase`
+ * but keyboardlayoutoverrides can also be changed manually with `:set`.
+ *
+ * If your layout is missing here, you can contribute it with the help of [this](https://gistpreview.github.io/?324119c773fac31651f6422087b36804)
+ * tool.
+ */
+export const keyboardlayouts = {
+    qwerty: {
+        KeyA: ["a", "A"],
+        KeyB: ["b", "B"],
+        KeyC: ["c", "C"],
+        KeyD: ["d", "D"],
+        KeyE: ["e", "E"],
+        KeyF: ["f", "F"],
+        KeyG: ["g", "G"],
+        KeyH: ["h", "H"],
+        KeyI: ["i", "I"],
+        KeyJ: ["j", "J"],
+        KeyK: ["k", "K"],
+        KeyL: ["l", "L"],
+        KeyM: ["m", "M"],
+        KeyN: ["n", "N"],
+        KeyO: ["o", "O"],
+        KeyP: ["p", "P"],
+        KeyQ: ["q", "Q"],
+        KeyR: ["r", "R"],
+        KeyS: ["s", "S"],
+        KeyT: ["t", "T"],
+        KeyU: ["u", "U"],
+        KeyV: ["v", "V"],
+        KeyW: ["w", "W"],
+        KeyX: ["x", "X"],
+        KeyY: ["y", "Y"],
+        KeyZ: ["z", "Z"],
+        Digit0: ["0", ")"],
+        Digit1: ["1", "!"],
+        Digit2: ["2", "@"],
+        Digit3: ["3", "#"],
+        Digit4: ["4", "$"],
+        Digit5: ["5", "%"],
+        Digit6: ["6", "^"],
+        Digit7: ["7", "&"],
+        Digit8: ["8", "*"],
+        Digit9: ["9", "("],
+        Equal: ["=", "+"],
+        Backquote: ["`", "~"],
+        Backslash: ["\\", "|"],
+        Period: [".", ">"],
+        Comma: [",", "<"],
+        Semicolon: [";", ":"],
+        Slash: ["/", "?"],
+        BracketLeft: ["[", "{"],
+        BracketRight: ["]", "}"],
+        Quote: ["'", '"'],
+        Minus: ["-", "_"],
+    },
+    colemak: {
+        KeyA: ["a", "A"],
+        KeyB: ["b", "B"],
+        KeyC: ["c", "C"],
+        KeyD: ["s", "S"],
+        KeyE: ["f", "F"],
+        KeyF: ["t", "T"],
+        KeyG: ["d", "D"],
+        KeyH: ["h", "H"],
+        KeyI: ["u", "U"],
+        KeyJ: ["n", "N"],
+        KeyK: ["e", "E"],
+        KeyL: ["i", "I"],
+        KeyM: ["m", "M"],
+        KeyN: ["k", "K"],
+        KeyO: ["y", "Y"],
+        KeyP: [";", ":"],
+        KeyQ: ["q", "Q"],
+        KeyR: ["p", "P"],
+        KeyS: ["r", "R"],
+        KeyT: ["g", "G"],
+        KeyU: ["l", "L"],
+        KeyV: ["v", "V"],
+        KeyW: ["w", "W"],
+        KeyX: ["x", "X"],
+        KeyY: ["j", "J"],
+        KeyZ: ["z", "Z"],
+        Digit0: ["0", ")"],
+        Digit1: ["1", "!"],
+        Digit2: ["2", "@"],
+        Digit3: ["3", "#"],
+        Digit4: ["4", "$"],
+        Digit5: ["5", "%"],
+        Digit6: ["6", "^"],
+        Digit7: ["7", "&"],
+        Digit8: ["8", "*"],
+        Digit9: ["9", "("],
+        Equal: ["=", "+"],
+        Backquote: ["`", "~"],
+        Backslash: ["\\", "|"],
+        Period: [".", ">"],
+        Comma: [",", "<"],
+        Semicolon: [";", ":"],
+        Slash: ["/", "?"],
+        BracketLeft: ["[", "{"],
+        BracketRight: ["]", "}"],
+        Quote: ["'", '"'],
+        Minus: ["-", "_"],
+    },
+    azerty: {
+        Backquote: ["²", "²"],
+        Digit1: ["&", "1"],
+        Digit2: ["é", "2"],
+        Digit3: ['"', "3"],
+        Digit4: ["'", "4"],
+        Digit5: ["(", "5"],
+        Digit6: ["-", "6"],
+        Digit7: ["è", "7"],
+        Digit8: ["_", "8"],
+        Digit9: ["ç", "9"],
+        Digit0: ["à", "0"],
+        Minus: [")", "°"],
+        Equal: ["=", "+"],
+        KeyQ: ["a", "A"],
+        KeyW: ["z", "Z"],
+        KeyE: ["e", "E"],
+        KeyR: ["r", "R"],
+        KeyT: ["t", "T"],
+        KeyY: ["y", "Y"],
+        KeyU: ["u", "U"],
+        KeyI: ["i", "I"],
+        KeyO: ["o", "O"],
+        KeyP: ["p", "P"],
+        BracketRight: ["$", "£"],
+        Backslash: ["*", "µ"],
+        KeyA: ["q", "Q"],
+        KeyS: ["s", "S"],
+        KeyD: ["d", "D"],
+        KeyF: ["f", "F"],
+        KeyG: ["g", "G"],
+        KeyH: ["h", "H"],
+        KeyJ: ["j", "J"],
+        KeyK: ["k", "K"],
+        KeyL: ["l", "L"],
+        Semicolon: ["m", "M"],
+        Quote: ["ù", "%"],
+        KeyZ: ["w", "W"],
+        KeyX: ["x", "X"],
+        KeyC: ["c", "C"],
+        KeyV: ["v", "V"],
+        KeyB: ["b", "B"],
+        KeyN: ["n", "N"],
+        KeyM: [",", "?"],
+        Comma: [";", "."],
+        Period: [":", "/"],
+        Slash: ["!", "§"],
+    },
+    german: {
+        Digit1: ["1", "!"],
+        Digit2: ["2", '"'],
+        Digit3: ["3", "§"],
+        Digit4: ["4", "$"],
+        Digit5: ["5", "%"],
+        Digit6: ["6", "&"],
+        Digit7: ["7", "/"],
+        Digit8: ["8", "("],
+        Digit9: ["9", ")"],
+        Digit0: ["0", "="],
+        Minus: ["ß", "?"],
+        KeyQ: ["q", "Q"],
+        KeyW: ["w", "W"],
+        KeyE: ["e", "E"],
+        KeyR: ["r", "R"],
+        KeyT: ["t", "T"],
+        KeyY: ["z", "Z"],
+        KeyU: ["u", "U"],
+        KeyI: ["i", "I"],
+        KeyO: ["o", "O"],
+        KeyP: ["p", "P"],
+        BracketLeft: ["ü", "Ü"],
+        BracketRight: ["+", "*"],
+        Backslash: ["#", "'"],
+        KeyA: ["a", "A"],
+        KeyS: ["s", "S"],
+        KeyD: ["d", "D"],
+        KeyF: ["f", "F"],
+        KeyG: ["g", "G"],
+        KeyH: ["h", "H"],
+        KeyJ: ["j", "J"],
+        KeyK: ["k", "K"],
+        KeyL: ["l", "L"],
+        Semicolon: ["ö", "Ö"],
+        Quote: ["ä", "Ä"],
+        KeyZ: ["y", "Y"],
+        KeyX: ["x", "X"],
+        KeyC: ["c", "C"],
+        KeyV: ["v", "V"],
+        KeyB: ["b", "B"],
+        KeyN: ["n", "N"],
+        KeyM: ["m", "M"],
+        Comma: [",", ";"],
+        Period: [".", ":"],
+        Slash: ["-", "_"],
+        Backquote: ["", "°"],
+    },
+    dvorak: {
+        Backquote: ["`", "~"],
+        Digit1: ["1", "!"],
+        Digit2: ["2", "@"],
+        Digit3: ["3", "#"],
+        Digit4: ["4", "$"],
+        Digit5: ["5", "%"],
+        Digit6: ["6", "^"],
+        Digit7: ["7", "&"],
+        Digit8: ["8", "*"],
+        Digit9: ["9", "("],
+        Digit0: ["0", ")"],
+        Minus: ["[", "{"],
+        Equal: ["]", "}"],
+        KeyQ: ["'", '"'],
+        KeyW: [",", "<"],
+        KeyE: [".", ">"],
+        KeyR: ["p", "P"],
+        KeyT: ["y", "Y"],
+        KeyY: ["f", "F"],
+        KeyU: ["g", "G"],
+        KeyI: ["c", "C"],
+        KeyO: ["r", "R"],
+        KeyP: ["l", "L"],
+        BracketLeft: ["/", "?"],
+        BracketRight: ["=", "+"],
+        Backslash: ["\\", "|"],
+        KeyA: ["a", "A"],
+        KeyS: ["o", "O"],
+        KeyD: ["e", "E"],
+        KeyF: ["u", "U"],
+        KeyG: ["i", "I"],
+        KeyH: ["d", "D"],
+        KeyJ: ["h", "H"],
+        KeyK: ["t", "T"],
+        KeyL: ["n", "N"],
+        Semicolon: ["s", "S"],
+        Quote: ["-", "_"],
+        KeyZ: [";", ":"],
+        KeyX: ["q", "Q"],
+        KeyC: ["j", "J"],
+        KeyV: ["k", "K"],
+        KeyB: ["x", "X"],
+        KeyN: ["b", "B"],
+        KeyM: ["m", "M"],
+        Comma: ["w", "W"],
+        Period: ["v", "V"],
+        Slash: ["z", "Z"],
+    },
+    uk: {
+        Digit1: ["1", "!"],
+        Digit2: ["2", '"'],
+        Digit3: ["3", "£"],
+        Digit4: ["4", "$"],
+        Digit5: ["5", "%"],
+        Digit6: ["6", "^"],
+        Digit7: ["7", "&"],
+        Digit8: ["8", "*"],
+        Digit9: ["9", "("],
+        Digit0: ["0", ")"],
+        Minus: ["-", "_"],
+        Equal: ["=", "+"],
+        KeyQ: ["q", "Q"],
+        KeyW: ["w", "W"],
+        KeyE: ["e", "E"],
+        KeyR: ["r", "R"],
+        KeyT: ["t", "T"],
+        KeyY: ["y", "Y"],
+        KeyU: ["u", "U"],
+        KeyI: ["i", "I"],
+        KeyO: ["o", "O"],
+        KeyP: ["p", "P"],
+        BracketLeft: ["[", "{"],
+        KeyK: ["k", "K"],
+        BracketRight: ["]", "}"],
+        KeyA: ["a", "A"],
+        KeyS: ["s", "S"],
+        KeyD: ["d", "D"],
+        KeyF: ["f", "F"],
+        KeyG: ["g", "G"],
+        KeyH: ["h", "H"],
+        KeyJ: ["j", "J"],
+        Semicolon: [";", ":"],
+        Quote: ["'", "@"],
+        Backslash: ["#", "~"],
+        IntlBackslash: ["\\", "|"],
+        KeyZ: ["z", "Z"],
+        KeyX: ["x", "X"],
+        KeyC: ["c", "C"],
+        KeyV: ["v", "V"],
+        KeyB: ["b", "B"],
+        KeyN: ["n", "N"],
+        KeyM: ["m", "M"],
+        Period: [".", ">"],
+        Slash: ["/", "?"],
+        Backquote: ["`", "¬"],
+        KeyL: ["l", "L"],
+        Comma: [",", "<"],
+    },
+    ca: {
+        Backquote: ["#", "|"],
+        Digit1: ["1", "!"],
+        Digit2: ["2", '"'],
+        Digit3: ["3", "/"],
+        Digit4: ["4", "$"],
+        Digit5: ["5", "%"],
+        Digit6: ["6", "?"],
+        Digit7: ["7", "&"],
+        Digit8: ["8", "*"],
+        Digit9: ["9", "("],
+        Digit0: ["0", ")"],
+        Minus: ["-", "_"],
+        Equal: ["=", "+"],
+        KeyQ: ["q", "Q"],
+        KeyW: ["w", "W"],
+        KeyE: ["e", "E"],
+        KeyR: ["r", "R"],
+        KeyT: ["t", "T"],
+        KeyY: ["y", "Y"],
+        KeyU: ["u", "U"],
+        KeyI: ["i", "I"],
+        KeyO: ["o", "O"],
+        KeyP: ["p", "P"],
+        KeyA: ["a", "A"],
+        KeyS: ["s", "S"],
+        KeyD: ["d", "D"],
+        KeyF: ["f", "F"],
+        KeyG: ["g", "G"],
+        KeyH: ["h", "H"],
+        KeyJ: ["j", "J"],
+        KeyK: ["k", "K"],
+        KeyL: ["l", "L"],
+        Semicolon: [";", ":"],
+        Backslash: ["<", ">"],
+        IntlBackslash: ["«", "»"],
+        KeyZ: ["z", "Z"],
+        KeyX: ["x", "X"],
+        KeyC: ["c", "C"],
+        KeyV: ["v", "V"],
+        KeyB: ["b", "B"],
+        KeyN: ["n", "N"],
+        KeyM: ["m", "M"],
+        Comma: [",", "'"],
+        Period: [".", "."],
+        Slash: ["é", "É"],
+    },
+    bepo: {
+        Backquote: ["$", "#"],
+        Digit1: ['"', "1"],
+        Digit2: ["«", "2"],
+        Digit3: ["»", "3"],
+        Digit4: ["(", "4"],
+        Digit5: [")", "5"],
+        Digit6: ["@", "6"],
+        Digit7: ["+", "7"],
+        Digit8: ["-", "8"],
+        Digit9: ["/", "9"],
+        Digit0: ["*", "0"],
+        Minus: ["=", "°"],
+        Equal: ["%", "`"],
+        KeyQ: ["b", "B"],
+        KeyW: ["é", "É"],
+        KeyE: ["p", "P"],
+        KeyR: ["o", "O"],
+        KeyT: ["è", "È"],
+        KeyU: ["v", "V"],
+        KeyI: ["d", "D"],
+        KeyO: ["l", "L"],
+        KeyP: ["j", "J"],
+        BracketLeft: ["z", "Z"],
+        BracketRight: ["w", "W"],
+        KeyA: ["a", "A"],
+        KeyS: ["u", "U"],
+        KeyD: ["i", "I"],
+        KeyF: ["e", "E"],
+        KeyG: [",", ";"],
+        KeyH: ["c", "C"],
+        KeyJ: ["t", "T"],
+        KeyK: ["s", "S"],
+        KeyL: ["r", "R"],
+        Semicolon: ["n", "N"],
+        Quote: ["m", "M"],
+        Backslash: ["ç", "Ç"],
+        IntlBackslash: ["ê", "Ê"],
+        KeyZ: ["à", "À"],
+        KeyX: ["y", "Y"],
+        KeyC: ["x", "X"],
+        KeyV: [".", ":"],
+        KeyB: ["k", "K"],
+        KeyN: ["'", "?"],
+        KeyM: ["q", "Q"],
+        Comma: ["g", "G"],
+        Period: ["h", "H"],
+        Slash: ["f", "F"],
+        KeyY: ["", "!"],
+    },
+    workman: {
+        Quote: ["'", '"'],
+        Digit8: ["8", "*"],
+        Digit1: ["1", "!"],
+        Digit2: ["2", "@"],
+        Digit3: ["3", "#"],
+        Digit4: ["4", "$"],
+        Digit5: ["5", "%"],
+        Digit6: ["6", "^"],
+        Digit7: ["7", "&"],
+        Backquote: ["`", "~"],
+        Digit9: ["9", "("],
+        Digit0: ["0", ")"],
+        Minus: ["-", "_"],
+        Equal: ["=", "+"],
+        KeyQ: ["q", "Q"],
+        KeyW: ["d", "D"],
+        KeyE: ["r", "R"],
+        KeyR: ["w", "W"],
+        KeyT: ["b", "B"],
+        KeyY: ["j", "J"],
+        KeyU: ["f", "F"],
+        KeyI: ["u", "U"],
+        KeyO: ["p", "P"],
+        KeyP: [";", ":"],
+        BracketLeft: ["[", "{"],
+        BracketRight: ["]", "}"],
+        Backslash: ["\\", "|"],
+        KeyA: ["a", "A"],
+        KeyS: ["s", "S"],
+        KeyD: ["h", "H"],
+        KeyF: ["t", "T"],
+        KeyG: ["g", "G"],
+        KeyH: ["y", "Y"],
+        KeyJ: ["n", "N"],
+        KeyK: ["e", "E"],
+        KeyL: ["o", "O"],
+        Semicolon: ["i", "I"],
+        KeyZ: ["z", "Z"],
+        KeyX: ["x", "X"],
+        KeyC: ["m", "M"],
+        KeyV: ["c", "C"],
+        KeyB: ["v", "V"],
+        KeyN: ["k", "K"],
+        KeyM: ["l", "L"],
+        Comma: [",", "<"],
+        Period: [".", ">"],
+        Slash: ["/", "?"],
+    },
+}
+
+/** @hidden
+ * Merges two objects and removes all keys with null values at all levels
+ */
+export const mergeDeepCull = R.pipe(mergeDeep, removeNull)
+
+/** @hidden */
+export const DEFAULTS = mergeDeepCull(
+    o(new default_config()),
+    platform_defaults[platform.getPlatformOs()],
+)
+
+/** Given an object and a target, extract the target if it exists, else return undefined
+
+    @param target path of properties as an array
+    @hidden
+ */
+export function getDeepProperty(obj, target: string[]) {
+    if (obj !== undefined && obj !== null && target.length) {
+        if (obj["🕷🕷INHERITS🕷🕷"] === undefined) {
+            return getDeepProperty(obj[target[0]], target.slice(1))
+        } else {
+            return getDeepProperty(
+                mergeDeep(get(obj["🕷🕷INHERITS🕷🕷"]), obj)[target[0]],
+                target.slice(1),
+            )
+        }
+    } else {
+        if (obj === undefined || obj === null) return obj
+        if (obj["🕷🕷INHERITS🕷🕷"] !== undefined) {
+            return mergeDeep(get(obj["🕷🕷INHERITS🕷🕷"]), obj)
+        } else {
+            return obj
+        }
+    }
+}
+
+/** Create the key path target if it doesn't exist and set the final property to value.
+
+    If the path is an empty array, replace the obj.
+
+    @param target path of properties as an array
+    @hidden
+ */
+function setDeepProperty(obj, value, target) {
+    if (target.length > 1) {
+        // If necessary antecedent objects don't exist, create them.
+        if (obj[target[0]] === undefined) {
+            obj[target[0]] = o({})
+        }
+        return setDeepProperty(obj[target[0]], value, target.slice(1))
+    } else {
+        obj[target[0]] = value
+    }
+}
+
+/** @hidden
+ * Merges two objects and any child objects they may have
+ */
+export function mergeDeep(o1, o2) {
+    if (o2 === undefined && (o1 === null || typeof o1 !== "object")) return o1
+    if (Array.isArray(o1) && o2 === null) return []
+    if (Array.isArray(o2)) return o2.slice()
+    if (o2 !== null && o2 !== undefined && typeof o2 !== "object") return o2
+    if (o1 === null) return o(o2)
+    const r = Array.isArray(o1) ? o1.slice() : o({})
+    Object.assign(r, o1, o2)
+    if (o2 === undefined) return r
+    Object.keys(o1)
+        .filter(
+            key => typeof o1[key] === "object" && typeof o2[key] === "object",
+        )
+        .forEach(key =>
+            r[key] == null ? null : (r[key] = mergeDeep(o1[key], o2[key])),
+        )
+    return r
+}
+
+/** @hidden
+ * Gets a site-specific setting.
+ */
+export function getURL(url: string, target: string[]) {
+    function _getURL(conf, url, target) {
+        if (!conf.subconfigs) return undefined
+        // For each key
+        return (
+            Object.keys(conf.subconfigs)
+                // Keep only the ones that have a match
+                .filter(
+                    k =>
+                        url.match(k) &&
+                        getDeepProperty(conf.subconfigs[k], target) !==
+                            undefined,
+                )
+                // Sort them from lowest to highest priority, default to a priority of 10
+                .sort(
+                    (k1, k2) =>
+                        (conf.subconfigs[k1].priority || 10) -
+                        (conf.subconfigs[k2].priority || 10),
+                )
+                // Merge their corresponding value if they're objects, otherwise return the last value
+                .reduce((acc, curKey) => {
+                    const curVal = getDeepProperty(
+                        conf.subconfigs[curKey],
+                        target,
+                    )
+                    if (acc instanceof Object && curVal instanceof Object)
+                        return mergeDeep(acc, curVal)
+                    return curVal
+                }, undefined as any)
+        )
+    }
+    const user = _getURL(USERCONFIG, url, target)
+    const deflt = _getURL(DEFAULTS, url, target)
+    if (user === undefined || user === null) return deflt
+    if (typeof user !== "object" || typeof deflt !== "object") return user
+    return mergeDeep(deflt, user)
+}
+
+/** Get the value of the key target.
+
+    If the user has not specified a key, use the corresponding key from
+    defaults, if one exists, else undefined.
+    @hidden
+ */
+export function get(target_typed?: keyof default_config, ...target: string[]) {
+    if (target_typed === undefined) {
+        target = []
+    } else {
+        target = [target_typed as string].concat(target)
+    }
+    // Window.tri might not be defined when called from the untrusted page context
+    let loc = window.location
+    if ((window as any).tri && (window as any).tri.contentLocation)
+        loc = (window as any).tri.contentLocation
+    // If there's a site-specifing setting, it overrides global settings
+    const site = getURL(loc.href, target)
+    const user = getDeepProperty(USERCONFIG, target)
+    const defult = getDeepProperty(DEFAULTS, target)
+
+    // Merge results if there's a default value and it's not an Array or primitive.
+    if (typeof defult === "object") {
+        return removeNull(mergeDeep(mergeDeep(defult, user), site))
+    } else if (defult === undefined && user && typeof user === "object") {
+        return removeNull(mergeDeep(user, site))
+    } else {
+        if (site !== undefined) {
+            return removeNull(site)
+        } else if (user !== undefined) {
+            return removeNull(user)
+        } else {
+            return removeNull(defult)
+        }
+    }
+}
+
+/** Get the value of the key target.
+
+    Please only use this with targets that will be used at runtime - it skips static checks. Prefer [[get]].
+ */
+export function getDynamic(...target: string[]) {
+    return get(target[0] as keyof default_config, ...target.slice(1))
+}
+
+/** Get the value of the key target.
+
+    Please only use this with targets that will be used at runtime - it skips static checks. Prefer [[getAsync]].
+ */
+export async function getAsyncDynamic(...target: string[]) {
+    return getAsync(target[0] as keyof default_config, ...target.slice(1))
+}
+
+/** Get the value of the key target, but wait for config to be loaded from the
+    database first if it has not been at least once before.
+
+    This is useful if you are a content script and you've just been loaded.
+    @hidden
+ */
+export async function getAsync(
+    target_typed?: keyof default_config,
+    ...target: string[]
+) {
+    if (INITIALISATION_ERROR) throw INITIALISATION_ERROR
+    if (INITIALISED) {
+        if (IN_BACKGROUND) return get(target_typed, ...target)
+        // TODO: consider storing keys directly
+        const browserconfig = await browser.storage.local.get(CONFIGNAME)
+        USERCONFIG = browserconfig[CONFIGNAME] || o({})
+
+        return get(target_typed, ...target)
+    } else {
+        return new Promise((resolve, reject) =>
+            WAITERS.push(() =>
+                getAsync(target_typed, ...target).then(resolve, reject),
+            ),
+        )
+    }
+}
+
+/*
+ * Replaces the configuration in your sync storage with your current configuration. Does not merge: it overwrites.
+ *
+ * Does not synchronise custom themes due to storage constraints.
+ */
+export async function push() {
+    if (!IN_BACKGROUND) return mutateInBackground("push", [])
+    return exclusively(async () => {
+        if (!INITIALISED) await getAsync()
+        const userconfig = structuredClone(USERCONFIG)
+        delete userconfig["customthemes"]
+        return browser.storage.sync.set({ [CONFIGNAME]: userconfig })
+    })
+}
+
+/*
+ * Replaces the local configuration with the configuration from your sync storage. Does not merge: it overwrites.
+ */
+export async function pull() {
+    if (!IN_BACKGROUND) return mutateInBackground("pull", [])
+    return exclusively(async () => {
+        if (!INITIALISED) await getAsync()
+        const synced = await browser.storage.sync.get(CONFIGNAME)
+        USERCONFIG = synced[CONFIGNAME] || o({})
+        return save()
+    })
+}
+
+/** @hidden
+ * Like set(), but for a specific pattern.
+ */
+export function setURL(pattern, ...args) {
+    try {
+        new RegExp(pattern)
+        return set("subconfigs", pattern, ...args)
+    } catch (err) {
+        if (err instanceof SyntaxError)
+            throw new SyntaxError(`invalid pattern: ${err.message}`)
+        throw err
+    }
+}
+/** Full target specification, then value
+
+    e.g.
+        set("nmaps", "o", "open")
+        set("search", "default", "google")
+        set("aucmd", "BufRead", "memrise.com", "open memrise.com")
+
+    @hidden
+ */
+export async function set(...args) {
+    if (args.length < 2) {
+        throw new Error("You must provide at least two arguments!")
+    }
+
+    const target = args.slice(0, args.length - 1)
+    const value = args[args.length - 1]
+
+    if (!IN_BACKGROUND) {
+        setDeepProperty(USERCONFIG, value, target)
+        return mutateInBackground("set", args)
+    }
+
+    if (EXCLUSIVE_PENDING) await EXCLUSIVE_QUEUE
+    if (!INITIALISED) await getAsync()
+    setDeepProperty(USERCONFIG, value, target)
+    return save()
+}
+
+/** @hidden
+ * Delete the key at USERCONFIG[pattern][target]
+ */
+export function unsetURL(pattern, ...target) {
+    return unset("subconfigs", pattern, ...target)
+}
+
+/** Delete the key at target in USERCONFIG if it exists
+ * @hidden */
+export async function unset(...target) {
+    if (IN_BACKGROUND && EXCLUSIVE_PENDING) await EXCLUSIVE_QUEUE
+    if (IN_BACKGROUND && !INITIALISED) await getAsync()
+    const parent = getDeepProperty(USERCONFIG, target.slice(0, -1))
+    if (parent !== undefined) delete parent[target[target.length - 1]]
+    if (!IN_BACKGROUND) return mutateInBackground("unset", target)
+    return save()
+}
+
+export async function clear(scope: "local" | "config" = "local") {
+    if (!IN_BACKGROUND) {
+        const customthemes = scope === "config" && USERCONFIG.customthemes
+        USERCONFIG = customthemes
+            ? o({ configversion: CURRENT_CONFIG_VERSION, customthemes })
+            : o({})
+        return mutateInBackground("clear", [scope])
+    }
+    if (EXCLUSIVE_PENDING) await EXCLUSIVE_QUEUE
+    if (!INITIALISED) await getAsync()
+    const old = USERCONFIG
+    const customthemes = scope === "config" && old.customthemes
+    USERCONFIG = customthemes
+        ? o({ configversion: CURRENT_CONFIG_VERSION, customthemes })
+        : o({})
+    await store(() =>
+        customthemes
+            ? browser.storage.local.set({
+                  [CONFIGNAME]: structuredClone(USERCONFIG),
+              })
+            : scope === "config"
+              ? browser.storage.local.remove([CONFIGNAME, CONFIG_WRITE])
+              : browser.storage.local.clear(),
+    )
+    notifyChangeListeners(old, USERCONFIG)
+}
+
+/** Save the config back to storage API.
+
+    Config is not synchronised between different instances of this module until
+    sometime after this happens.
+
+    @hidden
+ */
+export async function save() {
+    const settingsobj = o({})
+    settingsobj[CONFIGNAME] = structuredClone(USERCONFIG)
+    if (IN_BACKGROUND) {
+        settingsobj[CONFIG_WRITE] = WRITE_SESSION + ++WRITE_ID
+        PENDING_WRITES.add(settingsobj[CONFIG_WRITE])
+    }
+    return store(() =>
+        browser.storage.local.set(settingsobj).catch(error => {
+            PENDING_WRITES.delete(settingsobj[CONFIG_WRITE])
+            throw error
+        }),
+    )
+}
+
+/** Updates the config to the latest version.
+    Proposed semantic for config versionning:
+     - x.y -> x+1.0 : major architectural changes
+     - x.y -> x.y+1 : renaming settings/changing their types
+    There's no need for an updater if you're only adding a new setting/changing
+    a default setting
+
+    When adding updaters, don't forget to set("configversion", newversionnumber)!
+    @hidden
+ */
+export async function update(useCurrentConfig = false) {
+    const set = (...args) => setDeepProperty(USERCONFIG, args.pop(), args)
+    const unset = (...target) => {
+        const key = target.pop()
+        delete getDeepProperty(USERCONFIG, target)?.[key]
+    }
+    const setURL = (pattern, ...args) => {
+        new RegExp(pattern)
+        set("subconfigs", pattern, ...args)
+    }
+    // Avoid public setters, which wait for migration to finish.
+    // Updates a value both in the main config and in sub (=site specific) configs
+    const updateAll = (setting: string[], fn: (any) => any) => {
+        const val = getDeepProperty(USERCONFIG, setting)
+        if (val) {
+            set(...setting, fn(val))
+        }
+        const subconfigs = getDeepProperty(USERCONFIG, ["subconfigs"])
+        if (subconfigs) {
+            Object.keys(subconfigs)
+                .map(pattern => [pattern, getURL(pattern, setting)])
+                .filter(([_pattern, value]) => value)
+                .forEach(([pattern, value]) =>
+                    setURL(pattern, ...setting, fn(value)),
+                )
+        }
+    }
+
+    if (!get("configversion")) set("configversion", "0.0")
+
+    let updated = false
+    switch (get("configversion")) {
+        case "0.0": {
+            try {
+                // Before we had a config system, we had nmaps, and we put them in the
+                // root namespace because we were young and bold.
+                const legacy_nmaps = await browser.storage.sync.get("nmaps")
+                if (Object.keys(legacy_nmaps).length > 0) {
+                    USERCONFIG.nmaps = Object.assign(
+                        legacy_nmaps.nmaps,
+                        USERCONFIG.nmaps,
+                    )
+                }
+            } finally {
+                set("configversion", "1.0")
+            }
+        }
+        case "1.0": {
+            const vimiumgi = getDeepProperty(USERCONFIG, ["vimium-gi"])
+            if (vimiumgi === true || vimiumgi === "true")
+                set("gimode", "nextinput")
+            else if (vimiumgi === false || vimiumgi === "false")
+                set("gimode", "firefox")
+            unset("vimium-gi")
+            set("configversion", "1.1")
+        }
+        case "1.1": {
+            const leveltostr: { [key: number]: LoggingLevel } = {
+                0: "never",
+                1: "error",
+                2: "warning",
+                3: "info",
+                4: "debug",
+            }
+            const logging = getDeepProperty(USERCONFIG, ["logging"])
+            // logging is not necessarily defined if the user didn't change default values
+            if (logging)
+                Object.keys(logging).forEach(l =>
+                    set("logging", l, leveltostr[logging[l]]),
+                )
+            set("configversion", "1.2")
+        }
+        case "1.2": {
+            ;["ignoremaps", "inputmaps", "imaps", "nmaps"]
+                .map(mapname => [
+                    mapname,
+                    getDeepProperty(USERCONFIG, [mapname]),
+                ])
+                // mapobj is undefined if the user didn't define any bindings
+                .filter(([_mapname, mapobj]) => mapobj)
+                .forEach(([mapname, mapobj]) => {
+                    // For each mapping
+                    Object.keys(mapobj)
+                        // Keep only the ones with im_* functions
+                        .filter(
+                            key =>
+                                mapobj[key]?.search(
+                                    "^im_|([^a-zA-Z0-9_-])im_",
+                                ) >= 0,
+                        )
+                        // Replace the prefix
+                        .forEach(key =>
+                            setDeepProperty(
+                                USERCONFIG,
+                                mapobj[key].replace(
+                                    new RegExp("^im_|([^a-zA-Z0-9_-])im_"),
+                                    "$1text.",
+                                ),
+                                [mapname, key],
+                            ),
+                        )
+                })
+            set("configversion", "1.3")
+        }
+        case "1.3": {
+            ;[
+                "priority",
+                "hintdelay",
+                "scrollduration",
+                "ttsvolume",
+                "ttsrate",
+                "ttspitch",
+                "jumpdelay",
+                "historyresults",
+            ].forEach(setting => updateAll([setting], parseInt))
+            set("configversion", "1.4")
+        }
+        case "1.4": {
+            ;(getDeepProperty(USERCONFIG, ["noiframeon"]) || []).forEach(
+                site => {
+                    setURL(site, "noiframe", "true")
+                },
+            )
+            set("configversion", "1.5")
+        }
+        case "1.5": {
+            unset("exaliases", "tab")
+            set("configversion", "1.6")
+        }
+        case "1.6": {
+            const updateSetting = mapObj => {
+                if (!mapObj) return mapObj
+                if (mapObj[" "] !== undefined) {
+                    mapObj["<Space>"] = mapObj[" "]
+                    delete mapObj[" "]
+                }
+                ;[
+                    "<A- >",
+                    "<C- >",
+                    "<M- >",
+                    "<S- >",
+                    "<AC- >",
+                    "<AM- >",
+                    "<AS- >",
+                    "<CM- >",
+                    "<CS- >",
+                    "<MS- >",
+                ].forEach(binding => {
+                    if (mapObj[binding] !== undefined) {
+                        const key = binding.replace(" ", "Space")
+                        mapObj[key] = mapObj[binding]
+                        delete mapObj[binding]
+                    }
+                })
+                return mapObj
+            }
+            ;["nmaps", "exmaps", "imaps", "inputmaps", "ignoremaps"].forEach(
+                settingName => updateAll([settingName], updateSetting),
+            )
+            set("configversion", "1.7")
+        }
+        case "1.7": {
+            const autocontain = getDeepProperty(USERCONFIG, ["autocontain"])
+            unset("autocontain")
+            if (autocontain !== undefined) {
+                Object.entries(autocontain).forEach(([domain, container]) => {
+                    set(
+                        "autocontain",
+                        `^https?://([^/]*\\.|)*${domain}/`,
+                        container,
+                    )
+                })
+            }
+            set("configversion", "1.8")
+        }
+        case "1.8": {
+            const updateSetting = mapObj => {
+                if (!mapObj) return mapObj
+                return R.map(val => {
+                    if (val === "") return null
+                    return val
+                }, mapObj)
+            }
+            ;[
+                "nmaps",
+                "exmaps",
+                "imaps",
+                "inputmaps",
+                "ignoremaps",
+                "hintmaps",
+                "vmaps",
+            ].forEach(settingName => updateAll([settingName], updateSetting))
+            set("configversion", "1.9")
+        }
+        case "1.9": {
+            const local = (await browser.storage.local.get(CONFIGNAME))[
+                CONFIGNAME
+            ] as { storageloc?: "local" | "sync" }
+            const sync = (await browser.storage.sync.get(CONFIGNAME))[
+                CONFIGNAME
+            ] as { storageloc?: "local" | "sync" }
+            // Possible combinations:
+            // storage:storageloc_setting => winning storageloc setting
+            // l:l, s:* => l
+            // l:undefined, s:l =>  l
+            // l:undefined, s:s => s
+            // l: undefined, s:undefined => s
+            // l:s, s:* =>  s
+            const current_storageloc =
+                local?.storageloc !== undefined
+                    ? local.storageloc
+                    : sync?.storageloc !== undefined
+                      ? sync.storageloc
+                      : "sync"
+            if (!useCurrentConfig && current_storageloc == "sync") {
+                USERCONFIG = sync || o({})
+            } else if (!useCurrentConfig && current_storageloc != "local") {
+                throw new Error(
+                    "storageloc was set to something weird: " +
+                        current_storageloc +
+                        ", automatic migration of settings was not possible.",
+                )
+            }
+            set("configversion", CURRENT_CONFIG_VERSION)
+            updated = true // NB: when adding a new updater, move this line to the end of it
+        }
+    }
+    if (updated) await save()
+    return updated
+}
+
+/** Read all user configuration from storage API then notify any waiting asynchronous calls
+
+    asynchronous calls generated by getAsync.
+    @hidden
+ */
+async function init() {
+    if (!IN_BACKGROUND) await mutateInBackground("ready", [])
+    const localConfig = await browser.storage.local.get(CONFIGNAME)
+    schlepp(localConfig[CONFIGNAME])
+
+    if (IN_BACKGROUND) {
+        const syncConfig = await browser.storage.sync.get([CONFIGNAME, "nmaps"])
+        const isNewProfile =
+            localConfig[CONFIGNAME] === undefined &&
+            syncConfig[CONFIGNAME] === undefined &&
+            syncConfig.nmaps === undefined
+        if (isNewProfile) {
+            USERCONFIG.configversion = CURRENT_CONFIG_VERSION
+            await save()
+        } else {
+            await update()
+        }
+    }
+}
+
+/** @hidden */
+const changeListeners = new Map()
+
+function notifyChangeListeners(oldConfig, newConfig) {
+    changeListeners.forEach((listeners, key) => {
+        const old = oldConfig[key] === undefined ? DEFAULTS[key] : oldConfig[key]
+        const next = newConfig[key] === undefined ? DEFAULTS[key] : newConfig[key]
+        if (JSON.stringify(old) !== JSON.stringify(next))
+            listeners.forEach(f => f(old, next))
+    })
+}
+
+/** @hidden
+ * @param name The name of a "toplevel" config setting (i.e. "nmaps", not "nmaps.j")
+ * @param listener A function to call when the value of $name is modified in the config. Takes the previous and new value as parameters.
+ */
+export function addChangeListener<P extends keyof default_config>(
+    name: P,
+    listener: (old: default_config[P], neww: default_config[P]) => void,
+) {
+    let arr = changeListeners.get(name)
+    if (!arr) {
+        arr = []
+        changeListeners.set(name, arr)
+    }
+    arr.push(listener)
+}
+
+/** @hidden
+ * Removes event listeners set with addChangeListener
+ */
+export function removeChangeListener<P extends keyof default_config>(
+    name: P,
+    listener: (old: default_config[P], neww: default_config[P]) => void,
+) {
+    const arr = changeListeners.get(name)
+    if (!arr) return
+    const i = arr.indexOf(listener)
+    if (i >= 0) arr.splice(i, 1)
+}
+
+/** Parse the config into a string representation of a .tridactylrc config file.
+    Tries to parse the config into sectionable chunks based on keywords.
+    Binds, aliases, autocmds and logging settings each have their own section while the rest are dumped into "General Settings".
+
+    @returns string The parsed config file.
+
+ */
+export function parseConfig(): string {
+    let p = {
+        conf: [],
+        binds: [],
+        aliases: [],
+        subconfigs: [],
+        aucmds: [],
+        aucons: [],
+        logging: [],
+        nulls: [],
+    }
+
+    p = parseConfigHelper(USERCONFIG, p)
+
+    const s = {
+        general: ``,
+        binds: ``,
+        aliases: ``,
+        aucmds: ``,
+        aucons: ``,
+        subconfigs: ``,
+        logging: ``,
+        nulls: ``,
+    }
+
+    if (p.conf.length > 0)
+        s.general = `" General Settings\n${p.conf.join("\n")}\n\n`
+    if (p.binds.length > 0) s.binds = `" Binds\n${p.binds.join("\n")}\n\n`
+    if (p.aliases.length > 0)
+        s.aliases = `" Aliases\n${p.aliases.join("\n")}\n\n`
+    if (p.aucmds.length > 0) s.aucmds = `" Autocmds\n${p.aucmds.join("\n")}\n\n`
+    if (p.aucons.length > 0)
+        s.aucons = `" Autocontainers\n${p.aucons.join("\n")}\n\n`
+    if (p.subconfigs.length > 0)
+        s.subconfigs = `" Subconfig Settings\n${p.subconfigs.join("\n")}\n\n`
+    if (p.logging.length > 0)
+        s.logging = `" Logging\n${p.logging.join("\n")}\n\n`
+    if (p.nulls.length > 0)
+        s.nulls = `" Removed settings\n${p.nulls.join("\n")}\n\n`
+
+    const ftdetect = `" For syntax highlighting see https://github.com/tridactyl/vim-tridactyl\n" vim: set filetype=tridactyl`
+
+    return `${s.general}${s.binds}${s.subconfigs}${s.aliases}${s.aucmds}${s.aucons}${s.logging}${s.nulls}${ftdetect}`
+}
+
+const parseConfigHelper = (pconf, parseobj, prefix = []) => {
+    for (const i of Object.keys(pconf)) {
+        if (typeof pconf[i] !== "object" || Array.isArray(pconf[i])) {
+            const value = Array.isArray(pconf[i]) ? JSON.stringify(pconf[i]) : pconf[i]
+            if (prefix[0] === "subconfigs") {
+                const pattern = prefix[1]
+                const subconf = [...prefix.slice(2), i].join(".")
+                parseobj.subconfigs.push(
+                    `seturl ${pattern} ${subconf} ${value}`,
+                )
+            } else {
+                parseobj.conf.push(
+                    `set ${[...prefix, i].join(".")} ${value}`,
+                )
+            }
+        } else if (pconf[i] === null) {
+            parseobj.nulls.push(`setnull ${[...prefix, i].join(".")}`)
+        } else {
+            for (const e of Object.keys(pconf[i])) {
+                if (binding.modeMaps.includes(i)) {
+                    let cmd = "bind"
+                    if (prefix[0] === "subconfigs")
+                        cmd = cmd + "url " + prefix[1]
+
+                    if (i !== "nmaps") {
+                        const mode = binding.maps2mode.get(i)
+                        cmd += ` --mode=${mode}`
+                    }
+
+                    if (pconf[i][e] === null) {
+                        parseobj.binds.push(`un${cmd} ${e}`)
+                        continue
+                    }
+
+                    if (pconf[i][e].length > 0) {
+                        parseobj.binds.push(`${cmd} ${e} ${pconf[i][e]}`)
+                    } else {
+                        parseobj.binds.push(`un${cmd} ${e}`)
+                    }
+                } else if (pconf[i][e] === null) {
+                    parseobj.nulls.push(`setnull ${i}.${e}`)
+                } else if (i === "exaliases") {
+                    // Only really useful if mapping the entire config and not just pconf.
+                    if (e === "alias") {
+                        parseobj.aliases.push(`command ${e} ${pconf[i][e]}`)
+                    } else {
+                        parseobj.aliases.push(`alias ${e} ${pconf[i][e]}`)
+                    }
+                } else if (i === "abbreviations") {
+                    parseobj.conf.push(`abbreviate ${e} ${pconf[i][e]}`)
+                } else if (i === "autocmds") {
+                    for (const a of Object.keys(pconf[i][e])) {
+                        const value = pconf[i][e][a]
+                        parseobj.aucmds.push(
+                            value === null
+                                ? `autocmddelete ${e} ${a}`
+                                : `autocmd ${e} ${a} ${value}`,
+                        )
+                    }
+                } else if (i === "autocontain") {
+                    parseobj.aucons.push(`autocontain ${e} ${pconf[i][e]}`)
+                } else if (i === "logging") {
+                    // Map the int values in e to a log level
+                    let level
+                    if (pconf[i][e] === 0) level = "never"
+                    if (pconf[i][e] === 1) level = "error"
+                    if (pconf[i][e] === 2) level = "warning"
+                    if (pconf[i][e] === 3) level = "info"
+                    if (pconf[i][e] === 4) level = "debug"
+                    parseobj.logging.push(`set logging.${e} ${level}`)
+                } else if (i === "customthemes") {
+                    // Skip custom themes for now because writing their CSS is hard
+                    // parseobj.themes.push(`colourscheme ${e}`) // TODO: check if userconfig.theme == e and write this, otherwise don't.
+                } else {
+                    parseConfigHelper(pconf[i], parseobj, [...prefix, i])
+                    break
+                }
+            }
+        }
+    }
+    return parseobj
+}
+
+// Listen for changes to the storage and update the USERCONFIG if appropriate.
+// TODO: BUG! Sync and local storage are merged at startup, but not by this thing.
+browser.storage.onChanged.addListener((changes, areaname) => {
+    if (IN_BACKGROUND) {
+        if (areaname !== "local") return
+        const write = changes[CONFIG_WRITE]?.newValue
+        if (PENDING_WRITES.delete(write)) {
+            const { newValue = {}, oldValue = {} } = changes[CONFIGNAME] || {}
+            notifyChangeListeners(oldValue, newValue)
+            return
+        }
+        if (CONFIGNAME in changes) {
+            exclusively(async () => {
+                await STORE_QUEUE
+                if (!INITIALISED) await getAsync()
+                const old = USERCONFIG
+                const stored = await browser.storage.local.get(CONFIGNAME)
+                USERCONFIG = stored[CONFIGNAME] || o({})
+                notifyChangeListeners(old, USERCONFIG)
+            }).catch(console.error)
+        }
+        return
+    }
+    if (CONFIGNAME in changes) {
+        const { newValue, oldValue } = changes[CONFIGNAME]
+        const old = oldValue || {}
+
+        if (areaname === "sync") {
+            // Probably do something here with push/pull?
+        } else if (newValue !== undefined) {
+            // A key has been :unset if it exists in USERCONFIG and doesn't in changes and if its value in USERCONFIG is different from the one it has in default_config
+            const unsetKeys = Object.keys(old).filter(
+                k =>
+                    newValue[k] === undefined &&
+                    JSON.stringify(old[k]) !== JSON.stringify(DEFAULTS[k]),
+            )
+
+            // A key has changed if it is defined in USERCONFIG and its value in USERCONFIG is different from the one in `changes` or if the value in defaultConf is different from the one in `changes`
+            const changedKeys = Object.keys(newValue).filter(
+                k =>
+                    JSON.stringify(
+                        old[k] !== undefined ? old[k] : DEFAULTS[k],
+                    ) !== JSON.stringify(newValue[k]),
+            )
+
+            // TODO: this should be a deep comparison but this is better than nothing
+            changedKeys.forEach(key => (USERCONFIG[key] = newValue[key]))
+            unsetKeys.forEach(key => delete USERCONFIG[key])
+            notifyChangeListeners(old, newValue)
+        } else {
+            // newValue is undefined when calling browser.storage.AREANAME.clear()
+            // If newValue is undefined and AREANAME is the same value as STORAGELOC, the user wants to clean their config
+            USERCONFIG = o({})
+            notifyChangeListeners(old, USERCONFIG)
+        }
+    }
+})
+
+init()
+    .then(() => (INITIALISED = true))
+    .catch(error => {
+        INITIALISATION_ERROR = error
+        console.error(error)
+    })
+    .then(() => WAITERS.forEach(waiter => waiter()))

@@ -1,0 +1,150 @@
+#!/bin/bash
+# bt-only-audio - Bluetooth-speaker-only mode for PipeWire/WirePlumber (Arch + Hyprland)
+# Usage:
+#   bt-only-audio enable   # block internal + HDMI outputs, Bluetooth only (persists across boots)
+#   bt-only-audio disable  # restore internal + HDMI outputs
+#   bt-only-audio status   # show mode + sinks
+#
+# What "enable" does:
+#  1. Installs ~/.config/wireplumber/wireplumber.conf.d/51-bluetooth-only.conf
+#     (node.disabled=true for alsa_output.pci-0000_05_00.6.* and alsa_output.pci-0000_01_00.1.*)
+#     -> applied automatically on every boot, no systemd unit needed.
+#  2. Immediate effect: mutes internal/HDMI sinks now, mutes ALSA Speaker, moves default to Bluetooth.
+# What "disable" does: removes that conf, restarts WirePlumber, unmutes internal.
+
+set -u
+CONF_DIR="$HOME/.config/wireplumber/wireplumber.conf.d"
+CONF_FILE="$CONF_DIR/51-bluetooth-only.conf"
+INTERNAL_SINK="alsa_output.pci-0000_05_00.6.analog-stereo"
+
+read_conf() {
+  cat <<'EOF'
+# Bluetooth-only audio: disable all wired / internal outputs, keep Bluetooth + mic.
+# Applied on every boot via WirePlumber. Managed by `bt-only-audio enable|disable`.
+# Devices disabled:
+#  - alsa_card.pci-0000_05_00.6 (Ryzen HD Audio Controller - internal speaker/headphones)
+#  - alsa_card.pci-0000_01_00.1 (NVIDIA GA107 HDMI - monitor speakers)
+# Bluetooth (bluez_*) is untouched. Internal mic input is kept enabled.
+# To also kill the mic, add a rule matching alsa_input.pci-0000_05_00.6.*
+
+monitor.alsa.rules = [
+  {
+    matches = [
+      { node.name = "~alsa_output.pci-0000_05_00.6.*" }
+    ]
+    actions = {
+      update-props = {
+        node.disabled = true
+      }
+    }
+  },
+  {
+    matches = [
+      { node.name = "~alsa_output.pci-0000_01_00.1.*" }
+    ]
+    actions = {
+      update-props = {
+        node.disabled = true
+      }
+    }
+  }
+]
+EOF
+}
+
+mute_wired_now() {
+  # Mute + zero-volume every wired sink (immediate, before restart takes effect)
+  for sink in $(pactl list short sinks 2>/dev/null | awk '{print $2}' | grep -E '^alsa_output\.pci-'); do
+    pactl set-sink-mute "$sink" 1 2>/dev/null && echo "muted $sink"
+    pactl set-sink-volume "$sink" 0% 2>/dev/null || true
+  done
+  # ALSA belt-and-suspenders: mute internal Speaker control (persists via alsactl)
+  if amixer -c 1 get Speaker >/dev/null 2>&1; then
+    amixer -c 1 set Speaker mute >/dev/null 2>&1 && echo "ALSA: Speaker muted (card 1)"
+    amixer -c 1 set Speaker 0% >/dev/null 2>&1 || true
+  elif amixer get Speaker >/dev/null 2>&1; then
+    amixer set Speaker mute >/dev/null 2>&1 && echo "ALSA: Speaker muted (default card)"
+    amixer set Speaker 0% >/dev/null 2>&1 || true
+  fi
+  # Route default output to a Bluetooth sink if one exists
+  bt_sink=$(pactl list short sinks 2>/dev/null | awk '$2 ~ /^bluez_output/ {print $2; exit}')
+  if [ -n "${bt_sink:-}" ]; then
+    pactl set-default-sink "$bt_sink" 2>/dev/null && echo "default sink -> $bt_sink"
+    # move existing playback streams to BT
+    for input in $(pactl list short sink-inputs 2>/dev/null | awk '{print $1}'); do
+      pactl move-sink-input "$input" "$bt_sink" 2>/dev/null || true
+    done
+  else
+    echo "note: no Bluetooth sink connected right now - connect your BT speaker, it will become default."
+  fi
+}
+
+unmute_wired_now() {
+  pactl set-sink-mute "$INTERNAL_SINK" 0 2>/dev/null && echo "unmuted $INTERNAL_SINK" || true
+  pactl set-sink-volume "$INTERNAL_SINK" 100% 2>/dev/null || true
+  if amixer -c 1 get Speaker >/dev/null 2>&1; then
+    amixer -c 1 set Speaker unmute >/dev/null 2>&1 || true
+    echo "ALSA: Speaker unmuted (card 1)"
+  fi
+}
+
+restart_wireplumber() {
+  if systemctl --user restart wireplumber 2>/dev/null; then
+    echo "wireplumber restarted"
+  else
+    echo "could not restart wireplumber via systemctl --user (reboot or run: systemctl --user restart wireplumber)"
+  fi
+}
+
+do_enable() {
+  mkdir -p "$CONF_DIR"
+  read_conf > "$CONF_FILE"
+  echo "installed $CONF_FILE (persists across boots)"
+  mute_wired_now
+  restart_wireplumber
+  # re-apply mute+default after restart (node list changes)
+  sleep 2
+  mute_wired_now || true
+  # persist ALSA mute across boots
+  if command -v alsactl >/dev/null 2>&1; then
+    sudo alsactl store 2>/dev/null && echo "ALSA state stored (sudo alsactl store)" || echo "tip: run 'sudo alsactl store' to persist ALSA Speaker mute"
+  fi
+  echo "MODE: bluetooth-only ENABLED"
+}
+
+do_disable() {
+  if [ -f "$CONF_FILE" ]; then
+    rm -f "$CONF_FILE"
+    echo "removed $CONF_FILE"
+  else
+    echo "already absent: $CONF_FILE"
+  fi
+  restart_wireplumber
+  sleep 2
+  unmute_wired_now || true
+  echo "MODE: bluetooth-only DISABLED (internal restored)"
+}
+
+do_status() {
+  if [ -f "$CONF_FILE" ]; then
+    echo "MODE: bluetooth-only ENABLED ($CONF_FILE present)"
+  else
+    echo "MODE: bluetooth-only DISABLED (internal allowed)"
+  fi
+  echo
+  echo "--- sinks ---"
+  pactl list short sinks 2>/dev/null || wpctl list audio sinks 2>/dev/null || echo "no pactl/wpctl"
+  echo
+  echo "--- default sink ---"
+  pactl get-default-sink 2>/dev/null || echo "unknown"
+  echo
+  echo "--- ALSA Speaker ---"
+  amixer -c 1 get Speaker 2>/dev/null | grep -E '\[on\]|\[off\]|%' || amixer get Speaker 2>/dev/null | grep -E '\[on\]|\[off\]|%' || echo "no Speaker control found"
+}
+
+case "${1:-status}" in
+  enable|on) do_enable ;;
+  disable|off) do_disable ;;
+  status|st) do_status ;;
+  *) echo "usage: $(basename "$0") [enable|disable|status]"; exit 2 ;;
+esac

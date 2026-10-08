@@ -36,5 +36,11 @@
     "title" : "nvim",
     "exec" : "foot opencode -s ses_fade15d49ffefJGE4Zgvb7XByO"
 
+  },
+
+  {
+    "title" : "ascii-manager",
+    "exec" : "foot opencode -s ses_f50b811c2ffe08Mg6tCyU3lqdZ"
+
   }
 ]

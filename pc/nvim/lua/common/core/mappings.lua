@@ -135,6 +135,10 @@ return {
     -- Toggle diagnostic warnings (hide/show yellow warnings)
     ["<Leader>dw"] = { toggle_warnings, desc = "Toggle hiding diagnostic warnings" },
 
+    -- Full buffer encryption / decryption
+    ["<Leader>xe"] = { function() require("common.personal.encryption").encrypt_buffer() end, desc = "Encrypt buffer" },
+    ["<Leader>xd"] = { function() require("common.personal.encryption").decrypt_buffer() end, desc = "Decrypt buffer" },
+
     -- calendar
       
   },

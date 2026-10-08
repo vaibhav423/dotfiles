@@ -35,6 +35,10 @@ bindurl ^https://web.whatsapp.com F hint -bc [tabindex]:not(.two)>div,a
 unbind <C-a>
 " unbind move half page down
 unbind <C-f>
+" open in archive
+bind ga js tri.excmds.tabopen("https://web.archive.org/web/" + window.location.href)
+" open downloader
+bind gd tabopen moz-extension://968d03b4-f3c4-4b3e-b291-54bfc853a916/data/ariang/index.html#!/downloading
 
 " Aliases
 alias copytabs jsb browser.tabs.query({}).then(tabs => { const urls = tabs.map(t => t.url).join('\n'); tri.excmds.clipboard('yank', urls); })

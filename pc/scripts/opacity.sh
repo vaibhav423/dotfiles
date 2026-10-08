@@ -1,15 +1,13 @@
-echo "windowrule {
-name = cheat
-match:class = (cheat)
-float = true
-move = (monitor_w-window_w+50) 66
-pin = true
-size = 300 400
-no_initial_focus = true
-rounding = 0
-border_size = 0
-no_shadow = true
-no_blur = true
-opacity = $1 override $1 override
-}" > ~/Water/crap/scripts/windowrule_cheat.conf
+#!/usr/bin/env bash
+# opacity.sh - toggle cheat window opacity via hyprctl eval window rule
+STATE=/tmp/cheat_opacity_val
+current=$(cat "$STATE" 2>/dev/null || echo "0.0")
 
+if [ "$current" = "0.0" ]; then
+    next="0.2"
+else
+    next="0.0"
+fi
+
+hyprctl eval "hl.window_rule({ match = { class = \"(cheat)\" }, opacity = \"$next override $next override\" })"
+echo "$next" > "$STATE"

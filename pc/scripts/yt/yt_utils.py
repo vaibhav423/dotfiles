@@ -7,6 +7,7 @@ import re
 import json
 import time
 import subprocess
+import os
 from pathlib import Path
 
 def parse_seconds(url):
@@ -26,10 +27,11 @@ def parse_seconds(url):
     except ValueError:
         return None
 
-def fetch_yt_data(url, cookie_browser=None):
+def fetch_yt_data(url, cookie_browser=None, quality=None):
     clean_url = re.sub(r'[?&]t=[^&]*', '', url)
     
-    cmd = ["yt-dlp", "-j", "--no-playlist", "-f", "worstvideo", "--no-check-certificate"]
+    fmt_quality = quality or os.getenv("YT_IMG_QUALITY", "bestvideo/best")
+    cmd = ["yt-dlp", "-j", "--no-playlist", "-f", fmt_quality, "--no-check-certificate"]
     if cookie_browser:
         cmd.extend(["--cookies-from-browser", cookie_browser])
     cmd.append(clean_url)
@@ -87,9 +89,9 @@ def capture_frame(stream_url, headers, seconds, abs_image_path):
 
     return Path(abs_image_path).exists()
 
-def process_url(url, abs_image_path, cookie_browser=None):
+def process_url(url, abs_image_path, cookie_browser=None, quality=None):
     seconds = parse_seconds(url)
-    stream_url, chapters, headers = fetch_yt_data(url, cookie_browser)
+    stream_url, chapters, headers = fetch_yt_data(url, cookie_browser, quality=quality)
     
     if not stream_url:
         return None, False

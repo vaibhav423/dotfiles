@@ -70,17 +70,9 @@ function M.decrypt_buffer()
   end
 
   local result = obj.stdout or ""
+  result = result:gsub("\r\n", "\n"):gsub("\n$", "")
   
-  -- Load decrypted content into buffer
-  local lines = {}
-  for line in result:gmatch("[^\r\n]+") do
-    table.insert(lines, line)
-  end
-  
-  -- Handle empty files or files with single line
-  if #lines == 0 and result ~= "" then
-    lines = {result}
-  end
+  local lines = vim.split(result, "\n", { plain = true })
   
   -- Set buffer content (this doesn't write to disk)
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
@@ -173,7 +165,7 @@ end
 -- Run openssl with stdin text, return stdout string or nil on failure
 local function run_openssl(args, stdin_text)
   local fname = vim.fn.tempname()
-  local fd = io.open(fname, "w")
+  local fd = io.open(fname, "wb")
   if fd then
     fd:write(stdin_text)
     fd:close()
@@ -243,7 +235,7 @@ function M.decrypt_selection()
     return
   end
 
-  local decrypted = result:gsub("\n$", "")
+  local decrypted = result:gsub("\r\n", "\n"):gsub("\n$", "")
   local result_lines = vim.split(decrypted, "\n", { plain = true })
   if vm == "V" then
     vim.api.nvim_buf_set_lines(bufnr, srow, erow + 1, false, result_lines)

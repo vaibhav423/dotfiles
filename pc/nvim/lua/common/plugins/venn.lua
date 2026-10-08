@@ -13,15 +13,30 @@ local hint = [[
 ]]
 
 return {
-  "jbyuki/venn.nvim",
-  cmd = "VBox",
+  "4DRIAN0RTIZ/venn.nvim",
+  branch = "feat/box-utilities",
+  cmd = {
+    "VBox",
+    "VBoxD",
+    "VBoxH",
+    "VBoxR",
+    "VBoxO",
+    "VBoxDO",
+    "VBoxHO",
+    "VFill",
+    "VErase",
+    "VDiv",
+    "VAlignL",
+    "VAlignC",
+    "VAlignR",
+  },
   dependencies = {
     {
       "AstroNvim/astrocore",
       opts = function(_, opts)
         local astrocore = require "astrocore"
         if astrocore.is_available "hydra.nvim" then
-          if not opts.commands then opts.comands = {} end
+          if not opts.commands then opts.commands = {} end
           opts.commands.ToggleVenn = {
             function()
               local hydra = vim.tbl_get(astrocore.plugin_opts "hydra.nvim", "Draw Diagram", "hydra")
@@ -41,28 +56,39 @@ return {
               ToggleVenn = {
                 function()
                   local mappings = {
-                    n = { -- draw a line on HJKL keystokes
+                    n = { -- draw a line on HJKL keystrokes
                       H = "<C-v>h:VBox<CR>",
                       J = "<C-v>j:VBox<CR>",
                       K = "<C-v>k:VBox<CR>",
                       L = "<C-v>l:VBox<CR>",
                     },
-                    v = { -- draw a box by pressing "f" with visual selection
+                    v = { -- draw box utilities with visual selection
                       f = ":VBox<CR>",
+                      r = ":VBoxR<CR>",
+                      d = ":VBoxD<CR>",
+                      b = ":VBoxH<CR>",
+                      o = ":VBoxO<CR>",
+                      c = ":VAlignC<CR>",
+                      F = ":VFill<CR>",
+                      E = ":VErase<CR>",
                     },
                   }
                   if vim.b.venn_enabled then
                     vim.opt_local.virtualedit = ""
                     for mode, map in pairs(mappings) do
                       for lhs, _ in pairs(map) do
-                        vim.keymap.del(mode, lhs, { buffer = true })
+                        pcall(vim.keymap.del, mode, lhs, { buffer = true })
                       end
                     end
                     vim.b.venn_enabled = nil
                   else
                     vim.b.venn_enabled = true
                     vim.opt_local.virtualedit = "all"
-                    require("astrocore").set_mappings(mappings, { buffer = true })
+                    for mode, map in pairs(mappings) do
+                      for lhs, rhs in pairs(map) do
+                        vim.keymap.set(mode, lhs, rhs, { buffer = true, silent = true })
+                      end
+                    end
                   end
                   vim.notify(("Venn Diagramming Mode: %s"):format(vim.b.venn_enabled and "Enabled" or "Disabled"))
                 end,
@@ -98,6 +124,13 @@ return {
             { "K", "<C-v>k:VBox<CR>" },
             { "L", "<C-v>l:VBox<CR>" },
             { "f", ":VBox<CR>", { mode = "v" } },
+            { "r", ":VBoxR<CR>", { mode = "v" } },
+            { "d", ":VBoxD<CR>", { mode = "v" } },
+            { "b", ":VBoxH<CR>", { mode = "v" } },
+            { "o", ":VBoxO<CR>", { mode = "v" } },
+            { "c", ":VAlignC<CR>", { mode = "v" } },
+            { "F", ":VFill<CR>", { mode = "v" } },
+            { "E", ":VErase<CR>", { mode = "v" } },
             { "<Esc>", nil, { exit = true } },
           },
         },

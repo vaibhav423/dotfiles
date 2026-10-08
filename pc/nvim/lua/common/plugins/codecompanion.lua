@@ -15,19 +15,73 @@ return {
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
+    "ravitemer/codecompanion-history.nvim",
   },
   opts = {
     interactions = {
       chat = {
-        -- adapter = "gemini_cli",
-        -- https://codecompanion.olimorris.dev/configuration/adapters-http#github-copilot-free-student
         adapter = "gemini_local",
         model = "auto",
+        slash_commands = {
+          paste_image = {
+            description = "Paste image from clipboard",
+            callback = function(chat)
+              local dir = vim.fn.expand("~/.cache/codecompanion_images")
+              vim.fn.mkdir(dir, "p")
+
+              local filename = os.time() .. ".png"
+              local filepath = dir .. "/" .. filename
+
+              local is_wayland = os.getenv("WAYLAND_DISPLAY") ~= nil
+              local cmd = is_wayland
+                and string.format("wl-paste --type image/png > %s", vim.fn.shellescape(filepath))
+                or string.format("xclip -selection clipboard -t image/png -o > %s", vim.fn.shellescape(filepath))
+
+              os.execute(cmd)
+
+              local f = io.open(filepath, "r")
+              if not f then
+                vim.notify("No image found in clipboard", vim.log.levels.WARN)
+                return
+              end
+              local size = f:seek("end")
+              f:close()
+
+              if size == 0 then
+                vim.fn.delete(filepath)
+                vim.notify("No image found in clipboard", vim.log.levels.WARN)
+                return
+              end
+
+              chat:add_buf_message({
+                role = "user",
+                content = string.format("![image](%s)", filepath),
+              })
+            end,
+          },
+        },
+
+        roles = {
+          llm = function() return "gemini_local" end,
+          user = "Me",
+        },
       },
       inline = {
-        -- adapter = "gemini_cli",
         adapter = "copilot",
-        model = "auto"
+        model = "auto",
+      },
+    },
+    display = {
+      chat = {
+        intro_message = "",
+      },
+    },
+    extensions = {
+      history = {
+        enabled = true,
+        opts = {
+          dir_to_save = vim.fn.stdpath("data") .. "/codecompanion_chats.json",
+        },
       },
     },
     adapters = {
@@ -64,57 +118,79 @@ return {
       -- },
     },
   },
+  config = function(_, opts)
+    require("codecompanion").setup(opts)
+
+    -- Safely handle `vim.cmd("hide")` in single-window setups to prevent E444
+    local shared_ui = require("codecompanion.interactions.shared.ui")
+    local orig_hide = shared_ui.hide
+    shared_ui.hide = function(winnr, bufnr, layout)
+      if vim.api.nvim_get_current_buf() == bufnr then
+        pcall(vim.cmd, "hide")
+        return
+      end
+      orig_hide(winnr, bufnr, layout)
+    end
+
+    -- Debug:save() only rewrites chat.messages, leaving a stale buffer and submit cursor behind
+    local debug = require("codecompanion.interactions.chat.debug")
+    local orig_save = debug.save
+    debug.save = function(self)
+      orig_save(self)
+      pcall(function()
+        local cc = require("codecompanion")
+        if cc.extensions and cc.extensions.history then
+          cc.extensions.history.save_chat(self.chat)
+        end
+      end)
+      if self.chat and self.chat.ui and self.chat.ui:is_visible() then
+        self.chat.ui:render(self.chat.buffer_context, self.chat.messages)
+        local header_row
+        pcall(function()
+          header_row = require("codecompanion.interactions.chat.parser").headers(self.chat)
+        end)
+        if header_row == nil then
+          local user_role = require("codecompanion.config").interactions.chat.roles.user
+          local lines = vim.api.nvim_buf_get_lines(self.chat.bufnr, 0, -1, false)
+          for i = #lines, 1, -1 do
+            if lines[i]:match("^##%s+" .. vim.pesc(user_role) .. "%s*$") then
+              header_row = i - 1
+              break
+            end
+          end
+        end
+        if header_row then
+          self.chat.header_line = header_row + 1
+        else
+          vim.notify("CodeCompanion debug save: could not locate last prompt", vim.log.levels.WARN)
+        end
+      end
+    end
+
+
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "CodeCompanionChatCreated",
+      callback = function(args)
+        local chat = require("codecompanion").buf_get_chat(args.data.bufnr)
+        local win = vim.fn.bufwinid(args.data.bufnr)
+        chat:add_callback("on_before_submit", function()
+          if vim.api.nvim_win_is_valid(win) then
+            vim.wo[win].winbar = " ⠋ thinking..."
+          end
+        end)
+        chat:add_callback("on_ready", function()
+          if vim.api.nvim_win_is_valid(win) then
+            vim.wo[win].winbar = ""
+          end
+        end)
+      end,
+    })
+  end,
   specs = {
     {
-      "rebelot/heirline.nvim",
-      optional = true,
-
-      opts = function(_, opts)
-        opts.statusline = opts.statusline or {}
-        local spinner_symbols = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
-        local astroui = require "astroui.status.hl"
-        table.insert(opts.statusline, {
-          static = {
-            n_requests = 0,
-            spinner_index = 0,
-            spinner_symbols = spinner_symbols,
-            done_symbol = "✓",
-          },
-          init = function(self)
-            if self._cc_autocmds then return end
-            self._cc_autocmds = true
-            vim.api.nvim_create_autocmd("User", {
-              pattern = "CodeCompanionRequestStarted",
-              callback = function()
-                self.n_requests = self.n_requests + 1
-                vim.cmd "redrawstatus"
-              end,
-            })
-            vim.api.nvim_create_autocmd("User", {
-              pattern = "CodeCompanionRequestFinished",
-              callback = function()
-                self.n_requests = math.max(0, self.n_requests - 1)
-                vim.cmd "redrawstatus"
-              end,
-            })
-          end,
-          provider = function(self)
-            if not package.loaded["codecompanion"] then return nil end
-            local symbol
-            if self.n_requests > 0 then
-              self.spinner_index = (self.spinner_index % #self.spinner_symbols) + 1
-              symbol = self.spinner_symbols[self.spinner_index]
-            else
-              symbol = self.done_symbol
-              self.spinner_index = 0
-            end
-            return ("%d %s"):format(self.n_requests, symbol)
-          end,
-          hl = function() return astroui.filetype_color() end,
-        })
-      end,
+      "AstroNvim/astroui",
+      opts = { icons = { CodeCompanion = "󱙺" } },
     },
-    { "AstroNvim/astroui", opts = { icons = { CodeCompanion = "󱙺" } } },
     {
       "AstroNvim/astrocore",
       opts = function(_, opts)
