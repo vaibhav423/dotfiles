@@ -1,45 +1,32 @@
 #!/bin/sh
 
-# Enter Android root through the real su path. Some commands, notably
-# certain iptables filter updates, succeed only when the root shell is
-# created by Android su rather than by directly execing /system/bin/sh.
-# On this setup, su is only reliably reachable once we are already inside
-# the Android shell environment.
+# Enter Android root via APatch su in Android's real mount namespace.
+# sudo nsenter -t 1 -m escapes the chroot into Android's true filesystem root
+# so /data/adb, getprop, dumpsys etc all work exactly as from a Termux su shell.
 
 CHROOT_HOST_ROOT=${ASU_CHROOT_ROOT:-/data/local/tmp/archl}
 ASU_PWD=$PWD
 
 # Android su sees the real Android rootfs, not chroot-relative paths like
-# /home/fire/... . Prefer the host-side chroot path when it exists so
-# relative commands such as ./script.sh still work.
+# /home/fire/... . Rewrite PWD to the host-side chroot path so relative
+# commands such as ./script.sh still resolve correctly from Android's view.
 if [ -e "$CHROOT_HOST_ROOT$ASU_PWD" ]; then
   ASU_PWD="$CHROOT_HOST_ROOT$ASU_PWD"
 fi
 
+# Android env preamble prepended to every su -c invocation so that
+# getprop, dumpsys, iptables etc are on PATH without the caller needing
+# to use full paths.
+ANDROID_ENV='ANDROID_DATA=/data ANDROID_ROOT=/system PATH=/system/bin:/system/xbin:/data/adb/ap/bin:$PATH LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib'
+
 if [ $# -eq 0 ]; then
-  exec sudo \
-    ANDROID_DATA=/data \
-    ANDROID_ROOT=/system \
-    PATH=/system/bin:/system/xbin:"$PATH":/data/adb/ap/bin \
-    LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
-    ASU_PWD="$ASU_PWD" \
-    /system/bin/sh -c 'exec su -c "cd \"\$ASU_PWD\" 2>/dev/null || true; exec /system/bin/sh"'
+  exec sudo nsenter -t 1 -m -- \
+    /system/bin/su -c "export $ANDROID_ENV; cd \"$ASU_PWD\" 2>/dev/null || true; exec /system/bin/sh"
 fi
 
 if [ "$1" = "-c" ] && [ $# -ge 2 ]; then
-  exec sudo \
-    ANDROID_DATA=/data \
-    ANDROID_ROOT=/system \
-    PATH=/system/bin:/system/xbin:"$PATH":/data/adb/ap/bin \
-    LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
-    ASU_PWD="$ASU_PWD" \
-    ASU_CMD="$2" \
-    /system/bin/sh -c 'exec su -c "cd \"\$ASU_PWD\" 2>/dev/null || true; exec /system/bin/sh -c \"\$ASU_CMD\""'
+  exec sudo nsenter -t 1 -m -- \
+    /system/bin/su -c "export $ANDROID_ENV; cd \"$ASU_PWD\" 2>/dev/null || true; $2"
 fi
 
-exec sudo \
-  ANDROID_DATA=/data \
-  ANDROID_ROOT=/system \
-  PATH=/system/bin:/system/xbin:"$PATH":/data/adb/ap/bin \
-  LD_LIBRARY_PATH=/system/lib64:/system/lib:/vendor/lib64:/vendor/lib:/odm/lib64:/odm/lib \
-    /system/bin/sh -c 'exec su "$@"' sh "$@"
+exec sudo nsenter -t 1 -m -- /system/bin/su "$@"

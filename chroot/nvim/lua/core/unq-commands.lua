@@ -16,4 +16,9 @@ return {
       range = true,
     },
 
+    PasteImage = {
+      function() require("personal.takephoto").pasteImage() end,
+      desc = "Paste image from Android clipboard into gallery dir, insert link",
+    },
+
 }

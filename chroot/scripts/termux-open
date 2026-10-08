@@ -38,6 +38,12 @@ if [ -f "$TARGET" ]; then
     TARGET=$(realpath "$TARGET")
 fi
 
+# Translate chroot-native Water/Fire path to sdcard path for Android apps.
+# Apps can't resolve chroot paths; /sdcard is the only path both sides understand.
+case "$TARGET" in
+    /home/fire/Water/Fire/*) TARGET="/sdcard/Documents/Fire/${TARGET#/home/fire/Water/Fire/}" ;;
+esac
+
 # 3. The Execution (The Sudo/Environment Method)
 # We use sudo to become UID 0, which Android trusts for broadcasts.
 # We explicitly set the Android environment so 'am' doesn't crash.

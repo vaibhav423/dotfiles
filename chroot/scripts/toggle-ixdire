@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Toggle sshfs mount of laptop home (ixdire:/home/ixdire) into the chroot.
+# Same constraints as the rclone mount: /dev/fuse is root-only in the chroot
+# (bind of Android /dev, no fuse group), so sshfs runs via sudo. Root's ssh has
+# no config/keys, so we point it at fire's config explicitly and disable the
+# ControlMaster socket (root has no controlmasters dir — connection resets).
+# Usage: toggle-ixdire [mountpoint]   (default: $HOME/ixdire)
+
+MOUNT="${1:-$HOME/ixdire}"
+
+if mountpoint -q "$MOUNT"; then
+	sudo fusermount3 -uz "$MOUNT"
+	echo "ixdire unmounted from $MOUNT"
+else
+	mkdir -p "$MOUNT"
+	sudo sshfs \
+		-o ssh_command="ssh -F $HOME/.ssh/config -o ControlMaster=no -o ControlPath=none" \
+		-o IdentityFile="$HOME/.ssh/id_ed25519" \
+		-o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+		-o StrictHostKeyChecking=yes \
+		-o allow_other \
+		-o uid="$(id -u)" -o gid="$(id -g)" \
+		-o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
+		ixdire:/home/ixdire "$MOUNT"
+	echo "ixdire mounted at $MOUNT"
+fi

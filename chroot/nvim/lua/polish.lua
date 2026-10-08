@@ -4,6 +4,8 @@
 -- Add jeerem command abbreviation
 vim.cmd("cnoreabbrev jeerem Jeerem")
 
+
+
 local droid = vim.fn.executable("droid") == 1
 local ssh_conn = vim.env.SSH_CONNECTION or ""
 local is_localhost_ssh = ssh_conn:match("^127%.0%.0%.1") or ssh_conn:match("^::1")

@@ -3,9 +3,7 @@
 
 prepend_keymap = [
   # goto
-	{ on = [ "m", "p" ], run = "shell --block -- ~/.config/yazi/toggle-gdrive-android.sh", desc = "Toggle Google Drive mount" , for = "android"},
-	{ on = [ "g", "f" ],       run = "cd /sdcard/Documents/Fire/", desc = "go to fire" , for = "android"},
-	{ on = [ "g", "f" ],       run = "cd ~/Water/Fire/", desc = "go to fire" , for = "linux"},
+	{ on = [ "g", "f" ],       run = "cd ~/Water/Fire/", desc = "go to fire" },
 	{ on = [ "g", "w" ],       run = "cd ~/Water",       desc = "go to water" },
 	{ on = [ "g", "i" ],       run = "cd ~/Water/crap",       desc = "go to crap" },
 	{ on = [ "g", "y" ],       run = "cd ~/.config/yazi",       desc = "go to yazi" },
@@ -35,5 +33,5 @@ prepend_keymap = [
 	{ on = [ "u", "R" ], run = "plugin yamb -- rename_by_fzf", desc = "Rename bookmark by fzf" },
 
 	# gdrive mount
-	{ on = [ "m", "g" ], run = "shell --block -- ~/.config/yazi/toggle-gdrive-pc.sh", desc = "Toggle Google Drive mount" , for = "linux"},
+	{ on = [ "m", "g" ], run = "shell --block -- ~/.config/yazi/toggle-gdrive-android.sh", desc = "Toggle Google Drive mount" },
 ]

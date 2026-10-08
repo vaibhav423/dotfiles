@@ -1,0 +1,49 @@
+#!/bin/bash
+# clipimg-fetch <content-uri>
+# Resolves app FileProvider URIs to bytes WITHOUT going through ContentResolver
+# (which rejects our shell-UID daemon). FileProvider URIs map to real files;
+# root can read app-private dirs directly. Prints FILE:<tmp-path> on success.
+#
+# Example: content://net.dinglisch.android.taskerm.fileprovider/cache/clipboard/X.png
+#       -> /data/data/net.dinglisch.android.taskerm/cache/clipboard/X.png
+
+URI="$1"
+TMP_BASE="/sdcard/tmp/clippaste"
+
+# Strip scheme
+REST="${URI#content://}"
+AUTH="${REST%%/*}"
+UPATH="/${REST#*/}"
+
+# Package = authority minus FileProvider suffix
+PKG="$AUTH"
+for suf in .fileprovider .FileProvider .provider .Provider; do
+    PKG="${PKG%$suf}"
+done
+
+# Extension from URI path
+EXT="${UPATH##*.}"
+case "${EXT,,}" in
+    png|jpg|jpeg|webp|gif) ;;
+    *) EXT="png" ;;
+esac
+OUT="$TMP_BASE.$EXT"
+
+# Candidate source paths (FileProvider name usually mirrors the real subdir)
+CANDS=(
+    "/data/data/$PKG$UPATH"
+    "/data/user/0/$PKG$UPATH"
+)
+
+for src in "${CANDS[@]}"; do
+    if asu -c "test -r '$src'" 2>/dev/null; then
+        asu -c "cat '$src' > '$OUT' && chmod 644 '$OUT'" 2>/dev/null
+        if [ -f "$OUT" ] && [ -s "$OUT" ]; then
+            echo "FILE:$OUT"
+            exit 0
+        fi
+    fi
+done
+
+echo "UNRESOLVED:$URI" >&2
+exit 1

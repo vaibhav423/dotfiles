@@ -1,0 +1,102 @@
+#!/bin/sh
+# bind-monitor — watches CE storage binds (Fire, sdcard) and re-binds if vold buries them.
+# Runs as root from the boot script background subshell after CE unlock.
+# Loops forever with CHECK_INTERVAL sleep between checks.
+#
+# Detection: inode of mountpoint must match inode of source.
+# If vold remounts /data/media, the bind gets buried — mountpoint reverts to the
+# bare chroot dir inode (different from source). We detect this and re-bind.
+#
+# Notification: writes to a status file readable by fire user (nvim statusline, shell prompt).
+
+CHROOT_PATH="/data/local/tmp/archl"
+FIRE_SOURCE="/data/media/0/Documents/Fire"
+FIRE_MOUNT="$CHROOT_PATH/home/fire/Water/Fire"
+SDCARD_SOURCE="/sdcard"
+SDCARD_MOUNT="$CHROOT_PATH/sdcard"
+STATUS_FILE="$CHROOT_PATH/run/bind-monitor.status"
+LOG_FILE="/data/local/tmp/chroot_sshd_boot.log"
+CHECK_INTERVAL=30  # seconds
+
+log() {
+    echo "[bind-monitor] $(date '+%H:%M:%S') $*" >> "$LOG_FILE"
+}
+
+# Get inode of a path. Returns empty string on error (path inaccessible/hung).
+inode_of() {
+    # timeout 3 to avoid blocking if path is in a hung FUSE state
+    timeout 3 stat -c '%i' "$1" 2>/dev/null
+}
+
+# Check and if needed re-bind Fire.
+# Returns 0 if healthy after check, 1 if re-bind failed.
+check_fire() {
+    src_inode=$(inode_of "$FIRE_SOURCE")
+    mnt_inode=$(inode_of "$FIRE_MOUNT")
+
+    if [ -z "$src_inode" ]; then
+        log "WARN: cannot stat Fire source $FIRE_SOURCE — skipping check"
+        return 0
+    fi
+
+    if [ "$src_inode" = "$mnt_inode" ]; then
+        return 0  # healthy
+    fi
+
+    log "ALERT: Fire bind buried (source inode=$src_inode, mount inode=${mnt_inode:-HUNG}). Re-binding."
+    # Must bind from init namespace (su -mm) — see mounts.md for why.
+    if /system/bin/su -mm -c "mount --bind '$FIRE_SOURCE' '$FIRE_MOUNT'" 2>>"$LOG_FILE"; then
+        log "OK: Fire bind restored."
+        return 0
+    else
+        log "ERROR: Fire re-bind failed."
+        return 1
+    fi
+}
+
+# Check and if needed re-bind sdcard.
+check_sdcard() {
+    # sdcard is FUSE — source and mount are on different devices by design.
+    # Healthy check: mountpoint must be on FUSE device (major 0), not f2fs (major 254).
+    mnt_dev=$(timeout 3 stat -c '%D' "$SDCARD_MOUNT" 2>/dev/null)
+    if [ -z "$mnt_dev" ]; then
+        log "WARN: cannot stat sdcard mount — skipping check"
+        return 0
+    fi
+
+    # Major device number = upper 8 bits of hex dev. FUSE dev major=0 (device 0,N).
+    # f2fs dm-44 = 254:44. If mount shows major 254 → FUSE is bypassed/buried.
+    major=$(printf '%d' "0x$(echo "$mnt_dev" | sed 's/.\{2\}$//')" 2>/dev/null)
+    if [ "$major" = "0" ]; then
+        return 0  # on FUSE device, healthy
+    fi
+
+    log "ALERT: sdcard bind buried (dev=$mnt_dev, expected FUSE major=0). Re-binding."
+    if /system/bin/su -mm -c "mount --bind '$SDCARD_SOURCE' '$SDCARD_MOUNT'" 2>>"$LOG_FILE"; then
+        log "OK: sdcard bind restored."
+        return 0
+    else
+        log "ERROR: sdcard re-bind failed."
+        return 1
+    fi
+}
+
+write_status() {
+    fire_ok=$1
+    sdcard_ok=$2
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    printf 'ts=%s fire=%s sdcard=%s\n' "$ts" "$fire_ok" "$sdcard_ok" > "$STATUS_FILE"
+}
+
+log "Starting bind monitor (interval=${CHECK_INTERVAL}s)"
+
+while true; do
+    fire_ok=ok
+    sdcard_ok=ok
+
+    check_fire    || fire_ok=FAILED
+    check_sdcard  || sdcard_ok=FAILED
+
+    write_status "$fire_ok" "$sdcard_ok"
+    sleep "$CHECK_INTERVAL"
+done

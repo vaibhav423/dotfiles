@@ -1,6 +1,7 @@
 -- lib/takephoto.lua
 -- Inserts a markdown image link immediately, then launches the camera.
--- The camera must save to the exact path we pre-computed (via --eu output).
+-- Camera saves to /sdcard/Documents/Fire/Assets/ (world-writable sdcard).
+-- Boot script binds /sdcard/Documents/Fire -> Water/Fire so file appears in chroot.
 
 local M = {}
 
@@ -44,16 +45,121 @@ function M.take()
   local cur_line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
   vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, { cur_line .. link })
 
+  -- The camera runs in Android's rootfs where /home/fire/... doesn't exist.
+  -- Translate the chroot path to its Android-visible sdcard equivalent so the
+  -- camera can actually write to the pre-computed location.
+  local android_path = abs_path:gsub("^/home/fire/Water/Fire", "/sdcard/Documents/Fire")
+
   -- Launch camera with the output URI pointing to our pre-computed path
   vim.fn.system(string.format(
     'am start -a android.media.action.IMAGE_CAPTURE --eu output "file://%s" com.motorola.camera3',
-    abs_path
+    android_path
   ))
 end
 
 local PICSART_DIR = "/sdcard/Pictures/Picsart"
 local POLL_INTERVAL_MS = 2000
 local POLL_MAX_TICKS   = 150  -- ~5 minutes
+
+local CLIPIMG_JAVA = "/home/fire/Water/crap/scripts/clipimg.java"
+local CLIPIMG_TMP = "/sdcard/tmp/clippaste"
+
+-- Paste image from Android clipboard into the note's gallery dir.
+-- droid runs Java on Android side to resolve the clipboard image URI and dump
+-- bytes to /sdcard/tmp/clippaste.<ext>. We then move it into Assets/ and link it.
+function M.pasteImage()
+  local cwd = vim.fn.getcwd()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local row = vim.api.nvim_win_get_cursor(0)[1] - 1
+
+  -- Resolve destination directory (same as M.take)
+  local rel_dir = find_section_path("gallery")
+  if not rel_dir then
+    rel_dir = "Assets"
+  end
+  local abs_dir = cwd .. "/" .. rel_dir
+  vim.fn.mkdir(abs_dir, "p")
+
+  -- Clean stale tmp files, then pull clipboard image via droid
+  vim.fn.system(string.format("rm -f %s.*", vim.fn.shellescape(CLIPIMG_TMP)))
+  local out = vim.fn.system(string.format("droid -f %s", vim.fn.shellescape(CLIPIMG_JAVA)))
+  if vim.v.shell_error ~= 0 then
+    vim.notify("PasteImage: droid failed\n" .. out, vim.log.levels.ERROR)
+    return
+  end
+
+  local clipfile = out:match("FILE:(%S+)")
+  if not clipfile then
+    -- URI: fallback — droid can't open content:// streams as shell UID, but
+    -- app FileProvider URIs map to real files root can read directly.
+    local uri = out:match("URI:(%S+)")
+    if uri then
+      local fetch = vim.fn.system(string.format("clipimg-fetch %s",
+        vim.fn.shellescape(uri)))
+      if vim.v.shell_error == 0 then
+        clipfile = fetch:match("FILE:(%S+)")
+      else
+        vim.notify("PasteImage: URI fetch failed\n" .. fetch, vim.log.levels.ERROR)
+        return
+      end
+    end
+  end
+  if not clipfile then
+    -- URL: fallback — browser copies carry <img src>, downloadable via curl
+    local url = out:match("URL:(%S+)")
+    if url then
+      local url_ext = url:match("%.([^.?]+)%?") or url:match("%.([^.?]+)$") or "png"
+      url_ext = url_ext:lower()
+      if url_ext ~= "png" and url_ext ~= "jpg" and url_ext ~= "jpeg" and url_ext ~= "webp" and url_ext ~= "gif" then
+        url_ext = "png"
+      end
+      local filename = tostring(os.time()) .. "." .. url_ext
+      local abs_path = abs_dir .. "/" .. filename
+      local dl = vim.fn.system(string.format("curl -sL --max-time 60 -o %s %s",
+        vim.fn.shellescape(abs_path), vim.fn.shellescape(url)))
+      if vim.v.shell_error ~= 0 or vim.fn.filereadable(abs_path) == 0 then
+        vim.notify("PasteImage: download failed\n" .. dl, vim.log.levels.ERROR)
+        return
+      end
+      vim.fn.system(string.format("chmod 644 %s", vim.fn.shellescape(abs_path)))
+      local md_path = rel_dir .. "/" .. filename
+      local alt = filename:gsub("%." .. url_ext .. "$", "")
+      local link = "![" .. alt .. "](" .. md_path .. ")"
+      local cur_line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
+      vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, { cur_line .. link })
+      vim.notify("PasteImage: downloaded → " .. md_path, vim.log.levels.INFO)
+      return
+    end
+    if out:match("TEXT:") then
+      vim.notify("PasteImage: clipboard holds text, not an image", vim.log.levels.WARN)
+    else
+      vim.notify("PasteImage: no image in clipboard\n" .. out, vim.log.levels.WARN)
+    end
+    return
+  end
+
+  -- Move into gallery dir with timestamp name (keep detected extension)
+  local ext = clipfile:match("%.([^.]+)$") or "png"
+  local filename = tostring(os.time()) .. "." .. ext
+  local abs_path = abs_dir .. "/" .. filename
+  local mv = vim.fn.system(string.format("mv -f %s %s",
+    vim.fn.shellescape(clipfile), vim.fn.shellescape(abs_path)))
+  if vim.v.shell_error ~= 0 then
+    vim.notify("PasteImage: move failed\n" .. mv, vim.log.levels.ERROR)
+    return
+  end
+
+  -- Clipboard images may arrive without other-read; fix like M.edit does
+  vim.fn.system(string.format("chmod 644 %s", vim.fn.shellescape(abs_path)))
+
+  -- Insert markdown link on current line
+  local md_path = rel_dir .. "/" .. filename
+  local alt = filename:gsub("%." .. ext .. "$", "")
+  local link = "![" .. alt .. "](" .. md_path .. ")"
+  local cur_line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
+  vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, { cur_line .. link })
+  vim.notify("PasteImage: pasted → " .. md_path, vim.log.levels.INFO)
+end
 
 function M.edit()
   local cwd = vim.fn.getcwd()
@@ -89,9 +195,10 @@ function M.edit()
 
   vim.notify("Opening photo editor…", vim.log.levels.INFO)
 
+  local android_abs = orig_abs:gsub("^/home/fire/Water/Fire", "/sdcard/Documents/Fire")
   vim.fn.system(string.format(
     'am start -a android.intent.action.EDIT -t "image/*" -d "file://%s"',
-    orig_abs
+    android_abs
   ))
 
   -- Poll Picsart dir for a new file with mtime > launch_time
@@ -140,6 +247,9 @@ function M.edit()
           vim.notify("EditPhoto: move failed\n" .. mv, vim.log.levels.ERROR)
           return
         end
+
+        -- Picsart saves as 0660 (no other-read). Fix so Android apps can open it.
+        vim.fn.system(string.format("chmod 644 %s", vim.fn.shellescape(new_abs)))
 
         -- Delete original unedited file
         if orig_abs ~= new_abs and vim.fn.filereadable(orig_abs) == 1 then
