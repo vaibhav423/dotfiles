@@ -34,6 +34,46 @@ return {
     ---@param opts AstroCoreOpts
     opts = function(_, opts)
       local maps = opts.mappings
+
+      -- Loading a session inside tmux would nuke the layout of the window we are
+      -- running in, so spawn a new tmux window instead. Outside tmux there is
+      -- nothing to protect, so just load it as usual.
+      local function in_tmux()
+        return vim.fn.executable("tmux") == 1 and not not vim.env.TMUX
+      end
+
+      ---@param opts? { dir?: string }
+      local function load_session(opts)
+        opts = opts or {}
+        if not in_tmux() then
+          return require("resession").load(opts.session, { dir = opts.dir })
+        end
+
+        local sessions = require("resession").list({ dir = opts.dir })
+        if vim.tbl_isempty(sessions) then
+          vim.notify("No saved sessions", vim.log.levels.WARN)
+          return
+        end
+
+        vim.ui.select(sessions, { kind = "resession_load", prompt = "Load session in new tmux window" }, function(selected)
+          if not selected then return end
+
+          local shellescape = vim.fn.shellescape
+          local shell_cmd = table.concat({
+            "env",
+            "RESESSION_SESSION=" .. shellescape(selected),
+            "RESESSION_DIR=" .. shellescape(opts.dir or ""),
+            "nvim",
+            "-S",
+            shellescape(vim.fn.stdpath("config") .. "/lua/personal/resession_open.lua"),
+          }, " ")
+
+          local job = vim.fn.jobstart({ "tmux", "new-window", "-n", selected, shell_cmd }, { detach = true })
+          if job <= 0 then
+            vim.notify("Could not open tmux window", vim.log.levels.ERROR)
+          end
+        end)
+      end
       
       -- Setup the new section leader
       maps.n["<Leader>s"] = { desc = "󰆓 Session" }
@@ -65,9 +105,9 @@ return {
         function() require("resession").delete(nil, { dir = "dirsession" }) end,
         desc = "Delete a dirsession",
       }
-      maps.n["<Leader>sf"] = { function() require("resession").load() end, desc = "Load a session" }
+      maps.n["<Leader>sf"] = { function() load_session() end, desc = "Load a session" }
       maps.n["<Leader>sF"] = {
-        function() require("resession").load(nil, { dir = "dirsession" }) end,
+        function() load_session({ dir = "dirsession" }) end,
         desc = "Load a dirsession",
       }
       maps.n["<Leader>s."] = {

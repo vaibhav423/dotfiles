@@ -43,6 +43,26 @@ bind /sys  sys
 bind /proc proc
 [ -n "$WITH_DATA" ] && bind /data data
 
+# CRITICAL: /dev and /data are shared-peer-group mounts on Android, so an
+# --rbind clone lands in the SAME peer group. Unmounting inside the chroot then
+# propagates back out and takes the HOST's mount with it (this is exactly how
+# /dev/pts got torn off the host). Re-slave them so events flow in only.
+# toybox mount has no propagation flags, so borrow util-linux's mount from
+# inside the chroot -- propagation is a property of the mount object, so it
+# applies globally no matter where you change it.
+# NOTE: --make-rslave takes exactly ONE target; passing several gives
+# "mount: bad usage" and silently changes nothing.
+if [ -x "$CHROOT_PATH/usr/bin/mount" ]; then
+    for t in /dev /sys /proc; do
+        chroot "$CHROOT_PATH" /usr/bin/mount --make-rslave "$t" 2>/dev/null \
+            || echo "warning: could not make $t a slave mount" >&2
+    done
+    if [ -n "$WITH_DATA" ]; then
+        chroot "$CHROOT_PATH" /usr/bin/mount --make-rslave /data 2>/dev/null \
+            || echo "warning: could not make /data a slave mount" >&2
+    fi
+fi
+
 if ! is_mounted dev/pts; then
     mkdir -p "$CHROOT_PATH/dev/pts"
     mount -t devpts devpts "$CHROOT_PATH/dev/pts"

@@ -1,8 +1,3 @@
-
-source <(fzf --zsh)
-eval "$(zoxide init zsh)"
-export FZF_COMPLETION_TRIGGER=',,'
-
 # # terminal-wakatime setup
 # export PATH="$HOME/.wakatime:$PATH"
 # eval "$(terminal-wakatime init)"
@@ -15,3 +10,4 @@ export LIBVIRT_DEFAULT_URI='qemu:///system'
 # [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 source ~/.secrets
+

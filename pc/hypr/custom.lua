@@ -83,6 +83,15 @@ hl.window_rule({
     stay_focused = true
 })
 
+-- Waydroid (Phone Portrait Mode)
+hl.window_rule({
+    name = "waydroid",
+    match = { class = "(Waydroid|waydroid)" },
+    float = true,
+    center = true,
+    size = { "450", "800" }
+})
+
 -- hl.window_rule({
 --     name = "file-picker",
 --     match = { class = "^(xdg-desktop-portal-gtk)$" },
