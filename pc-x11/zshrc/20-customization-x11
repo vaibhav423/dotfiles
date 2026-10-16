@@ -1,0 +1,21 @@
+# -----------------------------------------------------
+# CUSTOMIZATION - X11 / chadwm variant
+# -----------------------------------------------------
+# Replaces pc/zshrc/20-customization, which:
+#   - re-sourced oh-my-zsh (2nd time) and reset ZSH_THEME, breaking the prompt
+#   - loaded plugins that are not installed here (fast-syntax-highlighting, ollama)
+#   - called `oh-my-posh` (not installed; errored every shell start)
+# Plugin selection + oh-my-zsh sourcing live in zshrc-x11 instead.
+#
+# fzf IS installed on this machine, so the Ctrl+R history binding is kept.
+
+# zsh history
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt appendhistory
+
+# fzf key bindings (Ctrl+R history, Ctrl+T files, Alt+C cwd) - fzf installed
+if command -v fzf >/dev/null 2>&1; then
+    source <(fzf --zsh)
+fi

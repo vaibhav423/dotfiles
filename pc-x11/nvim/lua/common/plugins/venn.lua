@@ -1,0 +1,140 @@
+  -- helps me draw boxes line easily , also helpful drawing ascii
+  -- https://github.com/AstroNvim/astrocommunity/tree/main/lua/astrocommunity/note-taking/venn-nvim/init.lua
+  -- https://github.com/jbyuki/venn.nvim
+  -- https://github.com/jbyuki/venn.nvim/issues/27
+  -- to beigin
+  -- use leader vn , then do HJKL to draw
+  -- to put a box somewhere use  ctrl - v block select the region then press f to draw box
+local hint = [[
+ Arrow^^^^^^   Select region with <C-v> 
+ ^ ^ _K_ ^ ^   _f_: surround it with box
+ _H_ ^ ^ _L_
+ ^ ^ _J_ ^ ^                      _<Esc>_
+]]
+
+return {
+  "4DRIAN0RTIZ/venn.nvim",
+  branch = "feat/box-utilities",
+  cmd = {
+    "VBox",
+    "VBoxD",
+    "VBoxH",
+    "VBoxR",
+    "VBoxO",
+    "VBoxDO",
+    "VBoxHO",
+    "VFill",
+    "VErase",
+    "VDiv",
+    "VAlignL",
+    "VAlignC",
+    "VAlignR",
+  },
+  dependencies = {
+    {
+      "AstroNvim/astrocore",
+      opts = function(_, opts)
+        local astrocore = require "astrocore"
+        if astrocore.is_available "hydra.nvim" then
+          if not opts.commands then opts.commands = {} end
+          opts.commands.ToggleVenn = {
+            function()
+              local hydra = vim.tbl_get(astrocore.plugin_opts "hydra.nvim", "Draw Diagram", "hydra")
+              if hydra then
+                if hydra.layer.active then
+                  hydra:exit()
+                else
+                  hydra:activate()
+                end
+              end
+            end,
+            desc = "Toggle venn diagramming mode",
+          }
+        else
+          return astrocore.extend_tbl(opts, {
+            commands = {
+              ToggleVenn = {
+                function()
+                  local mappings = {
+                    n = { -- draw a line on HJKL keystrokes
+                      H = "<C-v>h:VBox<CR>",
+                      J = "<C-v>j:VBox<CR>",
+                      K = "<C-v>k:VBox<CR>",
+                      L = "<C-v>l:VBox<CR>",
+                    },
+                    v = { -- draw box utilities with visual selection
+                      f = ":VBox<CR>",
+                      r = ":VBoxR<CR>",
+                      d = ":VBoxD<CR>",
+                      b = ":VBoxH<CR>",
+                      o = ":VBoxO<CR>",
+                      c = ":VAlignC<CR>",
+                      F = ":VFill<CR>",
+                      E = ":VErase<CR>",
+                    },
+                  }
+                  if vim.b.venn_enabled then
+                    vim.opt_local.virtualedit = ""
+                    for mode, map in pairs(mappings) do
+                      for lhs, _ in pairs(map) do
+                        pcall(vim.keymap.del, mode, lhs, { buffer = true })
+                      end
+                    end
+                    vim.b.venn_enabled = nil
+                  else
+                    vim.b.venn_enabled = true
+                    vim.opt_local.virtualedit = "all"
+                    for mode, map in pairs(mappings) do
+                      for lhs, rhs in pairs(map) do
+                        vim.keymap.set(mode, lhs, rhs, { buffer = true, silent = true })
+                      end
+                    end
+                  end
+                  vim.notify(("Venn Diagramming Mode: %s"):format(vim.b.venn_enabled and "Enabled" or "Disabled"))
+                end,
+                desc = "Toggle venn diagramming mode",
+              },
+            },
+            mappings = {
+              n = { ["<Leader>vn"] = { function() vim.cmd.ToggleVenn() end, desc = "Toggle venn diagramming" } },
+            },
+          })
+        end
+      end,
+    },
+  },
+  specs = {
+    {
+      "anuvyklack/hydra.nvim",
+      optional = true,
+      opts = {
+        ["Draw Diagram"] = {
+          hint = hint,
+          config = {
+            color = "pink",
+            invoke_on_body = true,
+            hint = { border = "rounded" },
+            on_enter = function() vim.o.virtualedit = "all" end,
+          },
+          mode = "n",
+          body = "<leader>v",
+          heads = {
+            { "H", "<C-v>h:VBox<CR>" },
+            { "J", "<C-v>j:VBox<CR>" },
+            { "K", "<C-v>k:VBox<CR>" },
+            { "L", "<C-v>l:VBox<CR>" },
+            { "f", ":VBox<CR>", { mode = "v" } },
+            { "r", ":VBoxR<CR>", { mode = "v" } },
+            { "d", ":VBoxD<CR>", { mode = "v" } },
+            { "b", ":VBoxH<CR>", { mode = "v" } },
+            { "o", ":VBoxO<CR>", { mode = "v" } },
+            { "c", ":VAlignC<CR>", { mode = "v" } },
+            { "F", ":VFill<CR>", { mode = "v" } },
+            { "E", ":VErase<CR>", { mode = "v" } },
+            { "<Esc>", nil, { exit = true } },
+          },
+        },
+      },
+    },
+  },
+}
