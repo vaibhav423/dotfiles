@@ -1,4 +1,1 @@
-{
-  "format.enable": false,
-    "workspace.maxPreload": 10000
-}
+../../pc/nvim/.luarc.json
