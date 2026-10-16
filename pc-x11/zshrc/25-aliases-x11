@@ -1,0 +1,64 @@
+# -----------------------------------------------------
+# ALIASES - X11 / chadwm variant
+# -----------------------------------------------------
+# Replaces pc/zshrc/25-aliases, which is entirely ml4w/quickshell
+# (Hyprland-only, not present on this machine).
+# Uses chadwm + alacritty + yazi instead.
+
+# --- apps ---
+alias apps='yazi'
+alias filemanager='yazi'
+alias ff='yazi'
+alias editor='nvim'
+alias n='nvim'
+
+# --- session / system ---
+alias sysctl='sudo systemctl'
+alias services='systemctl --user list-units --type=service'
+alias journal='sudo journalctl -f'
+alias logs='sudo journalctl -b -p err'
+
+# --- runit (this machine uses runit, not systemd) ---
+alias svstat='sudo sv status /run/runit/service/*'
+alias up='sudo sv up'
+alias down='sudo sv down'
+alias rs='sudo sv restart'
+
+# --- power ---
+alias shutdown='sudo shutdown -h now'
+alias reboot='sudo reboot'
+alias poweroff='sudo poweroff'
+
+# --- disk ---
+alias df='df -h'
+alias free='free -h'
+alias du1='du -h --max-depth=1 | sort -hr | head'
+
+# --- git ---
+alias g='git'
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit -m'
+alias gp='git push'
+alias gl='git log --oneline --graph --decorate -20'
+alias gco='git checkout'
+
+# --- screenshots (chadwm MODKEY+u uses maim|xclip) ---
+alias shot='maim | xclip -selection clipboard -t image/png'
+alias shotsel='maim --select | xclip -selection clipboard -t image/png'
+
+# --- brightness (sysfs; xbacklight not installed) ---
+alias bright='cat /sys/class/backlight/intel_backlight/brightness | bc'
+alias upbright='echo $(( $(cat /sys/class/backlight/intel_backlight/brightness) + 100 )) | sudo tee /sys/class/backlight/intel_backlight/brightness'
+alias downbright='echo $(( $(cat /sys/class/backlight/intel_backlight/brightness) - 100 )) | sudo tee /sys/class/backlight/intel_backlight/brightness'
+
+# --- package management ---
+alias pacup='sudo pacman -Syu'
+alias pacrm='sudo pacman -Rns'
+alias pacorph='pacman -Qdt'
+
+# --- network ---
+alias wifi='nmcli device wifi list'
+alias wifion='nmcli con up Uniworld-1'
+alias wifioff='nmcli con down Uniworld-1'
+alias ipinfo='ip -br addr'

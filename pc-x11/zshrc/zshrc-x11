@@ -1,0 +1,33 @@
+# -----------------------------------------------------
+# ~/.zshrc - X11 / chadwm (Artix, HP 246)
+# Managed by ~/dotfiles (pc-x11/zshrc/*). Edit those files, not this one.
+#
+# Fixes vs the previous hand-written .zshrc on this machine:
+#   - Oh My Zsh was sourced TWICE (theme set twice); now once.
+#   - No unconditional tmux launch (it broke the startx login chain).
+#   - No `sudo plymouth quit` (plymouth is uninstalled; line errored).
+# -----------------------------------------------------
+
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+
+plugins=(
+  git
+  zsh-syntax-highlighting
+  zsh-autosuggestions
+)
+
+source $ZSH/oh-my-zsh.sh
+
+# ---- dotfiles pieces (symlinks into ~/dotfiles/pc-x11/zshrc) ----
+ZD="$HOME/dotfiles/pc-x11/zshrc"
+for f in 00-init 20-customization-x11 21-my-customization 25-aliases-x11 26-my-aliases 27-git.zsh 999-endscript.zsh; do
+  [ -r "$ZD/$f" ] && source "$ZD/$f"
+done
+
+# ---- login chain: tty1 + no X yet -> start the session ----
+# Only on tty1 and only when there is no display. Guarded so that shells
+# spawned by startx (which DO have DISPLAY) never re-trigger it.
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+  exec startx
+fi

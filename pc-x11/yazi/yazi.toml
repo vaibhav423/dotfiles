@@ -1,0 +1,16 @@
+[mgr]
+sort_by        = "natural"
+sort_reverse 	 = false
+
+[opener]
+
+# X11 / chadwm machine: alacritty is the terminal
+edit = [
+  { run = 'nvim "$@"', block = true, desc = "nvim" },
+  { run = 'setsid alacritty -e nvim "$@" > /dev/null 2>&1 &', block = true, desc = "nvim-in-separate-window" },
+]
+
+[open]
+
+prepend_rules = [
+]

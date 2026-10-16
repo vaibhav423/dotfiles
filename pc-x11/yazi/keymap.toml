@@ -1,0 +1,39 @@
+# X11 / chadwm (Artix, HP 246) variant of yazi keymap
+# Differences vs pc/: terminal is alacritty (not foot/kitty);
+# no Termux paths, no android gdrive, no dragon-drop (no X11 drag-drop here).
+[placeholder]
+
+[mgr]
+
+prepend_keymap = [
+  # goto
+	{ on = [ "g", "f" ],       run = "cd ~/Water/Fire/", desc = "go to fire" },
+	{ on = [ "g", "w" ],       run = "cd ~/Water",       desc = "go to water" },
+	{ on = [ "g", "i" ],       run = "cd ~/Water/crap",  desc = "go to crap" },
+	{ on = [ "g", "y" ],       run = "cd ~/.config/yazi", desc = "go to yazi" },
+	{ on = [ "g", "D" ],       run = "cd ~/Downloads",   desc = "go to downloads" },
+	{ on = [ "g", "d" ],       run = "cd ~/dotfiles",    desc = "go to dotfiles" },
+	{ on = [ "g", "F" ],       run = "follow",           desc = "Follow hovered symlink" },
+	{ on = [ "g", "n" ],       run = "cd ~/.config/nvim", desc = "go to nvim" },
+	{ on = [ "g", "s" ],       run = "cd ~/Water/crap/scripts", desc = "go to scripts" },
+	{ on = [ "g", "t" ],       run = "cd ~/doc",         desc = "go to notes" },
+
+	# s is a default bin
+	{ on = ["s"],	run = "plugin fr rga" ,	desc = "Search file by content (rga)" },
+
+	# Operation
+	{on = "<S-Enter>", run = "shell --orphan -- alacritty -e nvim %h", desc = "Open selected files interactively" },
+
+	# Open a terminal here and quit yazi
+	{ on = "K", run = "shell -- nohup alacritty --directory %d > /dev/null 2>&1 & ya emit quit", desc = "Open alacritty here and quit" },
+
+	# yamb bookmarks
+	{ on = [ "u", "a" ], run = "plugin yamb -- save", desc = "Add bookmark" },
+	{ on = [ "u", "g" ], run = "plugin yamb -- jump_by_key", desc = "Jump bookmark by key" },
+	{ on = [ "u", "j" ], run = "plugin yamb -- jump_by_fzf", desc = "Jump bookmark by fzf" },
+	{ on = [ "u", "d" ], run = "plugin yamb -- delete_by_key", desc = "Delete bookmark by key" },
+	{ on = [ "u", "D" ], run = "plugin yamb -- delete_by_fzf", desc = "Delete bookmark by fzf" },
+	{ on = [ "u", "A" ], run = "plugin yamb -- delete_all", desc = "Delete all bookmarks" },
+	{ on = [ "u", "r" ], run = "plugin yamb -- rename_by_key", desc = "Rename bookmark by key" },
+	{ on = [ "u", "R" ], run = "plugin yamb -- rename_by_fzf", desc = "Rename bookmark by fzf" },
+]
