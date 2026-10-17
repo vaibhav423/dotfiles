@@ -29,7 +29,8 @@ M.open_gallery = function()
   local target_path = get_gallery_path()
 
   if target_path then
-    vim.fn.jobstart({ "nsxiv", target_path }, { detach = true })
+    local cmd = string.format("find %s -maxdepth 1 -type f | sort -V | nsxiv -", vim.fn.shellescape(target_path))
+    vim.fn.jobstart({ "sh", "-c", cmd }, { detach = true })
     print("Opening nsxiv for: " .. target_path)
   else
     vim.notify("Gallery path not found", vim.log.levels.WARN)
