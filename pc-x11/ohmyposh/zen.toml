@@ -3,12 +3,12 @@ version = 3
 final_space = true
 
 [secondary_prompt]
-  template = '❯❯ '
+  template = '<blue></> ❯❯ '
   foreground = 'magenta'
   background = 'transparent'
 
 [transient_prompt]
-  template = '❯ '
+  template = '<blue></> ❯ '
   background = 'transparent'
   foreground_templates = ['{{if gt .Code 0}}red{{end}}', '{{if eq .Code 0}}magenta{{end}}']
 
@@ -16,16 +16,6 @@ final_space = true
   type = 'prompt'
   alignment = 'left'
   newline = true
-
-  [[blocks.segments]]
-    template = ' '
-    foreground = 'blue'
-    background = 'transparent'
-    type = 'text'
-    style = 'plain'
-
-    [blocks.segments.properties]
-      cache_duration = 'none'
 
   [[blocks.segments]]
     template = '{{ .Path }}'
