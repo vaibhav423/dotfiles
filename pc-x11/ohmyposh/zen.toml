@@ -62,7 +62,7 @@ final_space = true
   newline = true
 
   [[blocks.segments]]
-    template = '❯'
+    template = '<blue></> ❯'
     background = 'transparent'
     type = 'text'
     style = 'plain'
