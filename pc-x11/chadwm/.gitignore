@@ -1,0 +1,17 @@
+# Build artifacts
+chadwm/dwm
+chadwm/*.o
+chadwm/*.orig
+chadwm/*.rej
+*.zwc
+
+# NOTE: config.h is deliberately TRACKED here.
+# Upstream chadwm's .gitignore excludes it, but in this repo config.h holds
+# this machine's actual keybinds (alacritty bindings, etc). Losing it to a
+# checkout would silently revert the WM configuration.
+
+# Upstream installer leftovers
+.ccls-cache/
+setup*
+up.sh
+*.bak
