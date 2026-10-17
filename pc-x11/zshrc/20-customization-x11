@@ -4,7 +4,6 @@
 # Replaces pc/zshrc/20-customization, which:
 #   - re-sourced oh-my-zsh (2nd time) and reset ZSH_THEME, breaking the prompt
 #   - loaded plugins that are not installed here (fast-syntax-highlighting, ollama)
-#   - called `oh-my-posh` (not installed; errored every shell start)
 # Plugin selection + oh-my-zsh sourcing live in zshrc-x11 instead.
 #
 # fzf IS installed on this machine, so the Ctrl+R history binding is kept.
@@ -18,4 +17,13 @@ setopt appendhistory
 # fzf key bindings (Ctrl+R history, Ctrl+T files, Alt+C cwd) - fzf installed
 if command -v fzf >/dev/null 2>&1; then
     source <(fzf --zsh)
+fi
+
+# -----------------------------------------------------
+# Prompt - oh-my-posh (same config as pc/: ~/.config/ohmyposh/zen.toml)
+# -----------------------------------------------------
+# This MUST run after oh-my-zsh is sourced, otherwise oh-my-zsh's own prompt
+# wins and you get the plain robbyrussell look instead of zen.
+if command -v oh-my-posh >/dev/null 2>&1; then
+    eval "$(oh-my-posh init zsh --config "$HOME/.config/ohmyposh/zen.toml")"
 fi

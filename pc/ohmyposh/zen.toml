@@ -17,6 +17,17 @@ final_space = true
   alignment = 'left'
   newline = true
 
+  # Arch logo (U+F31F) ahead of the directory name
+  [[blocks.segments]]
+    template = ' '
+    foreground = 'blue'
+    background = 'transparent'
+    type = 'text'
+    style = 'plain'
+
+    [blocks.segments.properties]
+      cache_duration = 'none'
+
   [[blocks.segments]]
     template = '{{ .Path }}'
     foreground = 'blue'
