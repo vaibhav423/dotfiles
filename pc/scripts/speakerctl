@@ -1,0 +1,587 @@
+#!/usr/bin/env bash
+#
+# speakerctl - fully disable/enable the built-in laptop analog audio device
+#
+# The built-in speaker, headphone jack and internal microphone all live on the
+# analog HDA controller (PCI 0000:05:00.6 on this machine).  Bluetooth and the
+# NVIDIA HDMI audio controller are separate devices and are not touched.
+#
+# "off" detaches the PCI device from snd_hda_intel, which is stronger than
+# muting: the kernel driver no longer owns the device at all.  "on" rebinds it
+# and restores the previous PipeWire card profile.  By default "on" lasts for
+# the current session only; the boot service detaches the device again at the
+# next boot.  Use "on --persist" to keep it enabled across reboots.
+#
+# Run as your normal user.  The script calls sudo itself only for the PCI
+# detach/attach and for the boot service.
+#
+set -euo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/speakerctl"
+STATE_FILE="$STATE_DIR/state"
+BOOT_UNIT="/etc/systemd/system/speakerctl-off.service"
+
+DEFAULT_CARD="alsa_card.pci-0000_05_00.6"
+DEFAULT_PCI="0000:05:00.6"
+DEFAULT_ALSA="1"
+DEFAULT_DRIVER="snd_hda_intel"
+DEFAULT_PROFILE="output:analog-stereo+input:analog-stereo"
+
+CARD=""
+PCI=""
+ALSA=""
+DRIVER=""
+PROFILE=""
+SINK=""
+
+info()  { printf '%s\n' "$*"; }
+warn()  { printf 'warning: %s\n' "$*" >&2; }
+die()   { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+    cat <<'EOF'
+Usage: speakerctl [command]
+
+Commands:
+  off                Detach the built-in analog audio device (default;
+                     requires sudo).  Disables speaker, headphone jack and
+                     internal microphone.  Bluetooth/HDMI are unaffected.
+  on, load           Rebind the device for this session only.  It will be
+                     detached again at the next boot.
+  on --persist       Rebind and keep it enabled across reboots (disables the
+                     boot service).
+  unload             Same as: off
+  toggle             Toggle between off and on.
+  status             Show current state.
+  install            Install a system boot service that detaches the device
+                     at every boot, then detach it now.
+  uninstall          Remove the boot service (does not change current state).
+  help               Show this help.
+
+The script itself must be run as your normal user; it invokes sudo for the
+PCI detach/attach and for installing the boot service.
+EOF
+}
+
+load_state() {
+    CARD="$DEFAULT_CARD"
+    PCI="$DEFAULT_PCI"
+    ALSA="$DEFAULT_ALSA"
+    DRIVER="$DEFAULT_DRIVER"
+    PROFILE="$DEFAULT_PROFILE"
+    SINK=""
+
+    if [ -r "$STATE_FILE" ]; then
+        local key value
+        while IFS='=' read -r key value; do
+            case "$key" in
+                CARD)    [ -n "$value" ] && CARD="$value" ;;
+                PCI)     [ -n "$value" ] && PCI="$value" ;;
+                ALSA)    [ -n "$value" ] && ALSA="$value" ;;
+                DRIVER)  [ -n "$value" ] && DRIVER="$value" ;;
+                PROFILE) PROFILE="$value" ;;
+                SINK)    [ -n "$value" ] && SINK="$value" ;;
+            esac
+        done < "$STATE_FILE"
+    fi
+
+    [ -n "$PROFILE" ] || PROFILE="$DEFAULT_PROFILE"
+}
+
+save_state() {
+    mkdir -p "$STATE_DIR"
+    local tmp="$STATE_FILE.tmp.$$"
+    {
+        printf 'CARD=%s\n' "$CARD"
+        printf 'PCI=%s\n' "$PCI"
+        printf 'ALSA=%s\n' "$ALSA"
+        printf 'DRIVER=%s\n' "$DRIVER"
+        printf 'PROFILE=%s\n' "$PROFILE"
+        printf 'SINK=%s\n' "$SINK"
+    } > "$tmp"
+    chmod 600 "$tmp"
+    mv -f "$tmp" "$STATE_FILE"
+}
+
+# Find the analog card by looking for a PCI card that exposes a speaker port.
+# Output order: card name | PCI address | ALSA index | active profile
+detect_card() {
+    local out name pci alsa profile prefix sink driver
+    out=$(pactl list cards 2>/dev/null | awk '
+        function emit() {
+            if (found) return
+            if (name != "" && has_speaker && pci != "") {
+                printf "%s|%s|%s|%s\n", name, pci, alsa, profile
+                found = 1
+            }
+        }
+        /^Card #[0-9]+/ {
+            emit()
+            name = ""; pci = ""; alsa = ""; profile = ""; has_speaker = 0
+            next
+        }
+        $1 == "Name:" { name = $2 }
+        /device.bus_path = "pci-/ {
+            pci = $0
+            sub(/.*pci-/, "", pci)
+            sub(/".*/, "", pci)
+        }
+        /api.alsa.card = "/ {
+            alsa = $0
+            gsub(/[^0-9]/, "", alsa)
+        }
+        /Active Profile:/ { profile = $3 }
+        /port.type = "speaker"/ { has_speaker = 1 }
+        END { emit() }
+    ' || true)
+
+    [ -n "$out" ] || return 1
+    IFS='|' read -r name pci alsa profile <<< "$out"
+    [ -n "$name" ] || return 1
+
+    CARD="$name"
+    [ -n "$pci" ] && PCI="$pci"
+    [ -n "$alsa" ] && ALSA="$alsa"
+
+    # Keep the last real profile; never save "off" as the profile to restore.
+    if [ -n "$profile" ] && [ "$profile" != "off" ]; then
+        PROFILE="$profile"
+    fi
+
+    if [ -e "/sys/bus/pci/devices/$PCI/driver" ]; then
+        driver=$(basename "$(readlink -f "/sys/bus/pci/devices/$PCI/driver")")
+        [ -n "$driver" ] && DRIVER="$driver"
+    fi
+
+    prefix="alsa_output.${CARD#alsa_card.}."
+    sink=$(pactl list short sinks 2>/dev/null |
+        awk -v p="$prefix" 'index($2, p) == 1 { print $2; exit }' || true)
+    if [ -n "$sink" ]; then
+        SINK="$sink"
+    elif [ -z "$SINK" ]; then
+        SINK="${prefix}analog-stereo"
+    fi
+
+    return 0
+}
+
+card_present() {
+    [ -n "$CARD" ] || return 1
+    pactl list short cards 2>/dev/null |
+        awk -v c="$CARD" '$2 == c { found = 1 } END { exit !found }'
+}
+
+card_profile() {
+    [ -n "$CARD" ] || return 1
+    pactl list cards 2>/dev/null | awk -v c="$CARD" '
+        /^Card #[0-9]+/ { in_block = 0 }
+        index($0, "Name: " c) { in_block = 1 }
+        in_block && /Active Profile:/ { print $3; exit }
+    '
+}
+
+sink_present() {
+    [ -n "$SINK" ] || return 1
+    pactl list short sinks 2>/dev/null |
+        awk -v s="$SINK" '$2 == s { found = 1 } END { exit !found }'
+}
+
+alsa_present() {
+    [ -n "$ALSA" ] && [ -d "/proc/asound/card$ALSA" ]
+}
+
+pci_bound() {
+    [ -n "$PCI" ] && [ -e "/sys/bus/pci/devices/$PCI/driver" ]
+}
+
+wait_for_card() {
+    local tries="${1:-40}" i
+    for ((i = 0; i < tries; i++)); do
+        if card_present; then
+            detect_card || true
+            return 0
+        fi
+        sleep 0.25
+    done
+    return 1
+}
+
+wait_for_sink() {
+    local tries="${1:-20}" i
+    for ((i = 0; i < tries; i++)); do
+        sink_present && return 0
+        sleep 0.25
+    done
+    return 1
+}
+
+set_profile() {
+    local profile="$1" i
+    for ((i = 0; i < 20; i++)); do
+        if card_present && pactl set-card-profile "$CARD" "$profile" 2>/dev/null; then
+            return 0
+        fi
+        sleep 0.25
+    done
+    return 1
+}
+
+mute_alsa() {
+    command -v amixer >/dev/null 2>&1 || return 0
+    alsa_present || return 0
+    amixer -c "$ALSA" sset Speaker mute >/dev/null 2>&1 || true
+    amixer -c "$ALSA" sset Master mute  >/dev/null 2>&1 || true
+}
+
+unmute_alsa() {
+    command -v amixer >/dev/null 2>&1 || return 0
+    alsa_present || return 0
+    # The old bluetooth-only script used to leave Speaker at 0%.  Restore the
+    # amplifier gain; PipeWire still controls the actual listening volume.
+    amixer -c "$ALSA" sset Speaker 100% >/dev/null 2>&1 || true
+    amixer -c "$ALSA" sset Speaker unmute >/dev/null 2>&1 || true
+    amixer -c "$ALSA" sset Master unmute  >/dev/null 2>&1 || true
+}
+
+unmute_sink() {
+    sink_present || return 0
+    local vol
+    vol=$(pactl get-sink-volume "$SINK" 2>/dev/null |
+        grep -o '[0-9]\+%' | head -n1 || true)
+    if [ "$vol" = "0%" ]; then
+        pactl set-sink-volume "$SINK" 50% >/dev/null 2>&1 || true
+    fi
+    pactl set-sink-mute "$SINK" 0 >/dev/null 2>&1 || true
+}
+
+need_sudo() {
+    command -v sudo >/dev/null 2>&1 ||
+        die "sudo is required for hardware detach/attach"
+}
+
+detach_pci() {
+    pci_bound || return 0
+    need_sudo
+    local dir="/sys/bus/pci/drivers/${DRIVER:-$DEFAULT_DRIVER}"
+    [ -e "$dir/unbind" ] || {
+        warn "PCI driver path not found: $dir/unbind"
+        return 1
+    }
+    if ! printf '%s' "$PCI" | sudo tee "$dir/unbind" >/dev/null; then
+        warn "Could not detach PCI device $PCI"
+        return 1
+    fi
+    local i
+    for ((i = 0; i < 20; i++)); do
+        pci_bound || return 0
+        sleep 0.1
+    done
+    warn "PCI device $PCI is still bound after unbind"
+    return 1
+}
+
+attach_pci() {
+    pci_bound && return 0
+    need_sudo
+    local dir="/sys/bus/pci/drivers/${DRIVER:-$DEFAULT_DRIVER}"
+    if [ ! -e "$dir/bind" ]; then
+        sudo modprobe "${DRIVER:-$DEFAULT_DRIVER}" 2>/dev/null || true
+        sleep 1
+    fi
+    # modprobe may probe and bind the device on its own.
+    pci_bound && return 0
+    [ -e "$dir/bind" ] || die "PCI driver path not found: $dir/bind"
+    if ! printf '%s' "$PCI" | sudo tee "$dir/bind" >/dev/null; then
+        pci_bound || die "Could not bind PCI device $PCI"
+    fi
+    return 0
+}
+
+boot_unit_installed() {
+    [ -f "$BOOT_UNIT" ]
+}
+
+boot_unit_enabled() {
+    boot_unit_installed && systemctl is-enabled --quiet speakerctl-off.service 2>/dev/null
+}
+
+boot_unit_active() {
+    boot_unit_installed && systemctl is-active --quiet speakerctl-off.service 2>/dev/null
+}
+
+enable_boot_unit() {
+    boot_unit_installed || return 0
+    boot_unit_enabled && return 0
+    need_sudo
+    sudo systemctl enable speakerctl-off.service >/dev/null 2>&1 ||
+        warn "Could not enable speakerctl-off.service"
+}
+
+disable_boot_unit() {
+    boot_unit_installed || return 0
+    boot_unit_enabled || return 0
+    need_sudo
+    sudo systemctl disable --now speakerctl-off.service >/dev/null 2>&1 ||
+        warn "Could not disable speakerctl-off.service"
+}
+
+do_off() {
+    local persist="$1" current
+
+    load_state
+    detect_card || true
+
+    if pci_bound; then
+        if ! card_present; then
+            wait_for_card 40 || true
+        fi
+        if card_present; then
+            current=$(card_profile || true)
+            if [ -n "$current" ] && [ "$current" != "off" ]; then
+                PROFILE="$current"
+            fi
+            mute_alsa
+            pactl set-card-profile "$CARD" off >/dev/null 2>&1 ||
+                warn "Could not switch the PipeWire card profile to off"
+        fi
+    fi
+
+    save_state
+
+    if ! detach_pci; then
+        warn "The PCI device could not be detached."
+        if [ "$persist" = "1" ]; then
+            enable_boot_unit
+        fi
+        die "Built-in analog audio is silent, but PCI $PCI is still bound to the driver."
+    fi
+
+    local bt_sink
+    bt_sink=$(pactl list short sinks 2>/dev/null |
+        awk '$2 ~ /^bluez_output/ { print $2; exit }' || true)
+    if [ -n "$bt_sink" ]; then
+        pactl set-default-sink "$bt_sink" >/dev/null 2>&1 || true
+    fi
+
+    if [ "$persist" = "1" ]; then
+        enable_boot_unit
+    fi
+
+    info "Built-in analog audio: OFF (PCI device detached: speaker, headphone, mic disabled)."
+}
+
+do_on() {
+    local persist="${1:-0}"
+    load_state
+    detect_card || true
+
+    if ! pci_bound; then
+        attach_pci
+        wait_for_card 80 || die "The analog card did not appear after rebinding $PCI"
+        detect_card || true
+    elif ! card_present; then
+        wait_for_card 40 || true
+    fi
+
+    card_present || die "The analog audio card is not present"
+
+    local profile="${PROFILE:-$DEFAULT_PROFILE}"
+    [ "$profile" = "off" ] && profile="$DEFAULT_PROFILE"
+
+    if ! set_profile "$profile"; then
+        warn "Could not set profile '$profile'; falling back to '$DEFAULT_PROFILE'"
+        set_profile "$DEFAULT_PROFILE" || die "Could not enable the analog card"
+        profile="$DEFAULT_PROFILE"
+    fi
+
+    detect_card || true
+    wait_for_sink 20 || true
+    unmute_sink
+    unmute_alsa
+    if sink_present; then
+        pactl set-default-sink "$SINK" >/dev/null 2>&1 || true
+    fi
+    save_state
+
+    if [ "$persist" = "1" ]; then
+        disable_boot_unit
+        info "Built-in analog audio: ON (profile: $(card_profile || printf '%s' "$profile"))."
+        info "Persistent: the boot service is disabled, so it stays on across reboots."
+    elif boot_unit_enabled; then
+        if boot_unit_active; then
+            need_sudo
+            sudo systemctl stop speakerctl-off.service >/dev/null 2>&1 || true
+        fi
+        info "Built-in analog audio: ON (profile: $(card_profile || printf '%s' "$profile"))."
+        info "Temporary: it will be detached again at the next boot."
+    else
+        info "Built-in analog audio: ON (profile: $(card_profile || printf '%s' "$profile"))."
+        info "Boot service is not enabled; it will stay on across reboots."
+    fi
+}
+
+do_toggle() {
+    load_state
+    detect_card || true
+
+    if ! pci_bound; then
+        do_on 0
+        return
+    fi
+
+    if [ "$(card_profile || true)" = "off" ]; then
+        do_on 0
+    else
+        do_off 1
+    fi
+}
+
+do_status() {
+    load_state
+    detect_card || true
+
+    local state profile driver boot sink_state
+
+    if pci_bound; then
+        driver=$(basename "$(readlink -f "/sys/bus/pci/devices/$PCI/driver")")
+        if card_present; then
+            profile=$(card_profile || printf 'unknown')
+            if [ "$profile" = "off" ]; then
+                state="OFF (card profile; PCI still bound)"
+            else
+                state="ON (profile: $profile)"
+            fi
+        else
+            profile="not enumerated"
+            state="OFF (bound but no card)"
+        fi
+    else
+        driver="${DRIVER:-$DEFAULT_DRIVER}"
+        profile="n/a"
+        state="OFF (hardware detached)"
+    fi
+
+    if boot_unit_installed; then
+        if boot_unit_enabled; then
+            boot="enabled (detaches at next boot)"
+        else
+            boot="installed, disabled"
+        fi
+    else
+        boot="not installed"
+    fi
+
+    if sink_present; then
+        sink_state="$SINK ($(pactl get-sink-mute "$SINK" 2>/dev/null || printf 'unknown'))"
+    else
+        sink_state="not present"
+    fi
+
+    printf '%s\n' "Built-in analog audio"
+    printf '  State:        %s\n' "$state"
+    printf '  PCI device:   %s (%s)\n' "$PCI" "$(pci_bound && printf 'bound to %s' "$driver" || printf 'unbound')"
+    printf '  Card:         %s\n' "$CARD"
+    printf '  Card profile: %s\n' "$profile"
+    printf '  ALSA card:    %s (%s)\n' "$ALSA" "$(alsa_present && printf 'present' || printf 'absent')"
+    printf '  Sink:         %s\n' "$sink_state"
+    printf '  Boot service: %s\n' "$boot"
+}
+
+do_install() {
+    load_state
+    detect_card || true
+
+    local pci="${PCI:-$DEFAULT_PCI}"
+    local driver="${DRIVER:-$DEFAULT_DRIVER}"
+    local tmp
+
+    tmp=$(mktemp)
+    cat > "$tmp" <<EOF
+[Unit]
+Description=Detach built-in laptop analog audio (speaker/headphone/mic)
+After=sound.target
+ConditionPathExists=/sys/bus/pci/devices/$pci
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'if [ -e /sys/bus/pci/devices/$pci/driver ]; then for i in \$(seq 1 40); do [ -e /sys/bus/pci/drivers/$driver/unbind ] && break; sleep 0.25; done; echo -n "$pci" > /sys/bus/pci/drivers/$driver/unbind 2>/dev/null || true; fi; [ ! -e /sys/bus/pci/devices/$pci/driver ]'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    need_sudo
+    sudo install -m 0644 "$tmp" "$BOOT_UNIT"
+    rm -f "$tmp"
+    sudo systemctl daemon-reload
+    sudo systemd-analyze verify "$BOOT_UNIT" || warn "systemd-analyze reported a problem with $BOOT_UNIT"
+    sudo systemctl enable speakerctl-off.service >/dev/null
+
+    info "Installed $BOOT_UNIT"
+    info "It will detach the built-in analog audio device at every boot."
+    info "Run 'speakerctl on' to re-enable audio; that also disables the boot service."
+
+    do_off 0
+}
+
+do_uninstall() {
+    if ! boot_unit_installed; then
+        info "Boot service is not installed."
+        return 0
+    fi
+    need_sudo
+    sudo systemctl disable --now speakerctl-off.service >/dev/null 2>&1 || true
+    sudo rm -f "$BOOT_UNIT"
+    sudo systemctl daemon-reload
+    info "Removed $BOOT_UNIT"
+    info "Current audio state was not changed. Use 'speakerctl on' to load the device."
+}
+
+main() {
+    if [ "$(id -u)" -eq 0 ]; then
+        die "Run speakerctl as your normal user, not with sudo. It calls sudo itself when needed."
+    fi
+
+    local cmd="off"
+    if [ "$#" -gt 0 ]; then
+        cmd="$1"
+        shift
+    fi
+
+    case "$cmd" in
+        -h|--help|help) usage; return 0 ;;
+    esac
+
+    command -v pactl >/dev/null 2>&1 ||
+        die "pactl not found (PipeWire/PulseAudio is required)"
+
+    local persist_on=0
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --persist) persist_on=1 ;;
+            -h|--help) usage; return 0 ;;
+            *)         die "Unknown option: $1" ;;
+        esac
+        shift
+    done
+
+    if [ "$persist_on" = "1" ] && [ "$cmd" != "on" ] && [ "$cmd" != "load" ]; then
+        die "--persist only applies to 'on' or 'load'"
+    fi
+
+    case "$cmd" in
+        off|unload) do_off 1 ;;
+        on|load)   do_on "$persist_on" ;;
+        toggle)    do_toggle ;;
+        status)    do_status ;;
+        install)   do_install ;;
+        uninstall) do_uninstall ;;
+        *)
+            usage >&2
+            exit 2
+            ;;
+    esac
+}
+
+main "$@"

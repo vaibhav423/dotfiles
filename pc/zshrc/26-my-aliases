@@ -4,7 +4,20 @@
 # -----------------------------------------------------
 # General
 # -----------------------------------------------------
-
+hb() {
+    local input
+    if [ -n "$1" ]; then
+        input="$1"
+    else
+        input=$(cat)
+    fi
+    local hex=$(echo -n "$input" | tr -d ' \n\t\r')
+    if [ $(( ${#hex} % 2 )) -ne 0 ]; then
+        hex="${hex}0"
+    fi
+    echo -n "$hex" | xxd -r -p | xxd -b | cut -d' ' -f2-7 | tr -s ' \n' ' ' | sed 's/ $//'
+    echo "" # adds a clean newline at the very end
+}
 
 function yaz() {
     local tmp="$(mktemp -t "yazi-cwd.XXXXX")"
