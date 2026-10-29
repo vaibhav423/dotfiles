@@ -1,0 +1,280 @@
+#!/system/bin/sh
+# termux - open a Termux shell over adb
+#
+# Usage:
+#   adb shell /data/local/tmp/termux                  # interactive Termux shell
+#   adb shell /data/local/tmp/termux --native         # Termux bash, ignore chsh
+#   adb shell /data/local/tmp/termux -c 'uname -a'   # run one command
+#   adb shell /data/local/tmp/termux -r               # root shell, Termux env
+#   adb shell /data/local/tmp/termux -r -c 'id'
+#   adb shell /data/local/tmp/termux uname -a         # trailing args = command
+#
+# Options:
+#   --native              use Termux bash instead of ~/.termux/shell
+#   -r, --root            run as root instead of the Termux app uid
+#   -p, --package NAME    Termux package name (default: auto-detect)
+#   -c, --command CMD     run CMD in a Termux login shell, then exit
+#   -h, --help            show this help
+#
+# Default (non-root) mode drops to the Termux app uid, so files created in
+# $HOME stay owned by Termux and remain writable by the app. Root mode is
+# only needed for operations that really require uid 0; files created there
+# will be root-owned and may confuse the app later.
+
+set -u
+
+SELF=$0
+case "$SELF" in
+    /*) ;;
+    *)  SELF=$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)/$(basename "$SELF") ;;
+esac
+
+quote() {
+    # shell-quote a single argument
+    printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+usage() {
+    cat <<'EOF'
+termux - open a Termux shell over adb
+
+Usage:
+  adb shell /data/local/tmp/termux                  # interactive Termux shell
+  adb shell /data/local/tmp/termux --native         # Termux bash, ignore chsh
+  adb shell /data/local/tmp/termux -c 'uname -a'   # run one command
+  adb shell /data/local/tmp/termux -r               # root shell, Termux env
+  adb shell /data/local/tmp/termux -r -c 'id'
+  adb shell /data/local/tmp/termux uname -a         # trailing args = command
+
+Options:
+  --native              use Termux bash instead of ~/.termux/shell
+  -r, --root            run as root instead of the Termux app uid
+  -p, --package NAME    Termux package name (default: auto-detect)
+  -c, --command CMD     run CMD in a Termux login shell, then exit
+  -h, --help            show this help
+
+Default (non-root) mode drops to the Termux app uid, so files created in
+$HOME stay owned by Termux and remain writable by the app. Root mode is
+only needed for operations that really require uid 0; files created there
+will be root-owned and may confuse the app later.
+
+Tip: the wrapper allocates a pty itself for interactive use (80x24). For
+the correct window size, let adb allocate it instead:
+  adb shell -t /data/local/tmp/termux
+EOF
+}
+
+ROOT_MODE=0
+NATIVE=0
+INNER=0
+PKG=${TERMUX_PKG:-}
+CMD=
+HAS_CMD=0
+APP_UID=
+APP_VERSION=
+APP_VERSION_CODE=
+TERM_ARG=
+COLORTERM_ARG=
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -r|--root)    ROOT_MODE=1; shift ;;
+        --native)     NATIVE=1; shift ;;
+        --inner)      INNER=1; shift ;;
+        -p|--package) [ $# -ge 2 ] || { echo "termux: $1 needs an argument" >&2; exit 2; }; PKG=$2; shift 2 ;;
+        --package=*)  PKG=${1#*=}; shift ;;
+        -c|--command) [ $# -ge 2 ] || { echo "termux: $1 needs an argument" >&2; exit 2; }; CMD=$2; HAS_CMD=1; shift 2 ;;
+        -h|--help)    usage; exit 0 ;;
+        --app-uid)    APP_UID=$2; shift 2 ;;
+        --app-version) APP_VERSION=$2; shift 2 ;;
+        --app-version-code) APP_VERSION_CODE=$2; shift 2 ;;
+        --term)       TERM_ARG=$2; shift 2 ;;
+        --colorterm)  COLORTERM_ARG=$2; shift 2 ;;
+        --)
+            shift
+            [ $# -gt 0 ] && { CMD=$*; HAS_CMD=1; }
+            break ;;
+        -*)
+            echo "termux: unknown option: $1" >&2
+            usage >&2
+            exit 2 ;;
+        *)
+            CMD=$*
+            HAS_CMD=1
+            break ;;
+    esac
+done
+
+# ---------------------------------------------------------------------------
+# Inner stage: already running under the target uid (Termux app or root).
+# Set up the Termux environment and hand over to Termux's login shell.
+# ---------------------------------------------------------------------------
+if [ "$INNER" = 1 ]; then
+    [ -n "$PKG" ] || { echo "termux: internal error: missing package" >&2; exit 2; }
+
+    PREFIX="/data/data/$PKG/files/usr"
+    HOME_DIR="/data/data/$PKG/files/home"
+
+    if [ ! -d "$PREFIX" ]; then
+        echo "termux: $PREFIX not found (is $PKG installed?)" >&2
+        exit 1
+    fi
+    if [ ! -d "$HOME_DIR" ]; then
+        echo "termux: $HOME_DIR not found" >&2
+        exit 1
+    fi
+
+    export HOME="$HOME_DIR"
+    export PREFIX
+    export TMPDIR="$PREFIX/tmp"
+    export PATH="$PREFIX/bin:$PREFIX/bin/applets:/system/bin:/system/xbin"
+    export LD_LIBRARY_PATH="$PREFIX/lib"
+    export LANG=en_US.UTF-8
+    export TERM="${TERM_ARG:-${TERM:-xterm-256color}}"
+    [ -n "$COLORTERM_ARG" ] && export COLORTERM="$COLORTERM_ARG"
+
+    export ANDROID_ROOT=/system
+    export ANDROID_DATA=/data
+    export ANDROID_STORAGE=/storage
+    export EXTERNAL_STORAGE=/sdcard
+
+    export TERMUX_APP__PACKAGE_NAME="$PKG"
+    export TERMUX_APP__UID="${APP_UID:-$(id -u)}"
+    export TERMUX_APP__VERSION_NAME="$APP_VERSION"
+    export TERMUX_APP__VERSION_CODE="$APP_VERSION_CODE"
+    export TERMUX_APP__ARCH="$(uname -m)"
+    export TERMUX_APP__IS_DEBUG_BUILD=false
+    export TERMUX_VERSION="$APP_VERSION"
+    export TERMUX_MAIN_PACKAGE_FORMAT="${TERMUX_MAIN_PACKAGE_FORMAT:-debian}"
+    export TERMUX_APP_PACKAGE_MANAGER="${TERMUX_APP_PACKAGE_MANAGER:-apt}"
+
+    [ -d "$TMPDIR" ] || mkdir -p "$TMPDIR" 2>/dev/null
+
+    cd "$HOME_DIR" 2>/dev/null || cd / || exit 1
+
+    # Native mode: skip Termux's login wrapper so ~/.termux/shell (chsh) is
+    # ignored. Still wire up the same shell/preload that login would provide.
+    if [ "$NATIVE" = 1 ]; then
+        export SHELL="$PREFIX/bin/bash"
+        PRELOAD=
+        if [ -f "$PREFIX/lib/libtermux-exec-ld-preload.so" ]; then
+            PRELOAD="$PREFIX/lib/libtermux-exec-ld-preload.so"
+        elif [ -f "$PREFIX/lib/libtermux-exec.so" ]; then
+            PRELOAD="$PREFIX/lib/libtermux-exec.so"
+        fi
+        if [ -n "$PRELOAD" ]; then
+            export LD_PRELOAD="$PRELOAD"
+            "$PREFIX/bin/bash" -c "coreutils --coreutils-prog=true" >/dev/null 2>&1 || unset LD_PRELOAD
+        fi
+    fi
+
+    # `adb shell CMD` does not allocate a remote pty unless -t is given, which
+    # would leave an interactive shell without a prompt/job control. If there
+    # is no tty and no command was requested, allocate one with Termux's
+    # util-linux script(1). Piping into the wrapper still works.
+    PTY_EXEC="exec $(quote "$PREFIX/bin/login")"
+    [ "$NATIVE" = 1 ] && PTY_EXEC="exec $(quote "$PREFIX/bin/bash") -l"
+    if [ "$HAS_CMD" = 0 ] && [ ! -t 0 ] && [ -x "$PREFIX/bin/script" ]; then
+        exec "$PREFIX/bin/script" -q -c \
+            "stty rows 24 cols 80 2>/dev/null; $PTY_EXEC" /dev/null
+    fi
+    if [ "$HAS_CMD" = 0 ] && [ ! -t 0 ]; then
+        echo "termux: no tty (install util-linux for auto-pty, or use: adb shell -t $SELF)" >&2
+    fi
+
+    if [ "$NATIVE" = 1 ]; then
+        if [ "$HAS_CMD" = 1 ]; then
+            exec "$PREFIX/bin/bash" -l -c "$CMD"
+        else
+            exec "$PREFIX/bin/bash" -l
+        fi
+    fi
+
+    # Termux's own login wrapper: picks the configured shell, sets LD_PRELOAD
+    # for termux-exec, prints motd and starts a login shell.
+    if [ -x "$PREFIX/bin/login" ]; then
+        if [ "$HAS_CMD" = 1 ]; then
+            exec "$PREFIX/bin/login" -c "$CMD"
+        else
+            exec "$PREFIX/bin/login"
+        fi
+    fi
+
+    if [ "$HAS_CMD" = 1 ]; then
+        exec "$PREFIX/bin/bash" -l -c "$CMD"
+    else
+        exec "$PREFIX/bin/bash" -l
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Outer stage: running as the adb shell user. Find Termux, then re-enter this
+# script under `su` with the Termux app uid (or root with -r).
+# ---------------------------------------------------------------------------
+
+if [ -z "$PKG" ]; then
+    # Prefer the official package, otherwise pick any Termux-like package
+    # except known companion apps.
+    if pm list packages 2>/dev/null | grep -qx 'package:com.termux'; then
+        PKG=com.termux
+    else
+        PKG=$(pm list packages 2>/dev/null | sed -n 's/^package://p' | \
+            grep -i termux | grep -viE 'api|widget|boot|tasker|styling|float|:debug$' | head -n 1)
+    fi
+fi
+
+if [ -z "$PKG" ]; then
+    echo "termux: no Termux package found; use -p PACKAGE" >&2
+    exit 1
+fi
+
+PKG_UID=$(pm list packages -U 2>/dev/null | sed -n "s/^package:$PKG uid:\([0-9]*\)$/\1/p" | head -n 1)
+if [ -z "$PKG_UID" ]; then
+    echo "termux: package '$PKG' is not installed" >&2
+    exit 1
+fi
+
+PKG_DUMP=$(dumpsys package "$PKG" 2>/dev/null)
+APP_VERSION=$(printf '%s\n' "$PKG_DUMP" | sed -n 's/^ *versionName=//p' | head -n 1)
+APP_VERSION_CODE=$(printf '%s\n' "$PKG_DUMP" | sed -n 's/^ *versionCode=\([0-9][0-9]*\).*/\1/p' | head -n 1)
+
+# Supplementary groups (e.g. inet 3003) that the app itself runs with.
+GIDS=$(printf '%s\n' "$PKG_DUMP" | sed -n 's/.*gids=\[\([0-9,]*\)\].*/\1/p' | \
+    tr ',' '\n' | grep -v '^$' | grep -vx "$PKG_UID" | sort -un | tr '\n' ' ')
+
+# Termux reads these from the app environment; mirror them.
+[ -z "$APP_VERSION" ] && APP_VERSION=unknown
+[ -z "$APP_VERSION_CODE" ] && APP_VERSION_CODE=0
+
+# Preserve the terminal type across su (which resets the environment).
+TERM_VAL=${TERM:-xterm-256color}
+COLORTERM_VAL=${COLORTERM:-}
+
+# Build the inner command executed by `su`.
+INNER_CMD="exec $(quote "$SELF") --inner --package $(quote "$PKG")"
+[ "$NATIVE" = 1 ] && INNER_CMD="$INNER_CMD --native"
+INNER_CMD="$INNER_CMD --app-uid $(quote "$PKG_UID")"
+INNER_CMD="$INNER_CMD --app-version $(quote "$APP_VERSION")"
+INNER_CMD="$INNER_CMD --app-version-code $(quote "$APP_VERSION_CODE")"
+INNER_CMD="$INNER_CMD --term $(quote "$TERM_VAL")"
+[ -n "$COLORTERM_VAL" ] && INNER_CMD="$INNER_CMD --colorterm $(quote "$COLORTERM_VAL")"
+[ "$HAS_CMD" = 1 ] && INNER_CMD="$INNER_CMD -c $(quote "$CMD")"
+
+# `su --no-pty` keeps adb's own pty instead of stacking another one.
+SU_HELP=$(su -h 2>&1)
+SU_OPTS=
+case "$SU_HELP" in
+    *--no-pty*) SU_OPTS="--no-pty" ;;
+esac
+
+if [ "$ROOT_MODE" = 1 ]; then
+    exec su $SU_OPTS -c "$INNER_CMD"
+fi
+
+for g in $GIDS; do
+    SU_OPTS="$SU_OPTS -G $g"
+done
+
+# APatch/KernelSU take the target user before -c, and -G would otherwise
+# become the primary group, so pin the primary gid with -g explicitly.
+exec su $SU_OPTS -g "$PKG_UID" "$PKG_UID" -c "$INNER_CMD"

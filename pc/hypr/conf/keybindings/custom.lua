@@ -139,9 +139,9 @@ hl.bind(mainMod .. " + CTRL + O", hl.dsp.exec_cmd("~/Water/crap/scripts/rofi/rof
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd(term .. " nchat"), { description = "Whatsapp" })
 -- -A option allows u to join existing without it would throw duplicate session error
 hl.bind(mainMod .. " + O", hl.dsp.exec_cmd(term .. " opencode"), { description = "Opencode" })
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(tmux .. " -A -s nvim -c ~/Water/Fire/ nvim -c \"lua vim.defer_fn(function() vim.api.nvim_input('<Space>ff') end, 50)\""), { description = "Open nvim fzf" })
 hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd(tmux .. " -c ~/Water/Fire/ nvim"), { description = "Open nvim" })
-hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd(tmux .. " -A -s nvim  -c ~/Water/Fire nvim ~/Water/Fire/notes/scratch.md"), { description = "Notes" })
+hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd(tmux .. " -A -s nvim-scratch  -c ~/Water/Fire nvim ~/Water/Fire/notes/scratch.md"), { description = "Notes" })
 hl.bind(mainMod .. " + ALT + B", hl.dsp.exec_cmd(tmux .. " -A -s keybinding nvim '/home/ixdire/.config/hypr/conf/keybindings/custom.lua'"), { description = "Open keybinding file" })
 hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.exec_cmd(term .. " --app-id dotfiles-floating nvim ~/Water/crap/scripts/git.log"), { description = "Git log" })
 hl.bind(mainMod .. " + F2", hl.dsp.exec_cmd("firefox --name=ai-browser -P hminimal2 --new-instance gemini.google.com"), { description = "Notes" })
@@ -161,7 +161,7 @@ hl.bind(mainMod .. " + ALT + M", hl.dsp.exec_cmd("$SSH sudo input keyevent 85"),
 -- opacity-off: bind = mainMod ALT, O, exec, ~/Water/crap/scripts/opacity.sh 0.0
 -- opacity-on: bind = mainMod SHIFT, O, exec, ~/Water/crap/scripts/opacity.sh 0.2
 hl.bind(mainMod .. " + ALT + O", hl.dsp.exec_cmd("$HOME/Water/crap/scripts/opacity.sh"), { description = "Opacity toggle" })
-hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("firefox -P cheat --name cheat https://gemini.google.com/gem/b29be801abe6"), { description = "gemini-cheatsheet" })
+hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("firefox -P cheat --name cheat https://gemini.google.com/"), { description = "gemini-cheatsheet" })
 -- sendkeys-old: bind = mainMod ALT, S, exec, wl-paste > /home/ixdire/foo.txt && sudo ~/Water/crap/scripts/sendk Arch
 hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_cmd("wl-paste > ~/foo.txt && python /home/ixdire/Water/crap/scripts/sendk.py win11-x"), { description = "Sendkeys" })
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("/home/ixdire/Water/crap/scripts/stop_sendk.sh"), { description = "Stopkeys" })

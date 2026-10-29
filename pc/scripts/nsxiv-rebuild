@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Rebuild the locally patched nsxiv (v34 + PR #496) and install it to /usr/bin.
+set -euo pipefail
+
+SRC=/usr/local/src/nsxiv-patched
+PATCH=/usr/local/src/nsxiv-pr496.diff
+BIN=/usr/bin/nsxiv
+LOG=/var/log/nsxiv-rebuild.log
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin
+
+is_patched() {
+    grep -Eq '^static const int thumb_sizes\[\].*(192|256|320|384|512)' "$1" 2>/dev/null
+}
+
+if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
+    echo "error: run with sudo: sudo nsxiv-rebuild" >&2
+    exit 1
+fi
+if [[ ! -f $SRC/Makefile ]]; then
+    echo "error: source tree not found: $SRC" >&2
+    exit 1
+fi
+
+exec 9>/run/nsxiv-rebuild.lock
+if ! flock -n 9; then
+    echo "error: another nsxiv rebuild is already running" >&2
+    exit 1
+fi
+
+echo "Rebuilding patched nsxiv from $SRC ..."
+{
+    cd "$SRC"
+
+    if ! is_patched config.h; then
+        echo "config.h missing or unpatched; restoring patched config"
+        if ! is_patched config.def.h; then
+            git apply "$PATCH"
+            sed -i 's/^static const int THUMB_SIZE = .*/static const int THUMB_SIZE = 4;/' config.def.h
+        fi
+        cp -f config.def.h config.h
+    fi
+
+    make clean
+    make -j"$(nproc)"
+    install -m 755 nsxiv "$BIN"
+    echo "Installed $BIN"
+    "$BIN" -v | head -n1
+} 2>&1 | tee -a "$LOG"

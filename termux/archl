@@ -1,0 +1,55 @@
+#!/system/bin/sh
+# archl - enter the Arch Linux chroot as user fire
+#
+# Behaves enough like a shell for `chsh`:
+#   archl            interactive login shell
+#   archl -l         same (Termux login passes -l)
+#   archl -c CMD     run CMD inside the chroot and exit
+#   archl -l -c CMD  same (Termux login passes -l before -c)
+#
+# Termux's login script runs `$SHELL -c "coreutils..."` as an LD_PRELOAD
+# probe, so -c must not start an interactive shell or you get a duplicate
+# chroot shell, where the first Ctrl-D only closes the probe.
+#
+# APatch/KernelSU's su allocates a second pty by default, which can leave
+# the chroot shell's output stuck until the outer pty receives input.
+# --no-pty makes it inherit Termux's pty instead.
+
+# Termux's preload/lib paths do not belong inside the Arch chroot.
+unset LD_PRELOAD
+unset LD_LIBRARY_PATH
+
+quote() {
+    printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+HAS_CMD=0
+CMD=
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -l|--login)
+            shift
+            ;;
+        -c|--command)
+            shift
+            [ $# -ge 1 ] || { echo "archl: -c requires a command" >&2; exit 2; }
+            CMD=$1
+            HAS_CMD=1
+            shift
+            break
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+if [ "$HAS_CMD" = 1 ]; then
+    exec su --no-pty -c "exec /data/local/tmp/chroot_min.sh /bin/sh -c 'cd \"\$HOME\" || cd /; exec \"\$SHELL\" -c \"\$1\"' archl $(quote "$CMD")"
+fi
+
+exec su --no-pty -c 'exec /data/local/tmp/chroot_min.sh'

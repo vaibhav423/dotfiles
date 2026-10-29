@@ -140,8 +140,14 @@ or other application using the libvirt API.
       <model type='e1000e'/>
       <address type='pci' domain='0x0000' bus='0x02' slot='0x00' function='0x0'/>
     </interface>
-    <input type='mouse' bus='ps2'/>
     <input type='keyboard' bus='ps2'/>
+    <input type='mouse' bus='ps2'/>
+    <input type='evdev'>
+      <source dev='/dev/input/by-path/pci-0000:05:00.4-usb-0:3:1.0-event-kbd' grab='all' grabToggle='ctrl-ctrl' repeat='on'/>
+    </input>
+    <input type='evdev'>
+      <source dev='/dev/input/by-id/qemu-mouse-relay-event' grab='all'/>
+    </input>
     <tpm model='tpm-tis'>
       <backend type='emulator' version='2.0'>
         <profile name='default-v1'/>
@@ -152,7 +158,6 @@ or other application using the libvirt API.
       <source>
         <vendor id='0x5986'/>
         <product id='0x216a'/>
-        <address bus='1' device='2'/>
       </source>
       <address type='usb' bus='0' port='1'/>
     </hostdev>
@@ -172,17 +177,10 @@ or other application using the libvirt API.
     </hostdev>
     <hostdev mode='subsystem' type='usb' managed='yes'>
       <source>
-        <vendor id='0x3151'/>
-        <product id='0x3020'/>
-      </source>
-      <address type='usb' bus='0' port='2'/>
-    </hostdev>
-    <hostdev mode='subsystem' type='usb' managed='yes'>
-      <source>
         <vendor id='0x0489'/>
         <product id='0xe0cd'/>
       </source>
-      <address type='usb' bus='0' port='3'/>
+      <address type='usb' bus='0' port='2'/>
     </hostdev>
     <watchdog model='itco' action='reset'/>
     <memballoon model='none'/>
@@ -201,16 +199,6 @@ or other application using the libvirt API.
     <qemu:arg value='type=4,sock_pfx=FP7,manufacturer=Advanced Micro Device,, Inc.,version=AMD Ryzen 5 7235HS,max-speed=4250,current-speed=3200'/>
     <qemu:arg value='-smbios'/>
     <qemu:arg value='type=17,loc_pfx=Controller0-ChannelA-DIMMO,bank=BANK 0,manufacturer=Ramaxel Technology,serial=Unknown,asset=Not Specified,part=RMSB3400KB06IVF-4800,speed=4800'/>
-    <qemu:arg value='-object'/>
-    <qemu:arg value='input-linux,id=kbd0,evdev=/dev/input/by-path/platform-i8042-serio-0-event-kbd,grab_all=on,repeat=on'/>
-    <qemu:arg value='-object'/>
-    <qemu:arg value='input-linux,id=kbd1,evdev=/dev/input/by-path/pci-0000:05:00.4-usb-0:3:1.0-event-kbd,grab_all=on,repeat=on'/>
-    <qemu:arg value='-object'/>
-    <qemu:arg value='input-linux,id=mouse2,evdev=/dev/input/by-path/platform-AMDI0010:00-event-mouse-emul'/>
-    <qemu:arg value='-object'/>
-    <qemu:arg value='input-linux,id=mouse3,evdev=/dev/input/by-path/pci-0000:05:00.4-usb-0:3:1.0-event'/>
-    <qemu:arg value='-object'/>
-    <qemu:arg value='input-linux,id=mouse4,evdev=/dev/input/by-path/platform-AMDI0010:00-event-mouse'/>
     <qemu:arg value='-acpitable'/>
     <qemu:arg value='file=/var/lib/libvirt/ssdt-battery.aml'/>
   </qemu:commandline>

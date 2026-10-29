@@ -1,9 +1,18 @@
+" ------------------------------- do this on fresh install ---------------------------------
+" first find the extension url and replace below
+" set moz-extension://8cf42dcc-2f32-4dfa-81aa-46300bf58723/static/newtab.html as default page 
+" ------------------------------------------------------------------------------------------ 
+" ----------------- issues -----------------------------------------------------------------
+" tridactyl seems to only add the config lines , doesnt detect deletion , it requires to delete the extension to delete the user config completely and load stuff properly
+" deadshot.io doesnt work with blacklistadd do this , the game seems to be detecting something
+" seturl ^https?://deadshot.io  superignore true 
+" -----------------------------------------------------------------------------------------
 " General Settings
 set configversion 2.0
 set update.lastchecktime 1784993699863
 set newtab about:blank
 
-" Binds
+" ----------------------------------Binds
 bind <A-d> js tri.excmds.run_exstr("tabopen -b " + window.location.href)
 bind gs tabopen https://www.scaler.com/academy/mentee-dashboard/todos
 bind gd tabopen moz-extension://968d03b4-f3c4-4b3e-b291-54bfc853a916/data/ariang/index.html#!/downloading
@@ -15,15 +24,9 @@ bind ms tabopen https://mail.google.com/mail/?authuser=vaibhav.25bcs10507@sst.sc
 bind mb tabopen https://mail.google.com/mail/?authuser=2025eb01606@online.bits-pilani.ac.in
 bind gb tabopen https://www.coursera.org/degrees/bachelor-of-science-computer-science-bits/home/
 bind gS fillcmdline gsearchm ,
-unbind uu
 bind gvs tabopen moz-extension://1a52a344-8e15-4a81-98f7-fe8f569ebf8c/player.html
-bind gvg tabopen google.com
-bind gvd tabopen drive.google.com
-bind gvn tabopen google.com
 bind ;gh hint -F e => { let u = e.href; if (u) { if (u.startsWith("https://github.com") && u.includes("/blob/")) { u = u.replace("https://github.com", "https://raw.githubusercontent.com").replace("/blob/", "/refs/heads/"); } tri.excmds.clipboard("yank", u); } }
-bind gq tabopen q.com
 bind gy js -r yt_capture.js
-bind gk tabopen q.com
 bind qs source_quiet
 bind qw mktridactylrc -f
 bind gt fillcmdline gsmwin ,
@@ -31,25 +34,21 @@ unbind m
 bindurl www.google.com gi composite focusinput -l ; text.end_of_line
 bindurl ^https://web.whatsapp.com f hint -c [tabindex]:not(.two)>div,a
 bindurl ^https://web.whatsapp.com F hint -bc [tabindex]:not(.two)>div,a
-" unbind url increment
+" -- unbind url increment
 unbind <C-a>
-" unbind move half page down
+" -- unbind move half page down
 unbind <C-f>
 " open in archive
 bind ga js tri.excmds.tabopen("https://web.archive.org/web/" + window.location.href)
 " open downloader
 bind gd tabopen moz-extension://968d03b4-f3c4-4b3e-b291-54bfc853a916/data/ariang/index.html#!/downloading
 
-" Aliases
+" ---------------------------------- Aliases
 alias copytabs jsb browser.tabs.query({}).then(tabs => { const urls = tabs.map(t => t.url).join('\n'); tri.excmds.clipboard('yank', urls); })
-alias vbd tabopen
-alias vbg tabopen
-alias vxg tabopen
-alias vxt tabopen
 alias gsearchm jsb -d, const queries = JS_ARGS.slice(1).map(q => q.trim()); const cmd = "composite " + queries.map(q => "tabopen google " + q).join(" ; "); tri.excmds.run_exstr(cmd);
 alias yt_capture js -r yt_capture.js
 alias tsc jsb -d, const queries = JS_ARGS.slice(1).map(q => q.trim()); const cmd = "composite " + queries.map(q => "tabopen google " + q).join(" ; "); tri.excmds.run_exstr(cmd);
 alias gsc jsb 'for (const q of JS_ARGS) { tri.excmds.tabopen("google", q); }'
 
-" For syntax highlighting see https://github.com/tridactyl/vim-tridactyl
-" vim: set filetype=tridactyl
+" For syntax highlighting see https://github.com/tridactyl/vim-tridactyl , lazy.vim : return { "tridactyl/vim-tridactyl" }
+

@@ -1,8 +1,8 @@
 #!/bin/bash
 ## Load the config file
 source "/etc/libvirt/hooks/kvm.conf"
-## 1. Allocate Hugepages
-echo "$HUGEPAGES_AMOUNT" > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+## 1. Allocate Hugepages (8GB = 4096 pages of 2MB)
+echo "4096" > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
 ## 2. Load necessary kernel modules
 modprobe loop
 modprobe linear
