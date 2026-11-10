@@ -10,8 +10,15 @@ sort_reverse 	 = false
 
 pdf-open = [{ run = "setsid zathura %s1" , desc = "pdf-open" , for = "linux"}]
 
+image-open = [
+	{ run = "setsid pinta %s1 > /dev/null 2>&1 &", desc = "pinta", for = "linux" },
+]
+
 [open]
 
 prepend_rules = [
-  { url = "*.pdf" , use = [ "pdf-open"] } 
+  { url = "*.pdf" , use = [ "pdf-open"] },
+  # Enter/O default stays "open" (xdg-open -> nsxiv/nsxiv-gif via xdg-mime),
+  # pinta is only an extra choice in the `o` picker:
+  { mime = "image/*", use = [ "open", "image-open", "reveal" ] }
 ]

@@ -1,0 +1,47 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# archl-ns -- direct Termux launcher for the persistent chroot namespace.
+#
+# New file; does not replace archl/arch-shell.
+#   archl-ns              interactive login as fire
+#   archl-ns -c 'CMD'     run CMD inside the chroot
+#
+# Uses the same --no-pty trick as archl: APatch su otherwise allocates a second
+# pty and output can appear stuck.
+
+unset LD_PRELOAD
+unset LD_LIBRARY_PATH
+
+quote() {
+    printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+HAS_CMD=0
+CMD=
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -l|--login)
+            shift
+            ;;
+        -c|--command)
+            shift
+            [ $# -ge 1 ] || { echo "archl-ns: -c requires a command" >&2; exit 2; }
+            CMD=$1
+            HAS_CMD=1
+            shift
+            break
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+if [ "$HAS_CMD" = 1 ]; then
+    exec su --no-pty -c "exec /data/local/tmp/chroot_ns_enter.sh -c $(quote "$CMD")"
+fi
+
+exec su --no-pty -c 'exec /data/local/tmp/chroot_ns_enter.sh'

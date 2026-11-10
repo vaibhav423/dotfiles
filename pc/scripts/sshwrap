@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+#
+# sshwrap — a drop-in `bash` replacement that really runs everything on an
+#            SSH host (default: the `foo` alias from ~/.ssh/config).
+#
+#   sshwrap                       interactive shell on foo
+#   sshwrap ls -la /var/log       run `ls -la /var/log` on foo
+#   sshwrap -p 2222 make -j8      ssh options go first, then the command
+#   sshwrap -- -t sudo systemctl  after `--` everything is the remote command
+#   sshwrap -c 'echo hi'          compatible with `sh -c` (scp/rsync/git work)
+#
+# Env knobs:
+#   SSH_HOST=bar          talk to a different host alias
+#   SSHWRAP_OPTS="-v"     ssh options added to every call (word-split on purpose)
+#   SSHWRAP_NOCHECK=1     skip the "host exists in ssh config" sanity warning
+#
+# Exit status, stdin/stdout, pipes, redirection and signals all belong to ssh,
+# so this behaves like a real remote shell instead of a leaky wrapper.
+
+set -o pipefail
+
+HOST=${SSH_HOST:-ixdire}
+
+# --- sanity: never silently run LOCALLY because the alias is missing ---------
+# `ssh` with no destination opens your *local* shell, which would mean a script
+# typed as `sshwrap deploy.sh` runs on the wrong machine. Warn loudly instead.
+known_host() {
+	local h=$1 pat
+	# every word of every `Host` line, minus the catch-all `*`
+	while IFS= read -r pat; do
+		[[ -z $pat || $pat == '*' ]] && continue
+		[[ $pat == "$h" ]] && return 0                     # exact
+		[[ $pat == *'*' && $h == "${pat%\*}"* ]] && return 0   # foo* / f?o
+	done < <(grep -ihE '^[[:space:]]*[Hh]ost[[:space:]]+' "$HOME/.ssh/config" 2>/dev/null |
+		sed -E 's/^[Hh]ost[[:space:]]+//' | tr ',' ' ')
+	return 1
+}
+
+if [[ -z ${SSHWRAP_NOCHECK:-} && -z ${SSH_HOST:-} && -r $HOME/.ssh/config ]]; then
+	if ! known_host "$HOST"; then
+		printf 'sshwrap: WARNING: host %q is not in %s/.ssh/config — this would run LOCALLY.\n' \
+			"$HOST" "$HOME" >&2
+		printf 'sshwrap: add "Host %s", or set SSH_HOST=<alias>, or SSHWRAP_NOCHECK=1 to silence.\n' "$HOST" >&2
+	fi
+fi
+
+# --- bash -c "cmd"  (this is how scp/rsync/git invoke a remote shell) --------
+if [[ ${1-} == -c ]]; then
+	shift
+	# scp/rsync/git pass exactly one command string here; anything after it is
+	# only the cosmetic $0, which cannot survive being flattened into a string.
+	REMOTE=("$1")
+	OPTS=()
+else
+	# ssh options that consume the following word (e.g. -p 2222, -i key, -o k=v).
+	# Every other `-*` arg is just handed to ssh as-is; ssh itself rejects typos.
+	with_arg=(-b -c -D -E -e -F -I -i -J -L -l -m -O -o -p -Q -R -S -W -w)
+
+	OPTS=()
+	REMOTE=()
+	while (($#)); do
+		if [[ $1 == -- ]]; then                 # explicit escape hatch
+			shift
+			REMOTE=("$@")
+			break
+		fi
+		if [[ $1 == -* ]]; then                 # still in ssh-option territory
+			arg=$1
+			OPTS+=("$arg")
+			shift
+			for w in "${with_arg[@]}"; do
+				if [[ $arg == "$w" ]]; then
+					OPTS+=("$1")             # swallow the option's value
+					shift
+					break
+				fi
+			done
+			continue
+		fi
+		REMOTE=("$@")                            # first plain word = remote cmd
+		break
+	done
+	unset with_arg arg
+fi
+
+# --- build the remote command string -----------------------------------------
+# ssh joins its own argv with plain spaces, so we must quote ourselves or any
+# argument containing a space/quote will be mangled by the remote shell.
+if ((${#REMOTE[@]})); then
+	printf -v CMD '%q ' "${REMOTE[@]}"
+	CMD=${CMD% }
+fi
+
+# --- extras ------------------------------------------------------------------
+if [[ -n ${SSHWRAP_OPTS:-} ]]; then
+	read -r -a extra <<<"$SSHWRAP_OPTS"
+	OPTS+=("${extra[@]}")
+	unset extra
+fi
+
+# --- go ----------------------------------------------------------------------
+# `exec` so that ssh *is* this process: job control, SIGINT/SIGTSTP, ~ escapes,
+# terminal resize, window title and the remote exit code all work untouched.
+if ((${#CMD})); then
+	exec ssh "${OPTS[@]}" "$HOST" "$CMD"
+else
+	exec ssh "${OPTS[@]}" "$HOST"
+fi

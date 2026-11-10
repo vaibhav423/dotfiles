@@ -1,0 +1,11 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Termux:Widget shortcut -- open nvim in ~/Water/Fire inside the Arch chroot.
+#
+# Uses the persistent namespace directly, so it does not depend on archl-ns
+# being in PATH. If the holder is not running, chroot_ns_enter.sh falls back
+# to the ephemeral private-namespace launcher.
+
+unset LD_PRELOAD
+unset LD_LIBRARY_PATH
+
+exec su --no-pty -c "exec /data/local/tmp/chroot_ns_enter.sh -c 'cd \"\$HOME/Water/Fire\" || exit 1; exec nvim'"

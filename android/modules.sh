@@ -1,7 +1,6 @@
 ## general
-curl -LO https://github.com/kmdtaufik/morphe-magisk-module/releases/download/25/music-morphe-magisk-v9.20.53-arm64-v8a.zip
-curl -LO https://github.com/kmdtaufik/morphe-magisk-module/releases/download/25/youtube-morphe-magisk-v21.20.405-all.zip
-
+curl -LO https://github.com/j-hc/revanced-magisk-module/releases/download/20221123/youtube-morphe-module-v21.30.216-all.zip
+curl -LO https://github.com/j-hc/revanced-magisk-module/releases/download/20221123/music-morphe-module-v9.30.53-arm64-v8a.zip
 ## root-hide
 curl -LO https://github.com/Dr-TSNG/ZygiskNext/releases/download/v1.5.2/Zygisk-Next-1.5.2-864-a4a72ce-release.zip
 curl -LO https://github.com/KOWX712/PlayIntegrityFix/releases/download/v4.9-inject-s/PlayIntegrityFix_v4.9-inject-s.zip
